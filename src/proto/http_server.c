@@ -47,23 +47,22 @@
 #include <time.h>
 #include <errno.h>
 
-#include "macro_helpers.h"
-#include "mem_helpers.h"
-#include "StrToNum.h"
-#include "HTTP.h"
+#include "utils/macro.h"
+#include "utils/mem_utils.h"
+#include "utils/str2num.h"
+#include "proto/http.h"
 
 
-#include "core_atomic.h"
-#include "core_io_task.h"
-#include "core_io_net.h"
-#include "core_net_helpers.h"
-#include "core_info.h"
-#include "core_hostname.h"
-#include "core_log.h"
-#include "core_http_srv.h"
+#include "threadpool/threadpool_task.h"
+#include "net/net_socket.h"
+#include "net/net_helpers.h"
+#include "utils/info.h"
+#include "net/hostname_list.h"
+#include "utils/log.h"
+#include "proto/http_server.h"
 #ifdef HTTP_SRV_XML_CONFIG
-#include "core_helpers.h"
-#include "xml.h"
+#include "utils/helpers.h"
+#include "utils/xml.h"
 #endif
 
 
@@ -762,7 +761,7 @@ http_srv_cli_alloc(http_srv_bind_p bnd, thrpt_p thrpt, uintptr_t skt,
 	cli = zalloc(sizeof(http_srv_cli_t));
 	if (NULL == cli)
 		return (cli);
-	atomic_add_rel_64(&bnd->srv->stat.connections, 1);
+	bnd->srv->stat.connections ++;
 
 	cli->rcv_buf = io_buf_alloc(IO_BUF_FLAGS_STD, bnd->srv->s.rcv_io_buf_init_size);
 	if (NULL == cli->rcv_buf)
@@ -790,7 +789,7 @@ http_srv_cli_free(http_srv_cli_p cli) {
 
 	if (NULL == cli)
 		return;
-	atomic_subtract_rel_64(&cli->bnd->srv->stat.connections, 1);
+	cli->bnd->srv->stat.connections --;
 	if (NULL != cli->ccb.on_destroy) { /* Call back handler. */
 		cli->ccb.on_destroy(cli, cli->udata, &cli->resp);
 	}

@@ -41,7 +41,7 @@
 
 
 #include "utils/macro.h"
-#include "core_http_srv.h"
+#include "proto/http_server.h"
 #include "core_auth_plugin.h"
 
 

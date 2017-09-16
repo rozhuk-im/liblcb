@@ -68,8 +68,8 @@
 #	ifdef BSD /* BSD specific code. */
 #		include <sys/rtprio.h>
 #	endif /* BSD specific code. */
-#	include "StrToNum.h"
-#	include "xml.h"
+#	include "utils/str2num.h"
+#	include "utils/xml.h"
 #endif
 
 

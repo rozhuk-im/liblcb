@@ -34,14 +34,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "HTTP.h"
+#include "proto/http.h"
 
 #include "utils/macro.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_task.h"
-#include "core_io_buf.h"
-#include "core_hostname.h"
-#include "core_io_net.h"
+#include "utils/io_buf.h"
+#include "net/hostname_list.h"
+#include "net/net_socket.h"
 
 
 #define HTTP_SRV_MAX_CUSTOM_HDRS_CNT	((IOV_MAX / 2) - 4) /* Limit for http_srv_snd() */

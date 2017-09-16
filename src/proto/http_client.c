@@ -47,18 +47,18 @@
 #include <time.h>
 #include <errno.h>
 
-#include "mem_helpers.h"
-#include "StrToNum.h"
-#include "HTTP.h"
+#include "utils/mem_utils.h"
+#include "utils/str2num.h"
+#include "proto/http.h"
 
-#include "macro_helpers.h"
-#include "core_io_task.h"
-#include "core_io_net.h"
-#include "core_net_helpers.h"
-#include "core_info.h"
-#include "core_hostname.h"
-#include "core_log.h"
-#include "core_http_cli.h"
+#include "utils/macro.h"
+#include "threadpool/threadpool_task.h"
+#include "net/net_socket.h"
+#include "net/net_helpers.h"
+#include "utils/info.h"
+#include "net/hostname_list.h"
+#include "utils/log.h"
+#include "proto/http_client.h"
 
 
 

@@ -33,11 +33,11 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
-#include "mem_helpers.h"
-#include "macro_helpers.h"
-#include "core_net_helpers.h"
-#include "bt_encode.h"
-#include "bt_tracker.h"
+#include "utils/mem_utils.h"
+#include "utils/macro.h"
+#include "net/net_helpers.h"
+#include "utils/bt_encode.h"
+#include "proto/bt_tracker.h"
 
 
 

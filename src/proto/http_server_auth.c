@@ -42,16 +42,16 @@
 #include <stdio.h> /* snprintf, fprintf */
 #include <errno.h>
 
-#include "mem_helpers.h"
-#include "HTTP.h"
+#include "utils/mem_utils.h"
+#include "proto/http.h"
 
-#include "macro_helpers.h"
-#include "core_log.h"
-#include "core_http_srv.h"
-#include "core_http_srv_auth.h"
+#include "utils/macro.h"
+#include "utils/log.h"
+#include "proto/http_server.h"
+#include "proto/http_server_auth.h"
 #ifdef HTTP_SRV_XML_CONFIG
-#include "core_helpers.h"
-#include "xml.h"
+#include "utils/helpers.h"
+#include "utils/xml.h"
 #endif
 
 

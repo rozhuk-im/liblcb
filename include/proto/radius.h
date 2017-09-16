@@ -70,7 +70,7 @@
 #endif
 
 
-#include "md5.h"
+#include "crypto/hash/md5.h"
 
 
 

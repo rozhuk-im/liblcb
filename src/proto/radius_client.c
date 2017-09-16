@@ -43,19 +43,19 @@
 #include <stdio.h> /* snprintf, fprintf */
 #include <time.h>
 
-#include "mem_helpers.h"
-#include "crc32.h"
-#include "radius_pkt.h"
+#include "utils/mem_utils.h"
+#include "math/crc32.h"
+#include "proto/radius.h"
 
-#include "macro_helpers.h"
-#include "core_io_task.h"
-#include "core_io_net.h"
-#include "core_helpers.h"
-#include "core_net_helpers.h"
-#include "core_log.h"
-#include "core_radius_cli.h"
+#include "utils/macro.h"
+#include "threadpool/threadpool_task.h"
+#include "net/net_socket.h"
+#include "utils/helpers.h"
+#include "net/net_helpers.h"
+#include "utils/log.h"
+#include "proto/radius_client.h"
 #ifdef RADIUS_CLIENT_XML_CONFIG
-#include "xml.h"
+#include "utils/xml.h"
 #endif
 
 

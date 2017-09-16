@@ -34,13 +34,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "HTTP.h"
+#include "proto/http.h"
 
 #include "utils/macro.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_task.h"
-#include "core_net_hostaddr.h"
-#include "core_io_net.h"
+#include "net/host_address.h"
+#include "net/net_socket.h"
 
 #define HTTP_CLI_MAX_CUSTOM_HDRS_CNT	((IOV_MAX / 2) - 4) /* Limit for http_cli_snd() */
 
@@ -112,7 +112,7 @@ typedef struct http_client_settings_s { /* Settings */
 #define HTTP_CLI_S_DEF_SND_IO_BUF_INIT	(4)
 #define HTTP_CLI_S_DEF_RCV_IO_BUF_INIT	(4)
 #define HTTP_CLI_S_DEF_RCV_IO_BUF_MAX	(128)
-#define HTTP_CLI_S_DEF_REQ_P_FLAGS	(HTTP_CLI_REQ_P_F_USER_AGENT | HTTP_CLI_REQ_P_F_CONTENT_LEN
+#define HTTP_CLI_S_DEF_REQ_P_FLAGS	(HTTP_CLI_REQ_P_F_USER_AGENT | HTTP_CLI_REQ_P_F_CONTENT_LEN)
 #define HTTP_CLI_S_DEF_RESP_P_FLAGS	(0)
 
 

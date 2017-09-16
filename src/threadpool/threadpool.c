@@ -69,8 +69,8 @@
 #include "threadpool/threadpool_msg_sys.h"
 
 #ifdef THRP_XML_CONFIG
-#	include "xml.h"
-#	include "core_helpers.h"
+#	include "utils/xml.h"
+#	include "utils/helpers.h"
 #endif
 
 

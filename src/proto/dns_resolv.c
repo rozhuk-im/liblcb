@@ -50,17 +50,17 @@
 #include <stdio.h> /* snprintf, fprintf */
 #include <time.h>
 
-#include "hash_bucket.h"
-#include "mem_helpers.h"
-#include "DNSMessage.h"
+#include "utils/hash_bucket.h"
+#include "utils/mem_utils.h"
+#include "proto/dns.h"
 
-#include "core_io_task.h"
-#include "core_io_net.h"
-#include "core_helpers.h"
-#include "macro_helpers.h"
-#include "core_net_helpers.h"
-#include "core_log.h"
-#include "core_dns_resolv.h"
+#include "threadpool/threadpool_task.h"
+#include "net/net_socket.h"
+#include "utils/helpers.h"
+#include "utils/macro.h"
+#include "net/net_helpers.h"
+#include "utils/log.h"
+#include "proto/dns_resolv.h"
 
 
 #define DNS_RESOLVER_SKT_RCV_SIZE	(128 * 1024)

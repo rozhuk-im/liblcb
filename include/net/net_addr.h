@@ -44,7 +44,7 @@
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
-#include "core_net_helpers.h"
+#include "net/net_helpers.h"
 
 #define CORE_NET_ADDR_PREALLOC	8
 

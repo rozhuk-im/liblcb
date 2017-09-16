@@ -47,7 +47,7 @@
 #include "utils/str2num.h"
 
 #include "utils/macro.h"
-#include "core_net_helpers.h"
+#include "net/net_helpers.h"
 
 
 #define HOST_ADDR_PREALLOC	8
