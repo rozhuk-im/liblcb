@@ -3,3 +3,9 @@ Light Code Base
 Linked code library.
 Compile and include only things that you need.
 
+
+crypto		- crypto algs
+math		- mathematic functions
+threadpool	- kqueue/epoll thread pool
+utils		- 
+
