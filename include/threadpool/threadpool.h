@@ -180,7 +180,7 @@ int	tpt_ev_q_flush(tpt_p tpt);
 #endif
 
 /* Thread cached time functions. */
-int	tpt_gettimev(tpt_p tpt, int real_time, struct timespec *tp);
+int	tpt_gettimev(tpt_p tpt, int real_time, struct timespec *ts);
 time_t	tpt_gettime(tpt_p tpt, int real_time);
 
 

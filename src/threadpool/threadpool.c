@@ -182,8 +182,8 @@ typedef struct thread_pool_s { /* thread pool */
 	uint32_t	flags;
 	size_t		cpu_count;
 	uintptr_t	fd_count;
-	tp_udata_t	tp_timer;	/* Cached time update timer: ident=pointer to tp_cached. */
-	struct timespec	tp_time_cached[2]; /* 0: MONOTONIC, 1: REALTIME */
+	tp_udata_t	timer_cached;	/* Cached time update timer: ident=pointer to tp_cached. */
+	struct timespec	time_cached[2]; /* 0: MONOTONIC, 1: REALTIME */
 	size_t		threads_max;
 	volatile size_t	threads_cnt;	/* worker threads count */
 	tp_thread_t	threads[];	/* worker threads */
@@ -921,8 +921,8 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 
 	if (0 != (TP_S_F_CACHE_TIME_SYSC & s->flags)) {
 		error = tpt_timer_add(&tp->threads[0], 1,
-		    (uintptr_t)&tp->tp_time_cached, s->tick_time, 0,
-		    tpt_cached_time_update_cb, &tp->tp_timer);
+		    (uintptr_t)&tp->time_cached, s->tick_time, 0,
+		    tpt_cached_time_update_cb, &tp->timer_cached);
 		if (0 != error) {
 			LOGD_ERR(error, "tpt_ev_add_ex(threads[0], TP_EV_TIMER, tick_time)");
 			goto err_out;
@@ -930,7 +930,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 		/* Update time. */
 		mem_bzero(&ev, sizeof(ev));
 		ev.event = TP_EV_TIMER;
-		tpt_cached_time_update_cb(&ev, &tp->tp_timer);
+		tpt_cached_time_update_cb(&ev, &tp->timer_cached);
 	}
 
 	(*ptp) = tp;
@@ -948,7 +948,7 @@ tp_shutdown(tp_p tp) {
 	if (NULL == tp)
 		return;
 	if (0 != (TP_S_F_CACHE_TIME_SYSC & tp->flags)) {
-		tpt_ev_del(TP_EV_TIMER, &tp->tp_timer);
+		tpt_ev_del(TP_EV_TIMER, &tp->timer_cached);
 	}
 	/* Shutdown threads. */
 	for (i = 0; i < tp->threads_max; i ++) {
@@ -1304,40 +1304,40 @@ tpt_ev_enable_ex(int enable, uint16_t event, uint16_t flags,
 
 void
 tpt_cached_time_update_cb(tp_event_p ev, tp_udata_p tp_udata) {
-	struct timespec *tp;
+	struct timespec *ts;
 
 	debugd_break_if(NULL == ev);
 	debugd_break_if(TP_EV_TIMER != ev->event);
 	debugd_break_if(NULL == tp_udata);
 
-	tp = (struct timespec*)tp_udata->ident;
-	clock_gettime(CORE_TP_CLOCK_MONOTONIC, &tp[0]);
-	clock_gettime(CORE_TP_CLOCK_REALTIME, &tp[1]);
+	ts = (struct timespec*)tp_udata->ident;
+	clock_gettime(CORE_TP_CLOCK_MONOTONIC, &ts[0]);
+	clock_gettime(CORE_TP_CLOCK_REALTIME, &ts[1]);
 }
 
 int
-tpt_gettimev(tpt_p tpt, int real_time, struct timespec *tp) {
+tpt_gettimev(tpt_p tpt, int real_time, struct timespec *ts) {
 
-	if (NULL == tp)
+	if (NULL == ts)
 		return (EINVAL);
 	if (NULL == tpt ||
 	    0 == (TP_S_F_CACHE_TIME_SYSC & tpt->tp->flags)) { /* No caching. */
 		if (0 != real_time)
-			return (clock_gettime(CORE_TP_CLOCK_REALTIME, tp));
-		return (clock_gettime(CORE_TP_CLOCK_MONOTONIC, tp));
+			return (clock_gettime(CORE_TP_CLOCK_REALTIME, ts));
+		return (clock_gettime(CORE_TP_CLOCK_MONOTONIC, ts));
 	}
 	if (0 != real_time) {
-		memcpy(tp, &tpt->tp->tp_time_cached[1], sizeof(struct timespec));
+		memcpy(ts, &tpt->tp->time_cached[1], sizeof(struct timespec));
 	} else {
-		memcpy(tp, &tpt->tp->tp_time_cached[0], sizeof(struct timespec));
+		memcpy(ts, &tpt->tp->time_cached[0], sizeof(struct timespec));
 	}
 	return (0);
 }
 
 time_t
 tpt_gettime(tpt_p tpt, int real_time) {
-	struct timespec tp;
+	struct timespec ts;
 
-	tpt_gettimev(tpt, real_time, &tp);
-	return (tp.tv_sec);
+	tpt_gettimev(tpt, real_time, &ts);
+	return (ts.tv_sec);
 }

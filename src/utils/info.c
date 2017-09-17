@@ -385,19 +385,19 @@ int
 core_info_sysres(core_info_sysres_p sysres, uint8_t *buf, size_t buf_size,
     size_t *buf_size_ret) {
 	size_t tm = 0;
-	struct timespec tp;
+	struct timespec ts;
 	struct rusage rusage;
 	uint64_t tpd, utime, stime;
 
 	if (NULL == sysres)
 		return (EINVAL);
 	if (0 != getrusage(RUSAGE_SELF, &rusage) ||
-	    0 != clock_gettime(CLOCK_MONOTONIC, &tp))
+	    0 != clock_gettime(CLOCK_MONOTONIC, &ts))
 		return (errno);
 	if (NULL == buf || 0 == buf_size) /* Only init/update internal data. */
 		goto upd_int_data;
-	tpd = (1000000000 * ((uint64_t)tp.tv_sec - (uint64_t)sysres->upd_time.tv_sec));
-	tpd += ((uint64_t)tp.tv_nsec - (uint64_t)sysres->upd_time.tv_nsec);
+	tpd = (1000000000 * ((uint64_t)ts.tv_sec - (uint64_t)sysres->upd_time.tv_sec));
+	tpd += ((uint64_t)ts.tv_nsec - (uint64_t)sysres->upd_time.tv_nsec);
 	if (0 == tpd) { /* Prevent division by zero. */
 		tpd ++;
 	}
@@ -439,9 +439,9 @@ core_info_sysres(core_info_sysres_p sysres, uint8_t *buf, size_t buf_size,
 	    rusage.ru_msgrcv, rusage.ru_nsignals,
 	    rusage.ru_nvcsw, rusage.ru_nivcsw);
 
-	if (tp.tv_sec >= (CORE_INFO_SYSRES_UPD_INTERVAL + sysres->upd_time.tv_sec)) {
+	if (ts.tv_sec >= (CORE_INFO_SYSRES_UPD_INTERVAL + sysres->upd_time.tv_sec)) {
 upd_int_data: /* Update internal data. */
-		memcpy(&sysres->upd_time, &tp, sizeof(tp));
+		memcpy(&sysres->upd_time, &ts, sizeof(ts));
 		memcpy(&sysres->ru_utime, &rusage.ru_utime, sizeof(struct timeval));
 		memcpy(&sysres->ru_stime, &rusage.ru_stime, sizeof(struct timeval));
 	}

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,10 +43,9 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <stdlib.h> /* malloc, exit */
 
+#include "utils/macro.h"
 #include "utils/mem_utils.h"
 #include "utils/str2num.h"
-
-#include "utils/macro.h"
 #include "net/net_helpers.h"
 
 

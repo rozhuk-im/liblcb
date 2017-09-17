@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,8 @@
  */
 
 
-
-#ifndef __CORE_NET_HELPERS_H__
-#define __CORE_NET_HELPERS_H__
+#ifndef __NET_HELPERS_H__
+#define __NET_HELPERS_H__
 
 #include <sys/param.h>
 
@@ -49,28 +48,28 @@
 
 
 #ifndef s6_addr32
-#define s6_addr32		__u6_addr.__u6_addr32
+#	define s6_addr32	__u6_addr.__u6_addr32
 #endif
 
 #ifndef ifr_ifindex
-#define ifr_ifindex		ifr_ifru.ifru_index
+#	define ifr_ifindex	ifr_ifru.ifru_index
 #endif
 
 
 #ifndef IN_LOOPBACK
-#define IN_LOOPBACK(__x)	(((u_int32_t)(__x) & 0xff000000) == 0x7f000000)
+#	define IN_LOOPBACK(__x)	(((u_int32_t)(__x) & 0xff000000) == 0x7f000000)
 #endif
 
 #ifndef IN_BROADCAST
-#define IN_BROADCAST(__x)	((u_int32_t)(__x) == INADDR_BROADCAST)
+#	define IN_BROADCAST(__x) ((u_int32_t)(__x) == INADDR_BROADCAST)
 #endif
 
 #ifndef IN_MULTICAST
-#define IN_MULTICAST(__x)	(((u_int32_t)(__x) & 0xf0000000) == 0xe0000000)
+#	define IN_MULTICAST(__x) (((u_int32_t)(__x) & 0xf0000000) == 0xe0000000)
 #endif
 
 #ifndef IN6_IS_ADDR_MULTICAST
-#define IN6_IS_ADDR_MULTICAST(__x) ((__x)->s6_addr[0] == 0xff)
+#	define IN6_IS_ADDR_MULTICAST(__x) ((__x)->s6_addr[0] == 0xff)
 #endif
 
 
@@ -196,4 +195,4 @@ sain6_a_set(struct sockaddr_storage *addr, void *sin6_addr) {
 
 
 
-#endif /* __CORE_NET_HELPERS_H__ */
+#endif /* __NET_HELPERS_H__ */

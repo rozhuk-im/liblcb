@@ -350,7 +350,7 @@ tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags,
 	size_t threads_max;
 	tpt_msg_data_p msg_data = NULL;
 	tpt_msg_data_t msg_data_s;
-	struct timespec rqtp;
+	struct timespec rqts;
 
 	msg_data_s.send_msg_cnt = 0;
 	msg_data_s.error_cnt = 0;
@@ -401,14 +401,14 @@ tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags,
 
 	if (NULL != msg_data) { /* TP_BMSG_F_SYNC: Wait for all. */
 		/* Update active threads count and store to tm_cnt. */
-		rqtp.tv_sec = 0;
-		rqtp.tv_nsec = 10000000; /* 1 sec = 1000000000 nanoseconds */
+		rqts.tv_sec = 0;
+		rqts.tv_nsec = 10000000; /* 1 sec = 1000000000 nanoseconds */
 		tm_cnt = tpt_msg_active_thr_count_dec(msg_data, src, tm_cnt);
 		while (0 != tm_cnt) {
 			if (0 == (TP_BMSG_F_SYNC_USLEEP & flags)) {
 				pthread_yield();
 			} else {
-				nanosleep(&rqtp, NULL);
+				nanosleep(&rqts, NULL);
 			}
 			MTX_LOCK(&msg_data->lock);
 			tm_cnt = msg_data->active_thr_count;

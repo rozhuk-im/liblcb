@@ -323,10 +323,10 @@ uint64_t
 radius_client_rnd_factor(tpt_p tpt, uint64_t data) {
 	uint64_t ret;
 	uint32_t tm;
-	struct timespec tp;
+	struct timespec ts;
 
-	tpt_gettimev(tpt, 0, &tp);
-	tm = crc32_le_ex4((uint8_t*)&tp, sizeof(struct timespec), ~CRC32_INIT);
+	tpt_gettimev(tpt, 0, &ts);
+	tm = crc32_le_ex4((uint8_t*)&ts, sizeof(struct timespec), ~CRC32_INIT);
 	tm ^= crc32_le_ex4((uint8_t*)&data, sizeof(uint64_t), ~CRC32_INIT);
 	tm = data_xor8(&tm, sizeof(uint32_t));
 	if (0 == (tm & 0x7f)) {

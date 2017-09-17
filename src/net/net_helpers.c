@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,9 +50,7 @@
 #include "net/net_helpers.h"
 
 
-
-
-// for convert netmask <-> prefix len
+/* For convert netmask <-> prefix len. */
 static const uint32_t pref_to_mask[33] = {				/* bits set */
 	0x0,								/* none */
 	0x80,		0xc0,		0xe0,		0xf0,		/* 1 - 4 */
@@ -762,8 +760,9 @@ is_host_addr_ex(const struct sockaddr_storage *addr, void **data) {
 
 	if (NULL == addr)
 		return (EINVAL);
-	if (NULL != data)
+	if (NULL != data) {
 		ifap = (struct ifaddrs*)(*data);
+	}
 	if (NULL == ifap) {
 		if (0 != getifaddrs(&ifap))
 			return (errno);
@@ -818,4 +817,3 @@ iovec_set_offset(struct iovec *iov, size_t iov_cnt, size_t iov_off) {
 		}
 	}
 }
-

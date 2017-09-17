@@ -37,15 +37,15 @@
 
 
 typedef struct hostname_s {
-	size_t		size;	/* Host name size. */
-	uint8_t		name[];	/* Hostname. */
+	size_t		size;		/* Host name size. */
+	uint8_t		name[];		/* Hostname. */
 } hostname_t, *hostname_p;
 
 typedef struct hostname_list_s {
-	size_t		allocated; /* Num of avaible struct hostname_p. */
-	size_t		count;	/* Num of used struct hostname_p. */
+	size_t		allocated;	/* Num of avaible struct hostname_p. */
+	size_t		count;		/* Num of used struct hostname_p. */
 	hostname_p	*names;
-	int		any_name; /* name = '*' */
+	int		any_name;	/* name = '*' */
 } hostname_list_t, *hostname_list_p;
 
 
@@ -55,11 +55,6 @@ hostname_list_init(hostname_list_p hn_lst) {
 	if (NULL == hn_lst)
 		return (EINVAL);
 	mem_bzero(hn_lst, sizeof(hostname_list_t));
-	/*hn_lst->names = mallocarray(HOSTNAME_PREALLOC, sizeof(hostname_p));
-	if (NULL == hn_lst->names)
-		return (ENOMEM);
-	hn_lst->allocated = HOSTNAME_PREALLOC;
-	hn_lst->count = 0;*/
 
 	return (0);
 }
