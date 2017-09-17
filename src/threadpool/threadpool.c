@@ -68,7 +68,7 @@
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
-#ifdef THRP_XML_CONFIG
+#ifdef THREAD_POOL_XML_CONFIG
 #	include "utils/xml.h"
 #	include "utils/helpers.h"
 #endif
@@ -821,7 +821,7 @@ thrp_def_settings(thrp_settings_p s_ret) {
 	s_ret->tick_time = THRP_S_DEF_TICK_TIME;
 }
 
-#ifdef THRP_XML_CONFIG
+#ifdef THREAD_POOL_XML_CONFIG
 int
 thrp_xml_load_settings(const uint8_t *buf, size_t buf_size, thrp_settings_p s) {
 	const uint8_t *data;
