@@ -28,15 +28,12 @@
  */
 
 
-#ifndef __CORE_HELPERS_H__
-#define __CORE_HELPERS_H__
+#ifndef __HELPERS_H__
+#define __HELPERS_H__
 
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
-
-
-
 
 
 typedef struct cmd_line_data_s {
@@ -96,5 +93,4 @@ void	sys_res_limits_load_xml_apply(const uint8_t *buf, size_t buf_size);
 #endif
 
 
-
-#endif /* __CORE_HELPERS_H__ */
+#endif /* __HELPERS_H__ */

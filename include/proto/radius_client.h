@@ -28,8 +28,8 @@
  */
 
 
-#ifndef __CORE_RADIUS_CLIENT_H__
-#define __CORE_RADIUS_CLIENT_H__
+#ifndef __RADIUS_CLIENT_H__
+#define __RADIUS_CLIENT_H__
 
 
 #include "threadpool/threadpool.h"
@@ -114,4 +114,4 @@ void	radius_client_query_cancel(radius_cli_query_p query);
 
 
 
-#endif // __CORE_RADIUS_CLIENT_H__
+#endif /* __RADIUS_CLIENT_H__ */

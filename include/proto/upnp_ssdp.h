@@ -28,8 +28,8 @@
  */
 
 
-#ifndef __CORE_UPNP_SSDP_H__
-#define __CORE_UPNP_SSDP_H__
+#ifndef __UPNP_SSDP_H__
+#define __UPNP_SSDP_H__
 
 #include "threadpool/threadpool.h"
 
@@ -90,8 +90,4 @@ size_t	upnp_ssdp_if_count(upnp_ssdp_p ssdp);
 void	upnp_ssdp_send_notify(upnp_ssdp_p ssdp);
 
 
-
-
-
-
-#endif // __CORE_UPNP_SSDP_H__
+#endif /* __UPNP_SSDP_H__ */

@@ -250,7 +250,7 @@ upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret) {
 	s_ret->flags = UPNP_SSDP_DEF_FLAGS;
 
 	/* 'OS/version UPnP/1.1 product/version' */
-	if (0 == core_info_get_os_ver("/", 1, s_ret->http_server,
+	if (0 == info_get_os_ver("/", 1, s_ret->http_server,
 	    (sizeof(s_ret->http_server) - 1), &tm)) {
 		s_ret->http_server_size = tm;
 	} else {

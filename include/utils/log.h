@@ -28,12 +28,11 @@
  */
 
 
-#ifndef __CORE_LOG_H__
-#define __CORE_LOG_H__
+#ifndef __LOG_H__
+#define __LOG_H__
 
 #include <sys/types.h>
 #include <inttypes.h>
-
 
 
 void	log_write_fd(uintptr_t fd, const char *data, size_t data_size);
@@ -58,21 +57,21 @@ void	log_write_ev_fmt_fd(uintptr_t fd, const char *fname, int line, const char *
 	    log_write_ev_fmt_fd(fd, NULL, 0, fmt, ##args)
 
 /* Write to app default log fd. */
-extern uintptr_t core_log_fd;
+extern uintptr_t g_log_fd;
 
 #define log_write(data, data_size)					\
-    log_write_fd(core_log_fd, data, data_size)
+    log_write_fd(g_log_fd, data, data_size)
 #define log_write_err(fname, line, error, descr)			\
-    log_write_err_fd(core_log_fd, fname, line, error, descr)
+    log_write_err_fd(g_log_fd, fname, line, error, descr)
 #define log_write_err_fmt(fname, line, error, fmt, args...)		\
-    log_write_err_fmt_fd(core_log_fd, fname, line, error, fmt, ##args)
+    log_write_err_fmt_fd(g_log_fd, fname, line, error, fmt, ##args)
 #define log_write_ev(fname, line, descr)				\
-    log_write_ev_fd(core_log_fd, fname, line, descr)
+    log_write_ev_fd(g_log_fd, fname, line, descr)
 #define log_write_ev_fmt(fname, line, fmt, args...)			\
-    log_write_ev_fmt_fd(core_log_fd, fname, line, fmt, ##args);
+    log_write_ev_fmt_fd(g_log_fd, fname, line, fmt, ##args);
 
 
-#define LOG_IS_ENABLED()	((uintptr_t)-1 != core_log_fd)
+#define LOG_IS_ENABLED()	((uintptr_t)-1 != g_log_fd)
 
 #define LOG_ERR(error, descr)						\
 	    log_write_err(__FUNCTION__, __LINE__, error, descr)
@@ -107,6 +106,4 @@ extern uintptr_t core_log_fd;
 #endif
 
 
-
-
-#endif /* __CORE_LOG_H__ */
+#endif /* __LOG_H__ */

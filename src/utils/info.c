@@ -125,7 +125,7 @@ sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_si
 
 
 int
-core_info_get_os_ver(const char *separator, size_t separator_size,
+info_get_os_ver(const char *separator, size_t separator_size,
     char *buf, size_t buf_size, size_t *buf_size_ret) {
 	int error, mib[4];
 	size_t buf_used = 0, tm;
@@ -156,7 +156,7 @@ core_info_get_os_ver(const char *separator, size_t separator_size,
 
 
 int
-core_info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
+info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 	size_t tm, buf_used = 0;
 	int mib[4];
 #ifdef BSD /* BSD specific code. */
@@ -309,7 +309,7 @@ core_info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
 
 int
-core_info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
+info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 	size_t i, buf_used = 0;
 	struct rlimit rlp;
 	int resource[] = {
@@ -382,7 +382,7 @@ core_info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
 
 int
-core_info_sysres(core_info_sysres_p sysres, uint8_t *buf, size_t buf_size,
+info_sysres(info_sysres_p sysres, uint8_t *buf, size_t buf_size,
     size_t *buf_size_ret) {
 	size_t tm = 0;
 	struct timespec ts;
@@ -439,7 +439,7 @@ core_info_sysres(core_info_sysres_p sysres, uint8_t *buf, size_t buf_size,
 	    rusage.ru_msgrcv, rusage.ru_nsignals,
 	    rusage.ru_nvcsw, rusage.ru_nivcsw);
 
-	if (ts.tv_sec >= (CORE_INFO_SYSRES_UPD_INTERVAL + sysres->upd_time.tv_sec)) {
+	if (ts.tv_sec >= (INFO_SYSRES_UPD_INTERVAL + sysres->upd_time.tv_sec)) {
 upd_int_data: /* Update internal data. */
 		memcpy(&sysres->upd_time, &ts, sizeof(ts));
 		memcpy(&sysres->ru_utime, &rusage.ru_utime, sizeof(struct timeval));

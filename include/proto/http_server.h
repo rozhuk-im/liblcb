@@ -28,8 +28,8 @@
  */
 
 
-#ifndef __CORE_HTTP_SERVER_H__
-#define __CORE_HTTP_SERVER_H__
+#ifndef __HTTP_SERVER_H__
+#define __HTTP_SERVER_H__
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -296,4 +296,4 @@ int		http_srv_resume_responce(http_srv_cli_p cli);
 int		http_srv_resume_next_request(http_srv_cli_p cli);
 
 
-#endif // __CORE_HTTP_SERVER_H__
+#endif /* __HTTP_SERVER_H__ */

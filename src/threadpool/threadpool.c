@@ -106,14 +106,14 @@ static const short tp_event_to_kq_map[] = {
 	0
 };
 
-#define CORE_TP_CLOCK_REALTIME	CLOCK_REALTIME_FAST
-#define CORE_TP_CLOCK_MONOTONIC	CLOCK_MONOTONIC_FAST
+#define TP_CLOCK_REALTIME	CLOCK_REALTIME_FAST
+#define TP_CLOCK_MONOTONIC	CLOCK_MONOTONIC_FAST
 
 #endif /* BSD specific code. */
 
 
 #ifdef __linux__ /* Linux specific code. */
-//#define CORE_TP_LINUX_MULTIPLE_EVENTS
+//#define TP_LINUX_MULTIPLE_EVENTS
 
 #define EPOLL_INOUT		(EPOLLIN | EPOLLOUT)
 #define EPOLL_OUT		(EPOLLOUT)
@@ -149,8 +149,8 @@ static const uint32_t tp_event_to_ep_map[] = {
 #define TPDATA_F_DISABLED		(((uint64_t)1) << 63) /* Make sure that disabled event never call cb func. */
 
 
-#define CORE_TP_CLOCK_REALTIME	CLOCK_REALTIME
-#define CORE_TP_CLOCK_MONOTONIC	CLOCK_MONOTONIC
+#define TP_CLOCK_REALTIME	CLOCK_REALTIME
+#define TP_CLOCK_MONOTONIC	CLOCK_MONOTONIC
 
 #endif /* Linux specific code. */
 
@@ -1311,8 +1311,8 @@ tpt_cached_time_update_cb(tp_event_p ev, tp_udata_p tp_udata) {
 	debugd_break_if(NULL == tp_udata);
 
 	ts = (struct timespec*)tp_udata->ident;
-	clock_gettime(CORE_TP_CLOCK_MONOTONIC, &ts[0]);
-	clock_gettime(CORE_TP_CLOCK_REALTIME, &ts[1]);
+	clock_gettime(TP_CLOCK_MONOTONIC, &ts[0]);
+	clock_gettime(TP_CLOCK_REALTIME, &ts[1]);
 }
 
 int
@@ -1323,8 +1323,8 @@ tpt_gettimev(tpt_p tpt, int real_time, struct timespec *ts) {
 	if (NULL == tpt ||
 	    0 == (TP_S_F_CACHE_TIME_SYSC & tpt->tp->flags)) { /* No caching. */
 		if (0 != real_time)
-			return (clock_gettime(CORE_TP_CLOCK_REALTIME, ts));
-		return (clock_gettime(CORE_TP_CLOCK_MONOTONIC, ts));
+			return (clock_gettime(TP_CLOCK_REALTIME, ts));
+		return (clock_gettime(TP_CLOCK_MONOTONIC, ts));
 	}
 	if (0 != real_time) {
 		memcpy(ts, &tpt->tp->time_cached[1], sizeof(struct timespec));

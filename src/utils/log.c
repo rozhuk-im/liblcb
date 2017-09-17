@@ -46,7 +46,7 @@
 #include "utils/macro.h"
 
 
-uintptr_t core_log_fd = (uintptr_t)-1;
+uintptr_t g_log_fd = (uintptr_t)-1;
 
 
 

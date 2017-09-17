@@ -52,7 +52,6 @@
 #include "utils/str2num.h"
 #include "proto/http.h"
 
-
 #include "threadpool/threadpool_task.h"
 #include "net/socket.h"
 #include "net/socket_address.h"
@@ -62,13 +61,13 @@
 #include "utils/log.h"
 #include "proto/http_server.h"
 #ifdef HTTP_SRV_XML_CONFIG
-#include "utils/helpers.h"
-#include "utils/xml.h"
+#	include "utils/helpers.h"
+#	include "utils/xml.h"
 #endif
 
 
-#define CORE_HTTP_LIB_NAME		"HTTP core server by Rozhuk Ivan"
-#define CORE_HTTP_LIB_VER		"1.7"
+#define HTTP_LIB_NAME			"HTTP core server by Rozhuk Ivan"
+#define HTTP_LIB_VER			"1.7"
 
 #define HTTP_SRV_ALLOC_CNT		8
 
@@ -174,7 +173,7 @@ http_srv_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
 	/* 'OS/version UPnP/1.1 product/version' */
 	s_ret->http_server_size = 0;
 	if (0 != add_os_ver) {
-		if (0 == core_info_get_os_ver("/", 1, s_ret->http_server,
+		if (0 == info_get_os_ver("/", 1, s_ret->http_server,
 		    (sizeof(s_ret->http_server) - 1), &tm)) {
 			s_ret->http_server_size = tm;
 		} else {
@@ -193,7 +192,7 @@ http_srv_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
 		s_ret->http_server_size += (size_t)snprintf(
 		    (s_ret->http_server + s_ret->http_server_size),
 		    (sizeof(s_ret->http_server) - s_ret->http_server_size),
-		    "%s"CORE_HTTP_LIB_NAME"/"CORE_HTTP_LIB_VER,
+		    "%s"HTTP_LIB_NAME"/"HTTP_LIB_VER,
 		    ((0 != s_ret->http_server_size) ? " " : ""));
 	}
 	s_ret->http_server[s_ret->http_server_size] = 0;
@@ -1786,7 +1785,7 @@ http_srv_snd(http_srv_cli_p cli) {
 		    "	<head><title>%"PRIu32" %.*s</title></head>\r\n"
 		    "	<body bgcolor=\"white\">\r\n"
 		    "		<center><h1>%"PRIu32" %.*s</h1></center>\r\n"
-		    "		<hr><center>"CORE_HTTP_LIB_NAME"/"CORE_HTTP_LIB_VER"</center>\r\n"
+		    "		<hr><center>"HTTP_LIB_NAME"/"HTTP_LIB_VER"</center>\r\n"
 		    "	</body>\r\n"
 		    "</html>\r\n",
 		    resp->status_code, (int)reason_phrase_size, reason_phrase,

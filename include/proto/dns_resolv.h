@@ -28,8 +28,8 @@
  */
 
 
-#ifndef __CORE_DNS_RESOLV_H__
-#define __CORE_DNS_RESOLV_H__
+#ifndef __DNS_RESOLV_H__
+#define __DNS_RESOLV_H__
 
 
 #include "threadpool/threadpool.h"
@@ -65,4 +65,4 @@ void	dns_resolv_cancel(dns_rslvr_task_p task);
 
 
 
-#endif // __CORE_DNS_RESOLV_H__
+#endif /* __DNS_RESOLV_H__ */

@@ -28,14 +28,13 @@
  */
 
 
-#ifndef __CORE_DATA_CACHE_H__
-#define __CORE_DATA_CACHE_H__
+#ifndef __DATA_CACHE_H__
+#define __DATA_CACHE_H__
 
 #include <inttypes.h>
 #include <sys/queue.h>
 
-
-#define CORE_DATA_CACHE_BUCKETS	256
+#define DATA_CACHE_BUCKETS	256
 
 typedef struct data_cache_bucket_s *data_cache_bucket_p;
 typedef struct data_cache_s *data_cache_p;
@@ -84,4 +83,4 @@ int	data_cache_item_add(data_cache_p dcache, const uint8_t *key, size_t key_size
 	    data_cache_item_p *dc_item);
 
 
-#endif /* __CORE_DATA_CACHE_H__ */
+#endif /* __DATA_CACHE_H__ */

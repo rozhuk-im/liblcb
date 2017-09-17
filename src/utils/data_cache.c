@@ -61,7 +61,7 @@ typedef struct data_cache_s {
 	data_cache_cmp_data_func	cmp_data_fn;
 	time_t				next_clean_time;
 	uint32_t			clean_interval;
-	data_cache_bucket_t		buckets[CORE_DATA_CACHE_BUCKETS];
+	data_cache_bucket_t		buckets[DATA_CACHE_BUCKETS];
 } data_cache_t;
 
 
@@ -88,7 +88,7 @@ data_cache_create(data_cache_p *dcache, data_cache_alloc_data_func alloc_data_fn
 	dcache_ret->cmp_data_fn = cmp_data_fn;
 	dcache_ret->next_clean_time = (time(NULL) + clean_interval);
 	dcache_ret->clean_interval = clean_interval;
-	for (i = 0; i < CORE_DATA_CACHE_BUCKETS; i ++) {
+	for (i = 0; i < DATA_CACHE_BUCKETS; i ++) {
 		//mtx_init(&h_store->buckets[i].rw_lock, "data_cache", NULL, MTX_DEF);
 		TAILQ_INIT(&dcache_ret->buckets[i].items_head);
 		dcache_ret->buckets[i].dcache = dcache_ret;
@@ -104,7 +104,7 @@ data_cache_destroy(data_cache_p dcache) {
 
 	if (NULL == dcache)
 		return;
-	for (i = 0; i < CORE_DATA_CACHE_BUCKETS; i ++) {
+	for (i = 0; i < DATA_CACHE_BUCKETS; i ++) {
 		//mtx_lock(&dcache->buckets[i].rw_lock);
 		TAILQ_FOREACH_SAFE(dc_item, &dcache->buckets[i].items_head, next,
 		    dc_item_temp)
@@ -128,7 +128,7 @@ data_cache_clean(data_cache_p dcache) {
 	time_now = time(NULL);
 	if (time_now < dcache->next_clean_time)
 		return;
-	for (i = 0; i < CORE_DATA_CACHE_BUCKETS; i ++) {
+	for (i = 0; i < DATA_CACHE_BUCKETS; i ++) {
 		//mtx_lock(&dcache->buckets[i].rw_lock);
 		TAILQ_FOREACH_SAFE(dc_item, &dcache->buckets[i].items_head, next,
 		    dc_item_temp) {
@@ -155,12 +155,12 @@ data_cache_enum(data_cache_p dcache, data_cache_enum_cb enum_cb, void *udata) {
 	if (NULL == dcache || NULL == enum_cb)
 		return (EINVAL);
 
-	for (i = 0; i < CORE_DATA_CACHE_BUCKETS; i ++) {
+	for (i = 0; i < DATA_CACHE_BUCKETS; i ++) {
 		//mtx_lock(&dcache->buckets[i].rw_lock);
 		TAILQ_FOREACH(dc_item, &dcache->buckets[i].items_head, next) {
 			/* Host item LOCKED! */
 			if (0 != enum_cb(udata, dc_item)) {
-				i = CORE_DATA_CACHE_BUCKETS;
+				i = DATA_CACHE_BUCKETS;
 				break;
 			}
 		}

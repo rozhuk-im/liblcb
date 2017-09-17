@@ -28,9 +28,8 @@
  */
 
 
-#ifndef __CORE_SAP_RECEIVER_H__
-#define __CORE_SAP_RECEIVER_H__
-
+#ifndef __SAP_RECEIVER_H__
+#define __SAP_RECEIVER_H__
 
 #include "threadpool/threadpool.h"
 
@@ -48,6 +47,4 @@ int	sap_receiver_listener_add4(sap_rcvr_p srcvr, const char *ifname,
 //	    size_t *size_ret);
 
 
-
-
-#endif // __CORE_SAP_RECEIVER_H__
+#endif /* __SAP_RECEIVER_H__ */
