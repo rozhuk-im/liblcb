@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,8 @@
  */
 
 
-
-#ifndef __STRHEXTONUM_H__
-#define __STRHEXTONUM_H__
-
+#ifndef __STRH2NUM_H__
+#define __STRH2NUM_H__
 
 #ifdef _WINDOWS
 	#define uint8_t		unsigned char
@@ -45,21 +43,21 @@
 #endif
 
 
-#define STRHEX2NUM_SINGN(str, str_len, cur_singn, cur_char)		\
+#define STRH2NUM_SIGN(str, str_len, cur_sign)				\
 	for (; 0 != str_len; str_len --, str ++) {			\
-		cur_char = (uint8_t)(*str);				\
+		register uint8_t cur_char = (uint8_t)(*str);		\
 		if ('-' == cur_char) {					\
-			cur_singn = -1;					\
+			cur_sign = -1;					\
 		} else if ('+' == cur_char) {				\
-			cur_singn = 1;					\
+			cur_sign = 1;					\
 		} else {						\
 			break;						\
 		}							\
 	}
 
-#define STRHEX2NUM(str, str_len, ret_num, cur_char)			\
+#define STRH2NUM(str, str_len, ret_num)					\
 	for (; 0 != str_len; str_len --, str ++) {			\
-		cur_char = (uint8_t)(*str);				\
+		register uint8_t cur_char = (uint8_t)(*str);		\
 		if ('0' <= cur_char && '9' >= cur_char) {		\
 			cur_char -= '0';				\
 		} else if ('a' <= cur_char && 'f' >= cur_char) {	\
@@ -72,155 +70,97 @@
 		ret_num = ((ret_num << 4) | cur_char);			\
 	}
 
+#define STRH2UNUM(str, str_len, type)					\
+	type ret_num = 0;						\
+	if (NULL == str || 0 == str_len)				\
+		return (0);						\
+	STRH2NUM(str, str_len, ret_num);				\
+	return (ret_num);
+
+#define STRH2SNUM(str, str_len, type)					\
+	type ret_num = 0, cur_sign = 1;					\
+	if (NULL == str || 0 == str_len)				\
+		return (0);						\
+	STRH2NUM_SIGN(str, str_len, cur_sign);				\
+	STRH2NUM(str, str_len, ret_num);				\
+	ret_num *= cur_sign;						\
+	return (ret_num);
 
 
 static inline size_t
-StrHexToUNum(const char *str, size_t str_len) {
-	size_t ret_num = 0;
-	register uint8_t cur_char;
+strh2usize(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STRH2UNUM(str, str_len, size_t);
 }
 
 static inline size_t
-UStr8HexToUNum(const uint8_t *str, size_t str_len) {
-	size_t ret_num = 0;
-	register uint8_t cur_char;
+ustrh2usize(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STRH2UNUM(str, str_len, size_t);
 }
 
 static inline uint32_t
-StrHexToUNum32(const char *str, size_t str_len) {
-	uint32_t ret_num = 0;
-	register uint8_t cur_char;
+strh2u32(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STRH2UNUM(str, str_len, uint32_t);
 }
 
 static inline uint32_t
-UStr8HexToUNum32(const uint8_t *str, size_t str_len) {
-	uint32_t ret_num = 0;
-	register uint8_t cur_char;
+ustrh2u32(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STRH2UNUM(str, str_len, uint32_t);
 }
 
 static inline uint64_t
-StrHexToUNum64(const char *str, size_t str_len) {
-	uint64_t ret_num = 0;
-	register uint8_t cur_char;
+strh2u64(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STRH2UNUM(str, str_len, uint64_t);
 }
 
 static inline uint64_t
-UStr8HexToUNum64(const uint8_t *str, size_t str_len) {
-	uint64_t ret_num = 0;
-	register uint8_t cur_char;
+ustrh2u64(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STRH2UNUM(str, str_len, uint64_t);
 }
 
 
 /* Signed. */
 
 static inline ssize_t
-StrHexToNum(const char *str, size_t str_len) {
-	ssize_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+strh2ssize(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STRH2SNUM(str, str_len, ssize_t);
 }
 
 static inline ssize_t
-UStr8HexToNum(const uint8_t *str, size_t str_len) {
-	ssize_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+ustrh2ssize(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STRH2SNUM(str, str_len, ssize_t);
 }
 
 static inline int32_t
-StrHexToNum32(const char *str, size_t str_len) {
-	int32_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+strh2s32(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STRH2SNUM(str, str_len, int32_t);
 }
 
 static inline int32_t
-UStr8HexToNum32(const uint8_t *str, size_t str_len) {
-	int32_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+ustrh2s32(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STRH2SNUM(str, str_len, int32_t);
 }
 
 static inline int64_t
-StrHexToNum64(const char *str, size_t str_len) {
-	int64_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+strh2s64(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STRH2SNUM(str, str_len, int64_t);
 }
 
 static inline int64_t
-UStr8HexToNum64(const uint8_t *str, size_t str_len) {
-	int64_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+ustrh2s64(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STRHEX2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STRHEX2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STRH2SNUM(str, str_len, int64_t);
 }
 
 
-
-#endif /* __STRHEXTONUM_H__ */
+#endif /* __STRH2NUM_H__ */

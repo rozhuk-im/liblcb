@@ -588,7 +588,7 @@ http_parse_resp_line(const uint8_t *http_hdr, size_t hdr_size,
 	/* HTTP/H.L */
 	resp_data->proto_ver = MAKEDWORD((http_hdr[7] - '0'), (http_hdr[5] - '0'));
 	/* Status-Code. */
-	resp_data->status_code = UStr8ToUNum32((http_hdr + 9), 3);
+	resp_data->status_code = ustr2u32((http_hdr + 9), 3);
 	/* Reason-Phrase. */
 	resp_data->reason_phrase = (http_hdr + 13);
 	resp_data->reason_phrase_size = (size_t)(resp_data->line_size - 13);
@@ -974,11 +974,11 @@ http_data_decode_chunked(uint8_t *data, size_t data_size,
 		end_line = mem_find_ptr_cstr(cur_pos, data, data_size, CRLF);
 		if (NULL == end_line) {
 			end_line = (data + data_size);
-			if (0 != UStr8HexToUNum(cur_pos, (size_t)(max_pos - cur_pos)))
+			if (0 != ustrh2usize(cur_pos, (size_t)(max_pos - cur_pos)))
 				return (EINVAL);
 			break; /* Normal exit. */
 		}
-		tm = UStr8HexToUNum(cur_pos, (size_t)(end_line - cur_pos));
+		tm = ustrh2usize(cur_pos, (size_t)(end_line - cur_pos));
 		if (0 == tm)
 			break; /* Normal exit. */
 		cur_pos = (end_line + 2 + tm);
@@ -1044,7 +1044,7 @@ http_url_decode(uint8_t *url, size_t url_size, uint8_t *buf, size_t buf_size) {
 	for (; url < url_max && buf_pos < buf_max; url ++, buf_pos ++) {
 		switch (url[0]) {
 		case '%':
-			(*buf_pos) = (uint8_t)UStr8HexToUNum32((url + 1), 2);
+			(*buf_pos) = (uint8_t)ustrh2u32((url + 1), 2);
 			url += 2;
 			continue;
 		case '+':

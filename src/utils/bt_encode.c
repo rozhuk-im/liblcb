@@ -133,7 +133,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		if (NULL == ptm)
 			return (EBADMSG);
 		/* Convert and check len. */
-		raw_size = UStr8ToUNum(buf, (size_t)(ptm - buf));
+		raw_size = ustr2usize(buf, (size_t)(ptm - buf));
 		ptm ++;
 		if (buf_max <= (raw_size + ptm))
 			return (EBADMSG); /* Out of buff range. */
@@ -159,7 +159,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		if (NULL == (*ret_data))
 			return (ENOMEM);
 		/* Store data and return OK. */
-		(*ret_data)->val.i = UStr8ToNum64(cur_pos, (size_t)(ptm - cur_pos));
+		(*ret_data)->val.i = ustr2s64(cur_pos, (size_t)(ptm - cur_pos));
 		(*ret_data)->val_count = 1;
 		if (NULL != ret_buf_off) {
 			(*ret_buf_off) = ((size_t)(ptm - buf) + 1); /* 1: 'e' */

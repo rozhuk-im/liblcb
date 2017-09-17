@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2005 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,10 @@
  * Author: Rozhuk Ivan <rozhuk.im@gmail.com>
  *
  */
- 
- 
- 
-#ifndef __STRTONUM_H__
-#define __STRTONUM_H__
 
+
+#ifndef __STR2NUM_H__
+#define __STR2NUM_H__
 
 #ifdef _WINDOWS
 	#define uint8_t		unsigned char
@@ -47,174 +45,118 @@
 #endif
 
 
-#define STR2NUM_SINGN(str, str_len, cur_singn, cur_char)		\
+#define STR2NUM_SIGN(str, str_len, cur_sign)				\
 	for (; 0 != str_len; str_len --, str ++) {			\
-		cur_char = (uint8_t)(*str);				\
-		if ('-' == cur_char)					\
-			cur_singn = -1;					\
-		else if ('+' == cur_char)				\
-			cur_singn = 1;					\
-		else							\
+		register uint8_t cur_char = (uint8_t)(*str);		\
+		if ('-' == cur_char) {					\
+			cur_sign = -1;					\
+		} else if ('+' == cur_char) {				\
+			cur_sign = 1;					\
+		} else {						\
 			break;						\
+		}							\
 	}
 
-#define STR2NUM(str, str_len, ret_num, cur_char)			\
+#define STR2NUM(str, str_len, ret_num)					\
 	for (; 0 != str_len; str_len --, str ++) {			\
-		cur_char = (((uint8_t)(*str)) - '0');			\
+		register uint8_t cur_char = (((uint8_t)(*str)) - '0');	\
 		if (9 < cur_char)					\
 			continue;					\
 		ret_num *= 10;						\
 		ret_num += cur_char;					\
 	}
 
+#define STR2UNUM(str, str_len, type)					\
+	type ret_num = 0;						\
+	if (NULL == str || 0 == str_len)				\
+		return (0);						\
+	STR2NUM(str, str_len, ret_num);					\
+	return (ret_num);
+
+#define STR2SNUM(str, str_len, type)					\
+	type ret_num = 0, cur_sign = 1;					\
+	if (NULL == str || 0 == str_len)				\
+		return (0);						\
+	STR2NUM_SIGN(str, str_len, cur_sign);				\
+	STR2NUM(str, str_len, ret_num);					\
+	ret_num *= cur_sign;						\
+	return (ret_num);
 
 
 static inline size_t
-StrToUNum(const char *str, size_t str_len) {
-	size_t ret_num = 0;
-	register uint8_t cur_char;
+str2usize(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STR2UNUM(str, str_len, size_t);
 }
 
 static inline size_t
-UStr8ToUNum(const uint8_t *str, size_t str_len) {
-	size_t ret_num = 0;
-	register uint8_t cur_char;
+ustr2usize(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STR2UNUM(str, str_len, size_t);
 }
 
 static inline uint32_t
-StrToUNum32(const char *str, size_t str_len) {
-	uint32_t ret_num = 0;
-	register uint8_t cur_char;
+str2u32(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STR2UNUM(str, str_len, uint32_t);
 }
 
 static inline uint32_t
-UStr8ToUNum32(const uint8_t *str, size_t str_len) {
-	uint32_t ret_num = 0;
-	register uint8_t cur_char;
+ustr2u32(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STR2UNUM(str, str_len, uint32_t);
 }
 
 static inline uint64_t
-StrToUNum64(const char *str, size_t str_len) {
-	uint64_t ret_num = 0;
-	register uint8_t cur_char;
+str2u64(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STR2UNUM(str, str_len, uint64_t);
 }
 
 static inline uint64_t
-UStr8ToUNum64(const uint8_t *str, size_t str_len) {
-	uint64_t ret_num = 0;
-	register uint8_t cur_char;
+ustr2u64(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	return (ret_num);
+	STR2UNUM(str, str_len, uint64_t);
 }
 
 
 /* Signed. */
 
 static inline ssize_t
-StrToNum(const char *str, size_t str_len) {
-	ssize_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+str2ssize(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STR2SNUM(str, str_len, ssize_t);
 }
 
 static inline ssize_t
-UStr8ToNum(const uint8_t *str, size_t str_len) {
-	ssize_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+ustr2ssize(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STR2SNUM(str, str_len, ssize_t);
 }
 
 static inline int32_t
-StrToNum32(const char *str, size_t str_len) {
-	int32_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+str2s32(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STR2SNUM(str, str_len, int32_t);
 }
 
 static inline int32_t
-UStr8ToNum32(const uint8_t *str, size_t str_len) {
-	int32_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+ustr2s32(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STR2SNUM(str, str_len, int32_t);
 }
 
 static inline int64_t
-StrToNum64(const char *str, size_t str_len) {
-	int64_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+str2s64(const char *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STR2SNUM(str, str_len, int64_t);
 }
 
 static inline int64_t
-UStr8ToNum64(const uint8_t *str, size_t str_len) {
-	int64_t ret_num = 0, cur_singn = 1;
-	register uint8_t cur_char;
+ustr2s64(const uint8_t *str, size_t str_len) {
 
-	if (NULL == str || 0 == str_len)
-		return (0);
-	STR2NUM_SINGN(str, str_len, cur_singn, cur_char);
-	STR2NUM(str, str_len, ret_num, cur_char);
-	ret_num *= cur_singn;
-	return (ret_num);
+	STR2SNUM(str, str_len, int64_t);
 }
 
 
-#endif /* __STRTONUM_H__ */
+#endif /* __STR2NUM_H__ */

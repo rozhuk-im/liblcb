@@ -788,7 +788,7 @@ sys_res_limits_load_xml_apply(const uint8_t *buf, size_t buf_size) {
 		if (0 == mem_cmpin_cstr("unlimited", data, data_size)) {
 			rlp.rlim_cur = RLIM_INFINITY;
 		} else {
-			rlp.rlim_cur = (UStr8ToNum64(data, data_size) * 1024); /* in kb */
+			rlp.rlim_cur = (ustr2s64(data, data_size) * 1024); /* in kb */
 		}
 		rlp.rlim_max = rlp.rlim_cur;
 		if (0 != setrlimit(RLIMIT_CORE, &rlp)) {
@@ -803,7 +803,7 @@ sys_res_limits_load_xml_apply(const uint8_t *buf, size_t buf_size) {
 		if (0 == mem_cmpin_cstr("unlimited", data, data_size)) {
 			rlp.rlim_cur = RLIM_INFINITY;
 		} else {
-			rlp.rlim_cur = (UStr8ToNum64(data, data_size) * 1024); /* in kb */
+			rlp.rlim_cur = (ustr2s64(data, data_size) * 1024); /* in kb */
 		}
 		rlp.rlim_max = rlp.rlim_cur;
 		if (0 != setrlimit(RLIMIT_MEMLOCK, &rlp)) {

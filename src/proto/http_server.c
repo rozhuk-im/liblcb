@@ -1273,7 +1273,7 @@ stop_and_drop_with_http_err:
 			goto stop_and_drop_with_http_err;
 		}
 handle_content_length:
-		cli->req.data_size = UStr8ToUNum(ptm, tm);
+		cli->req.data_size = ustr2usize(ptm, tm);
 		cli->req.size += cli->req.data_size;
 		tm = (size_t)(buf->used - (size_t)(cli->req.data - buf->data)); /* Received data size. */
 		if (cli->req.data_size <= tm) /* All data received. */
@@ -1404,7 +1404,7 @@ conn_from_net_to_loopback:
 			ptm ++;
 			tm = (size_t)(ptm - cli->req.host);
 			if (cli->req.host_size > tm) {
-				host_port = (uint16_t)UStr8ToUNum32(ptm,
+				host_port = (uint16_t)ustr2u32(ptm,
 				    (cli->req.host_size - tm));
 			}
 			tm --;

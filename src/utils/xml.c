@@ -319,7 +319,7 @@ xml_get_val_size_t_args(const uint8_t *xml_data, size_t xml_data_size,
 	    &val, &val_size);
 	if (0 != error)
 		return (error);
-	(*val_ret) = UStr8ToUNum(val, val_size);
+	(*val_ret) = ustr2usize(val, val_size);
 	return (0);
 }
 
@@ -352,7 +352,7 @@ xml_get_val_ssize_t_args(const uint8_t *xml_data, size_t xml_data_size,
 	    &val, &val_size);
 	if (0 != error)
 		return (error);
-	(*val_ret) = UStr8ToNum(val, val_size);
+	(*val_ret) = ustr2ssize(val, val_size);
 	return (0);
 }
 
@@ -385,7 +385,7 @@ xml_get_val_uint32_args(const uint8_t *xml_data, size_t xml_data_size,
 	    &val, &val_size);
 	if (0 != error)
 		return (error);
-	(*val_ret) = UStr8ToUNum32(val, val_size);
+	(*val_ret) = ustr2u32(val, val_size);
 	return (0);
 }
 
@@ -418,7 +418,7 @@ xml_get_val_int32_args(const uint8_t *xml_data, size_t xml_data_size,
 	    &val, &val_size);
 	if (0 != error)
 		return (error);
-	(*val_ret) = UStr8ToNum32(val, val_size);
+	(*val_ret) = ustr2s32(val, val_size);
 	return (0);
 }
 
@@ -451,7 +451,7 @@ xml_get_val_uint64_args(const uint8_t *xml_data, size_t xml_data_size,
 	    &val, &val_size);
 	if (0 != error)
 		return (error);
-	(*val_ret) = UStr8ToUNum64(val, val_size);
+	(*val_ret) = ustr2u64(val, val_size);
 	return (0);
 }
 
@@ -484,7 +484,7 @@ xml_get_val_int64_args(const uint8_t *xml_data, size_t xml_data_size,
 	    &val, &val_size);
 	if (0 != error)
 		return (error);
-	(*val_ret) = UStr8ToNum64(val, val_size);
+	(*val_ret) = ustr2s64(val, val_size);
 	return (0);
 }
 

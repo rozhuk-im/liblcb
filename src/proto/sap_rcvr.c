@@ -345,7 +345,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 		data_cache_item_unlock(dc_item);
 		goto rcv_next;
 	}
-	port = (uint16_t)UStr8ToUNum32(feilds[1], feilds_sizes[1]);
+	port = (uint16_t)ustr2u32(feilds[1], feilds_sizes[1]);
 	if (3 == feilds_sizes[2] &&
 	    0 == memcmp("udp", feilds[2], feilds_sizes[2])) {
 		media_proto = 1;

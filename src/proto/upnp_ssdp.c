@@ -1085,7 +1085,7 @@ upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 			goto dev_no_match; /* No ver. */
 		st += 1;
 		st_size -= 1;
-		ver = UStr8ToUNum32(st, st_size);
+		ver = ustr2u32(st, st_size);
 		if (ver > dev->ver)
 			goto dev_no_match; /* We have older version than required. */
 		upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
@@ -1127,7 +1127,7 @@ dev_no_match:
 				continue; /* No ver. */
 			st += 1;
 			st_size -= 1;
-			ver = UStr8ToUNum32(st, st_size);
+			ver = ustr2u32(st, st_size);
 			if (ver > svc->ver)
 				continue; /* We have older version than required. */
 			upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,

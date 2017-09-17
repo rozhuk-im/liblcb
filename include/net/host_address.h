@@ -73,7 +73,7 @@ host_addr_alloc(const uint8_t *name, size_t name_size, uint16_t def_port) {
 	ptm_end = mem_rchr(name, name_size, ':');
 	if (NULL != ptm_end) { /* Port after hostname. */
 		ptm_end ++;
-		def_port = UStr8ToUNum32(ptm_end, ((name + name_size) - ptm_end));
+		def_port = ustr2u32(ptm_end, ((name + name_size) - ptm_end));
 		name_size = (ptm_end - name - 1);
 	}
 

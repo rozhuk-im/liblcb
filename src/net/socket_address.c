@@ -420,7 +420,7 @@ sa_addr_port_from_str(struct sockaddr_storage *addr,
 				ptm_end = ptm;
 			}
 			ptm ++;
-			port = (uint16_t)StrToUNum32(ptm, (size_t)(buf_size - (size_t)(ptm - buf)));
+			port = (uint16_t)str2u32(ptm, (size_t)(buf_size - (size_t)(ptm - buf)));
 		}/* else - IPv6 and no port. */
 	}
 	if (NULL == ptm_end) {
