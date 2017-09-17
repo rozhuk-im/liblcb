@@ -28,8 +28,8 @@
  */
 
 
-#ifndef __CORE_IO_BUF_H__
-#define __CORE_IO_BUF_H__
+#ifndef __IO_BUF_H__
+#define __IO_BUF_H__
 
 #include <sys/types.h>
 #include <inttypes.h>
@@ -340,4 +340,4 @@ io_buf_copyin_buf(io_buf_p dst, io_buf_p src) {
 	    io_buf_copyin((__iobuf), "\r\n\r\n", 4)
 
 
-#endif /* __CORE_IO_BUF_H__ */
+#endif /* __IO_BUF_H__ */
