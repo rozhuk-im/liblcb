@@ -98,7 +98,7 @@
 
 
 #ifndef __unused
-#	define	__unused	__attribute__((__unused__))
+#	define	__unused		__attribute__((__unused__))
 #endif
 
 
@@ -135,6 +135,31 @@
 } while (0)
 #endif
 
+
+#ifndef s6_addr32
+#	define s6_addr32	__u6_addr.__u6_addr32
+#endif
+
+#ifndef ifr_ifindex
+#	define ifr_ifindex	ifr_ifru.ifru_index
+#endif
+
+
+#ifndef IN_LOOPBACK
+#	define IN_LOOPBACK(__x) (0x7f000000 == (0xff000000 & (u_int32_t)(__x)))
+#endif
+
+#ifndef IN_BROADCAST
+#	define IN_BROADCAST(__x) (INADDR_BROADCAST == (u_int32_t)(__x))
+#endif
+
+#ifndef IN_MULTICAST
+#	define IN_MULTICAST(__x) (0xe0000000 == (0xf0000000 & (u_int32_t)(__x)))
+#endif
+
+#ifndef IN6_IS_ADDR_MULTICAST
+#	define IN6_IS_ADDR_MULTICAST(__x) (0xff == (__x)->s6_addr[0])
+#endif
 
 
 #define is_space(__c)	(' ' == (__c) || ('\t' <= (__c) && '\r' >= (__c)))

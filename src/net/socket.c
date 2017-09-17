@@ -565,6 +565,7 @@ err_out:
 	if (NULL != err_mask) {
 		(*err_mask) = error_mask;
 	}
+
 	return (error);
 }
 
@@ -589,6 +590,7 @@ skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 		return (errno);
 	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_RCVLOWAT, &lowat, sizeof(int)))
 		return (errno);
+
 	return (0);
 }
 
@@ -604,6 +606,7 @@ skt_snd_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_SNDLOWAT, &lowat, sizeof(int)))
 		return (errno);
 #endif /* BSD specific code. */
+
 	return (0);
 }
 
@@ -613,9 +616,11 @@ skt_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size) {
 
 	if (NULL == cc || 0 == cc_size || TCP_CA_NAME_MAX <= cc_size)
 		return (EINVAL);
+
 	if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_CONGESTION,
 	    cc, (socklen_t)cc_size))
 		return (errno);
+
 	return (0);
 }
 
@@ -625,6 +630,7 @@ skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 
 	if (NULL == cc || 0 == cc_size)
 		return (EINVAL);
+
 	optlen = (socklen_t)cc_size;
 	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_CONGESTION,
 	    cc, &optlen))
@@ -632,6 +638,7 @@ skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 	if (NULL != cc_size_ret) {
 		(*cc_size_ret) = optlen;
 	}
+
 	return (0);
 }
 
@@ -653,6 +660,7 @@ skt_is_tcp_cc_avail(const char *cc, size_t cc_size) {
 	res = (0 == setsockopt((int)skt, IPPROTO_TCP, TCP_CONGESTION,
 	    cc, (socklen_t)cc_size));
 	close((int)skt);
+
 	return (res);
 }
 
@@ -662,9 +670,11 @@ skt_get_tcp_maxseg(uintptr_t skt, int *val_ret) {
 
 	if (NULL == val_ret)
 		return (EINVAL);
+
 	optlen = sizeof(int);
 	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_MAXSEG, val_ret, &optlen))
 		return (errno);
+
 	return (0);
 }
 
@@ -673,6 +683,7 @@ skt_set_tcp_nodelay(uintptr_t skt, int val) {
 
 	if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val)))
 		return (errno);
+
 	return (0);
 }
 
@@ -695,6 +706,7 @@ skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
 
 	if (NULL == accf || 0 == accf_size)
 		return (EINVAL);
+
 #ifdef SO_ACCEPTFILTER
 	struct accept_filter_arg afa;
 
@@ -733,6 +745,7 @@ skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
 	    ((0 != join) ? MCAST_JOIN_GROUP : MCAST_LEAVE_GROUP),
 	    &mc_group, sizeof(mc_group)))
 		return (errno);
+
 	return (0);
 }
 
@@ -749,6 +762,7 @@ skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 	ifr.ifr_name[ifname_size] = 0;
 	if (-1 == ioctl((int)skt, SIOCGIFINDEX, &ifr))
 		return (errno); /* Cant get if index */
+
 	return (skt_mc_join(skt, join, (uint32_t)ifr.ifr_ifindex, mc_addr));
 }
 
@@ -793,6 +807,7 @@ skt_enable_recv_ifindex(uintptr_t skt, int enable) {
 	default:
 		return (EAFNOSUPPORT);
 	}
+
 	return (0);
 }
 
@@ -806,6 +821,7 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 
 	if (NULL == skt_ret)
 		return (EINVAL);
+
 	/* Create blocked/nonblocked socket. */
 #ifndef SOCK_NONBLOCK /* Standart / BSD */
 	skt = (uintptr_t)socket(domain, type, protocol);
@@ -842,11 +858,13 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 	}
 
 	(*skt_ret) = skt;
+
 	return (0);
 	
 err_out:
 	/* Error. */
 	close((int)skt);
+
 	return (error);
 }
 
@@ -883,6 +901,7 @@ skt_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
 	setsockopt((int)s, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));
 #endif
 	(*skt_ret) = s;
+
 	return (0);
 }
 
@@ -915,6 +934,7 @@ skt_bind(const struct sockaddr_storage *addr, int type, int protocol,
 	}
 
 	(*skt_ret) = skt;
+
 	return (0);
 }
 
@@ -998,6 +1018,7 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 			break;
 		}
 	}
+
 	return (transfered_size);
 }
 
@@ -1035,6 +1056,7 @@ err_out:
 	if (NULL != transfered_size) {
 		(*transfered_size) = 0;
 	}
+
 	return (error);
 }
 
@@ -1044,6 +1066,7 @@ skt_listen(uintptr_t skt, int backlog) {
 
 	if (-1 == listen((int)skt, backlog))
 		return (errno);
+
 	return (0);
 }
 
@@ -1068,6 +1091,7 @@ skt_connect(const struct sockaddr_storage *addr, int type, int protocol,
 	}
 
 	(*skt_ret) = skt;
+
 	return (0);
 }
 
@@ -1088,6 +1112,7 @@ skt_is_connect_error(int error) {
 	case EISCONN:
 		return (1);
 	}
+
 	return (0);
 }
 
@@ -1107,6 +1132,7 @@ skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
 
 	if (NULL == hname)
 		return (EINVAL);
+
 	mem_bzero(&hints, sizeof(hints));
 	hints.ai_family = ai_family;
 	hints.ai_flags = AI_NUMERICSERV;
@@ -1124,6 +1150,7 @@ skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
 	if (NULL != addrs_count_ret) {
 		(*addrs_count_ret) = i;
 	}
+
 	return (0);
 }
 
@@ -1137,6 +1164,7 @@ skt_sync_resolv_connect(const char *hname, uint16_t port,
 
 	if (NULL == hname || NULL == skt_ret)
 		return (EINVAL);
+
 	mem_bzero(&hints, sizeof(hints));
 	hints.ai_family = domain;
 	hints.ai_flags = AI_NUMERICSERV;
@@ -1163,6 +1191,6 @@ skt_sync_resolv_connect(const char *hname, uint16_t port,
 	if ((uintptr_t)-1 == skt)
 		return (error);
 	(*skt_ret) = skt;
+
 	return (0);
 }
-

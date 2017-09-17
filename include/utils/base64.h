@@ -51,7 +51,7 @@
  *      this numbers is offset in array coding below...
  */
 
-static const uint8_t *base64_tbl_coding = (uint8_t*)
+static const uint8_t *base64_tbl_coding = (const uint8_t*)
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static const uint8_t base64_tbl_decoding[256] = {
 	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
@@ -83,11 +83,13 @@ base64_encode(uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size, size
 	/* dst buf size calculation. */
 	tm = (src_size / 3);
 	src_m3_size = (tm * 3);
-	if (src_m3_size != src_size) /* is multiple of 3? */
+	if (src_m3_size != src_size) { /* is multiple of 3? */
 		tm ++;
+	}
 	tm *= 4;
-	if (NULL != enc_size)
+	if (NULL != enc_size) {
 		(*enc_size) = tm;
+	}
 	if (dst_size < tm) /* Is dst buf too small? */
 		return (ENOBUFS);
 	if (NULL == dst)
@@ -119,6 +121,7 @@ base64_encode(uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size, size
 		(*enc_size) = (wpos - dst);
 	}
 #endif
+
 	return (0);
 }
 
@@ -140,12 +143,14 @@ base64_decode(uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size, size
 	/* dst buf size calculation. */
 	tm = (src_size / 4);
 	src_m4_size = (tm * 4);
-	if (src_m4_size != src_size) /* is multiple of 4? */
+	if (src_m4_size != src_size) { /* is multiple of 4? */
 		tm ++;
+	}
 	tm *= 3;
 	if (dst_size < tm) { /* Is dst buf too small? */
-		if (NULL != dcd_size)
+		if (NULL != dcd_size) {
 			(*dcd_size) = tm;
+		}
 		return (ENOBUFS);
 	}
 	if (NULL == dst)
@@ -169,8 +174,10 @@ base64_decode(uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size, size
 		break;
 	}
 	(*wpos) = 0;
-	if (NULL != dcd_size) /* Real decoded size can be smaller than calculated. */
+	if (NULL != dcd_size) { /* Real decoded size can be smaller than calculated. */
 		(*dcd_size) = (wpos - dst);
+	}
+
 	return (0);
 }
 
@@ -185,11 +192,14 @@ base64_en_copy(uint8_t *src, uint8_t *dst, size_t buf_size, size_t *new_size) {
 	rpos = src;
 	for (src_max = (src + buf_size); rpos < src_max; rpos ++) {
 		tmb = (*rpos);
-		if (64 != base64_tbl_decoding[tmb])
+		if (64 != base64_tbl_decoding[tmb]) {
 			(*wpos ++) = tmb;
+		}
 	}
-	if (NULL != new_size)
+	if (NULL != new_size) {
 		(*new_size) = (wpos - dst);
+	}
+
 	return (0);
 }
 
@@ -203,9 +213,9 @@ base64_decode_fmt(uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size, 
 	error = base64_en_copy(src, dst, src_size, &src_size);
 	if (0 != error)
 		return (error);
+
 	return (base64_decode(dst, src_size, dst, dst_size, dcd_size));
 }
-
 
 
 #endif // __BASE64_H__

@@ -47,33 +47,6 @@
 #define STR_ADDR_LEN		(56) /* 46(INET6_ADDRSTRLEN) + 2('[]') + 1(':') + 5(port num) + zero */
 
 
-#ifndef s6_addr32
-#	define s6_addr32	__u6_addr.__u6_addr32
-#endif
-
-#ifndef ifr_ifindex
-#	define ifr_ifindex	ifr_ifru.ifru_index
-#endif
-
-
-#ifndef IN_LOOPBACK
-#	define IN_LOOPBACK(__x)	(((u_int32_t)(__x) & 0xff000000) == 0x7f000000)
-#endif
-
-#ifndef IN_BROADCAST
-#	define IN_BROADCAST(__x) ((u_int32_t)(__x) == INADDR_BROADCAST)
-#endif
-
-#ifndef IN_MULTICAST
-#	define IN_MULTICAST(__x) (((u_int32_t)(__x) & 0xf0000000) == 0xe0000000)
-#endif
-
-#ifndef IN6_IS_ADDR_MULTICAST
-#	define IN6_IS_ADDR_MULTICAST(__x) ((__x)->s6_addr[0] == 0xff)
-#endif
-
-
-
 void	sa_copy(const void *src, void *dst);
 int	sa_init(struct sockaddr_storage *addr, const sa_family_t family,
 	    const void *sin_addr, const uint16_t port);
@@ -124,33 +97,6 @@ void	is_host_addr_ex_free(void *data);
 
 size_t	iovec_calc_size(struct iovec *iov, size_t iov_cnt);
 void	iovec_set_offset(struct iovec *iov, size_t iov_cnt, size_t iov_off);
-
-
-static inline void
-sain4_init(struct sockaddr_storage *addr) {
-
-	memset(addr, 0, sizeof(struct sockaddr_in));
-#ifdef BSD /* BSD specific code. */
-	((struct sockaddr_in*)addr)->sin_len = sizeof(struct sockaddr_in);
-#endif /* BSD specific code. */
-	((struct sockaddr_in*)addr)->sin_family = AF_INET;
-	//addr->sin_port = 0;
-	//addr->sin_addr.s_addr = 0;
-}
-
-static inline void
-sain6_init(struct sockaddr_storage *addr) {
-
-	memset(addr, 0, sizeof(struct sockaddr_in6));
-#ifdef BSD /* BSD specific code. */
-	((struct sockaddr_in6*)addr)->sin6_len = sizeof(struct sockaddr_in6);
-#endif /* BSD specific code. */
-	((struct sockaddr_in6*)addr)->sin6_family = AF_INET6;
-	//((struct sockaddr_in6*)addr)->sin6_port = 0;
-	//((struct sockaddr_in6*)addr)->sin6_flowinfo = 0;
-	//((struct sockaddr_in6*)addr)->sin6_addr
-	//((struct sockaddr_in6*)addr)->sin6_scope_id = 0;
-}
 
 
 #endif /* __NET_HELPERS_H__ */

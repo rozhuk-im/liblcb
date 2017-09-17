@@ -530,6 +530,7 @@ reallocarray(void *buf, const size_t nmemb, const size_t size) {
 		errno = ENOMEM;
 		return (NULL);
 	}
+
 	return (realloc(buf, nmemb_size));
 }
 #endif
@@ -612,6 +613,7 @@ mapalloc_fd(uintptr_t fd, const size_t size) {
 		//return (NULL);
 	}
 	mem_bzero(buf, size);
+
 	return (buf);
 }
 
