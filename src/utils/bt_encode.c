@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,14 +40,11 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
-
 #include "utils/mem_utils.h"
 #include "utils/str2num.h"
 #include "utils/bt_encode.h"
 
-
 #define BT_EN_PRE_ALLOC_ITEMS	64
-
 
 
 /*
@@ -136,7 +133,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		if (NULL == ptm)
 			return (EBADMSG);
 		/* Convert and check len. */
-		raw_size = UStr8ToUNum(buf, (ptm - buf));
+		raw_size = UStr8ToUNum(buf, (size_t)(ptm - buf));
 		ptm ++;
 		if (buf_max <= (raw_size + ptm))
 			return (EBADMSG); /* Out of buff range. */
@@ -147,10 +144,10 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		/* Store data and return OK. */
 		(*ret_data)->val.s = ptm;
 		(*ret_data)->val_count = 1;
-		if (NULL != ret_buf_off)
-			(*ret_buf_off) = (raw_size + (ptm - buf));
+		if (NULL != ret_buf_off) {
+			(*ret_buf_off) = (raw_size + (size_t)(ptm - buf));
+		}
 		return (0);
-		break;
 	case 'i': /* integers, i<integer encoded in base ten ASCII>e , example: ...i852e... */
 		cur_pos = (buf + 1); /* skeep 'i' */
 		/* Loooking for end of integer. */
@@ -158,16 +155,16 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		if (NULL == ptm)
 			return (EBADMSG);
 		/* Allocate node for returning data. */
-		(*ret_data) = bt_en_alloc(BT_EN_TYPE_NUM, cur_pos, (ptm - cur_pos));
+		(*ret_data) = bt_en_alloc(BT_EN_TYPE_NUM, cur_pos, (size_t)(ptm - cur_pos));
 		if (NULL == (*ret_data))
 			return (ENOMEM);
 		/* Store data and return OK. */
-		(*ret_data)->val.i = UStr8ToNum64(cur_pos, (ptm - cur_pos));
+		(*ret_data)->val.i = UStr8ToNum64(cur_pos, (size_t)(ptm - cur_pos));
 		(*ret_data)->val_count = 1;
-		if (NULL != ret_buf_off)
-			(*ret_buf_off) = ((ptm - buf) + 1); /* 1: 'e' */
+		if (NULL != ret_buf_off) {
+			(*ret_buf_off) = ((size_t)(ptm - buf) + 1); /* 1: 'e' */
+		}
 		return (0);
-		break;
 	case 'l': /* lists: l<bencoded values>e , Example: l4:spam4:eggse */
 		cur_pos = (buf + 1); /* Skeep 'l' */
 		l = NULL;
@@ -182,7 +179,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 			if (0 != error)
 				break;
 			/* Decode and store list element. */
-			error = bt_en_decode(cur_pos, (buf_max - cur_pos),
+			error = bt_en_decode(cur_pos, (size_t)(buf_max - cur_pos),
 			    &l[items_count], &buf_off);
 			if (0 != error)
 				break;
@@ -200,9 +197,10 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		/* Allocate node for returning data. */
 		if (0 == error) {
 			(*ret_data) = bt_en_alloc(BT_EN_TYPE_LIST, (buf + 1),
-			    ((cur_pos - buf) - 2)); /* 2: 'l' + 'e' */
-			if (NULL == (*ret_data))
+			    (size_t)((cur_pos - buf) - 2)); /* 2: 'l' + 'e' */
+			if (NULL == (*ret_data)) {
 				error = ENOMEM;
+			}
 		}
 		/* Fail, free nodes = list items. */
 		if (0 != error) {
@@ -211,8 +209,9 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 			}
 			free(l);
 
-			if (NULL != (*ret_data))
+			if (NULL != (*ret_data)) {
 				free((*ret_data));
+			}
 			(*ret_data) = NULL;
 			return (error);
 		}
@@ -220,10 +219,10 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		l = reallocarray(l, (items_count + 1), sizeof(bt_en_node_p));
 		(*ret_data)->val.l = l;
 		(*ret_data)->val_count = items_count;
-		if (NULL != ret_buf_off)
-			(*ret_buf_off) = ((cur_pos - buf) + 1); /* 1: 'e' */
+		if (NULL != ret_buf_off) {
+			(*ret_buf_off) = ((size_t)(cur_pos - buf) + 1); /* 1: 'e' */
+		}
 		return (0);
-		break;
 	case 'd': /* dictionaries, d<bencoded string><bencoded element>e */
 		cur_pos = (buf + 1); // skeep 'd'
 		d = NULL;
@@ -238,7 +237,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 			if (0 != error)
 				break;
 			/* Dict key. */
-			error = bt_en_decode(cur_pos, (buf_max - cur_pos),
+			error = bt_en_decode(cur_pos, (size_t)(buf_max - cur_pos),
 			    &d[items_count].key, &buf_off);
 			if (0 != error)
 				break;
@@ -249,7 +248,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 			}
 			cur_pos += buf_off;
 			/* Value. */
-			error = bt_en_decode(cur_pos, (buf_max - cur_pos),
+			error = bt_en_decode(cur_pos, (size_t)(buf_max - cur_pos),
 			    &d[items_count].val, &buf_off);
 			if (0 != error) {
 				bt_en_free(d[items_count].key);
@@ -269,9 +268,10 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		/* Allocate node for returning data. */
 		if (0 == error) {
 			(*ret_data) = bt_en_alloc(BT_EN_TYPE_DICT, (buf + 1),
-			    ((cur_pos - buf) - 2)); /* 2: 'd' + 'e' */
-			if (NULL == (*ret_data))
+			    (size_t)((cur_pos - buf) - 2)); /* 2: 'd' + 'e' */
+			if (NULL == (*ret_data)) {
 				error = ENOMEM;
+			}
 		}
 		/* Fail, free nodes = dict items. */
 		if (0 != error) { /* Fail, free nodes. */
@@ -281,8 +281,9 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 			}
 			free(d);
 
-			if (NULL != (*ret_data))
+			if (NULL != (*ret_data)) {
 				free((*ret_data));
+			}
 			(*ret_data) = NULL;
 			return (error);
 		}
@@ -290,16 +291,14 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		d = reallocarray(d, (items_count + 1), sizeof(be_en_dict_t));
 		(*ret_data)->val.d = d;
 		(*ret_data)->val_count = items_count;
-		if (NULL != ret_buf_off)
-			(*ret_buf_off) = ((cur_pos - buf) + 1); /* 1: 'e' */
+		if (NULL != ret_buf_off) {
+			(*ret_buf_off) = ((size_t)(cur_pos - buf) + 1); /* 1: 'e' */
+		}
 		return (0);
-		break;
-	default: /* Unknown / invalid. */
-		return (EBADMSG);
-		break;
 	}
 
-	return (0);
+	/* Unknown / invalid. */
+	return (EBADMSG);
 }
 
 

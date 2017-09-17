@@ -142,17 +142,13 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 	if (0 == bt_dict_find(node, NULL, (uint8_t*)"external ip", 11,
 	    BT_EN_TYPE_STR, &val)) {
 		switch (val->raw_size) {
-		case 4: // IPv4
-			sain4_init(&tr_ans->ext_ip.sin4);
-			//tr_ans->ext_ip.sin4.sin_port = 0;
-			sain4_a_set(&tr_ans->ext_ip.sin4, val->val.s);
+		case 4: /* IPv4 */
+		case 16: /* IPv6 */
+			sa_init((struct sockaddr_storage*)&tr_ans->ext_ip.sa,
+			    ((4 == val->raw_size) ? AF_INET : AF_INET6),
+			    val->val.s, 0);
 			break;
-		case 16: // IPv6
-			sain6_init(&tr_ans->ext_ip.sin6);
-			//tr_ans->ext_ip.sin6.sin6_port = 0;
-			sain6_a_set(&tr_ans->ext_ip.sin6, val->val.s);
-			break;
-		default: // unknown/error
+		default: /* unknown/error */
 			//mem_bzero(&tr_ans->ext_ip, sizeof(bt_tr_ss_addr_t));
 			break;
 		}
@@ -179,10 +175,9 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 			peer4 = (bt_tr_peer_caddr4_p)val->val.s;
 			for (i = 0; i < tm; i ++) {
 				peers[(i + off)].flags = 0;
-				sain4_init(&peers[(i + off)].addr.sin4);
-				peers[(i + off)].addr.sin4.sin_port = peer4[i].port;
-				sain4_a_set(&peers[(i + off)].addr.sin4,
-				    &peer4[i].addr);
+				sa_init((struct sockaddr_storage*)&peers[(i + off)].addr.sa,
+				    AF_INET, &peer4[i].addr,
+				    htons(peer4[i].port));
 				peers[(i + off)].uflags = 0;
 			}
 			tr_ans->peers = peers;
@@ -213,10 +208,9 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 			peer6 = (bt_tr_peer_caddr6_p)val->val.s;
 			for (i = 0; i < tm; i ++) {
 				peers[(i + off)].flags = 0;
-				sain6_init(&peers[(i + off)].addr.sin6);
-				peers[(i + off)].addr.sin6.sin6_port = peer6[i].port;
-				sain6_a_set(&peers[(i + off)].addr.sin6,
-				    &peer6[i].addr);
+				sa_init((struct sockaddr_storage*)&peers[(i + off)].addr.sa,
+				    AF_INET6, &peer6[i].addr,
+				    htons(peer6[i].port));
 				peers[(i + off)].uflags = 0;
 			}
 			tr_ans->peers = peers;

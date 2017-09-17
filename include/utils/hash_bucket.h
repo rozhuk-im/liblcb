@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2012 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2012 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,13 +76,13 @@
 
 #	define HB_MTX_S			pthread_mutex_t
 
-#	define HB_MTX_INIT(mutex) {					\
+#	define HB_MTX_INIT(mutex) do {					\
 		pthread_mutexattr_t attr;				\
 		pthread_mutexattr_init(&attr);				\
 		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); \
 		pthread_mutex_init(mutex, &attr);			\
 		pthread_mutexattr_destroy(&attr);			\
-	}
+	} while (0)
 #	define HB_MTX_DESTROY(mutex)	pthread_mutex_destroy(mutex)
 #	define HB_MTX_LOCK(mutex)	pthread_mutex_lock(mutex)
 #	define HB_MTX_TRYLOCK(mutex)	pthread_mutex_trylock(mutex)
@@ -215,8 +215,9 @@ hbucket_destroy(hbucket_p hbskt, hbucket_entry_enum_cb enum_cb, void *udata) {
 		return;
 	for (i = 0; i < hbskt->hashsize; i ++) {
 		zone = &hbskt->zones[i];
-		if (NULL != zone->pmtx)
+		if (NULL != zone->pmtx) {
 			HB_MTX_LOCK(zone->pmtx);
+		}
 		TAILQ_FOREACH_SAFE(entry, &zone->entry_head, next, entry_temp) {
 			TAILQ_REMOVE(&zone->entry_head, entry, next);
 			entry->zone = NULL;
@@ -236,6 +237,7 @@ hbucket_get_entries_count(hbucket_p hbskt) {
 
 	if (NULL == hbskt)
 		return (0);
+
 	return (hbskt->count);
 }
 
@@ -245,6 +247,7 @@ hbucket_get_zone(hbucket_p hbskt, const uint8_t *key, size_t key_size) {
 	uint32_t hash;
 
 	hash = (hbskt->hash_fn(hbskt->udata, key, key_size) & hbskt->hashmask);
+
 	return (&hbskt->zones[hash]);
 }
 
@@ -254,6 +257,7 @@ hbucket_zone_lock(hbucket_zone_p zone) {
 
 	if (NULL == zone || NULL == zone->pmtx)
 		return;
+
 	HB_MTX_LOCK(zone->pmtx);
 }
 
@@ -262,6 +266,7 @@ hbucket_zone_unlock(hbucket_zone_p zone) {
 
 	if (NULL == zone || NULL == zone->pmtx)
 		return;
+
 	HB_MTX_UNLOCK(zone->pmtx);
 }
 
@@ -270,6 +275,7 @@ hbucket_zone_get_entries_count(hbucket_zone_p zone) {
 
 	if (NULL == zone)
 		return (0);
+
 	return (zone->count);
 }
 
@@ -278,6 +284,7 @@ hbucket_entry_lock(hbucket_entry_p entry) {
 
 	if (NULL == entry)
 		return;
+
 	hbucket_zone_lock(entry->zone);
 }
 
@@ -286,6 +293,7 @@ hbucket_entry_unlock(hbucket_entry_p entry) {
 
 	if (NULL == entry)
 		return;
+
 	hbucket_zone_unlock(entry->zone);
 }
 
@@ -298,15 +306,17 @@ hbucket_zone_entry_enum(hbucket_zone_p zone, hbucket_entry_enum_cb enum_cb,
 	if (NULL == zone || NULL == enum_cb)
 		return (EINVAL);
 
-	if (NULL != zone->pmtx)
+	if (NULL != zone->pmtx) {
 		HB_MTX_LOCK(zone->pmtx);
+	}
 	TAILQ_FOREACH_SAFE(entry, &zone->entry_head, next, entry_temp) {
 		ret = enum_cb(udata, entry);
 		if (0 != ret)
 			break;
 	}
-	if (NULL != zone->pmtx)
+	if (NULL != zone->pmtx) {
 		HB_MTX_UNLOCK(zone->pmtx);
+	}
 
 	return (ret);
 }
@@ -333,14 +343,16 @@ hbucket_entry_remove(hbucket_entry_p entry) {
 	if (NULL == entry || NULL == entry->zone)
 		return;
 	pmtx = entry->zone->pmtx;
-	if (NULL != pmtx)
+	if (NULL != pmtx) {
 		HB_MTX_LOCK(pmtx);
+	}
 	TAILQ_REMOVE(&entry->zone->entry_head, entry, next);
 	entry->zone->count --;
 	entry->zone->hbskt->count --;
 	entry->zone = NULL;
-	if (NULL != pmtx)
+	if (NULL != pmtx) {
 		HB_MTX_UNLOCK(pmtx);
+	}
 }
 
 static inline int
@@ -353,22 +365,26 @@ hbucket_entry_get(hbucket_p hbskt, uint32_t flags, const uint8_t *key,
 		return (EINVAL);
 	/* Get zone. */
 	zone = hbucket_get_zone(hbskt, key, key_size);
-	if (NULL != zone_ret)
+	if (NULL != zone_ret) {
 		(*zone_ret) = zone;
+	}
 
-	if (NULL != zone->pmtx && 0 == (HBUCKET_GET_F_NO_LOCK & flags))
+	if (NULL != zone->pmtx && 0 == (HBUCKET_GET_F_NO_LOCK & flags)) {
 		HB_MTX_LOCK(zone->pmtx);
+	}
 	TAILQ_FOREACH(entry, &zone->entry_head, next) {
 		if (0 == hbskt->cmp_fn(hbskt->udata, key, key_size, entry->data)) {
 			(*entry_ret) = entry;
 			if (NULL != zone->pmtx &&
-			    0 != (HBUCKET_GET_F_S_UNLOCK & flags))
+			    0 != (HBUCKET_GET_F_S_UNLOCK & flags)) {
 				HB_MTX_UNLOCK(zone->pmtx);
+			}
 			return (0); /* Found! */
 		}
 	}
-	if (NULL != zone->pmtx && 0 == (HBUCKET_GET_F_F_LOCK & flags))
+	if (NULL != zone->pmtx && 0 == (HBUCKET_GET_F_F_LOCK & flags)) {
 		HB_MTX_UNLOCK(zone->pmtx);
+	}
 	(*entry_ret) = NULL;
 
 	return (-1); /* Not found. */
@@ -382,16 +398,19 @@ hbucket_entry_add(hbucket_p hbskt, uint32_t flags, hbucket_zone_p zone,
 	if ((NULL == hbskt && NULL == zone) || NULL == entry)
 		return (EINVAL);
 
-	if (NULL == zone)
+	if (NULL == zone) {
 		zone = hbucket_get_zone(hbskt, key, key_size);
-	if (NULL != zone->pmtx && 0 == (HBUCKET_ADD_F_NO_LOCK & flags))
+	}
+	if (NULL != zone->pmtx && 0 == (HBUCKET_ADD_F_NO_LOCK & flags)) {
 		HB_MTX_LOCK(zone->pmtx);
+	}
 	entry->zone = zone;
 	TAILQ_INSERT_HEAD(&zone->entry_head, entry, next);
 	zone->count ++;
 	zone->hbskt->count ++;
-	if (NULL != zone->pmtx && 0 == (HBUCKET_ADD_F_NO_UNLOCK & flags))
+	if (NULL != zone->pmtx && 0 == (HBUCKET_ADD_F_NO_UNLOCK & flags)) {
 		HB_MTX_UNLOCK(zone->pmtx);
+	}
 
 	return (0);
 }

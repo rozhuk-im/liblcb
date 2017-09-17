@@ -908,7 +908,7 @@ skt_bind(const struct sockaddr_storage *addr, int type, int protocol,
 		setsockopt((int)skt, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(int));
 	}
 #endif
-	if (-1 == bind((int)skt, (const struct sockaddr*)addr, sa_type2size(addr))) { /* Error. */
+	if (-1 == bind((int)skt, (const struct sockaddr*)addr, sa_size(addr))) { /* Error. */
 		error = errno;
 		close((int)skt);
 		return (error);
@@ -919,28 +919,14 @@ skt_bind(const struct sockaddr_storage *addr, int type, int protocol,
 }
 
 int
-skt_bind_ap(int family, void *addr, uint16_t port,
+skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
     int type, int protocol, uint32_t flags, uintptr_t *skt_ret) {
+	int error;
 	struct sockaddr_storage sa;
 
-	switch (family) {
-	case AF_INET:
-		sain4_init(&sa);
-		if (NULL != addr) {
-			sain4_a_set(&sa, addr);
-		}
-		sain4_p_set(&sa, port);
-		break;
-	case AF_INET6:
-		sain6_init(&sa);
-		if (NULL != addr) {
-			sain6_a_set(&sa, addr);
-		}
-		sain6_p_set(&sa, port);
-		break;
-	default:
-		return (EINVAL);
-	}
+	error = sa_init(&sa, family, addr, port);
+	if (0 != error)
+		return (error);
 
 	return (skt_bind(&sa, type, protocol, flags, skt_ret));
 }
@@ -1073,7 +1059,7 @@ skt_connect(const struct sockaddr_storage *addr, int type, int protocol,
 	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
 		return (error);
-	if (-1 == connect((int)skt, (const struct sockaddr*)addr, sa_type2size(addr))) {
+	if (-1 == connect((int)skt, (const struct sockaddr*)addr, sa_size(addr))) {
 		error = errno;
 		if (EINPROGRESS != error && EINTR != error) { /* Error. */
 			close((int)skt);

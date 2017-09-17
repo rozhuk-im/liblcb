@@ -937,7 +937,7 @@ radius_client_send(radius_cli_query_p query) {
 		return (error);
 	if ((ssize_t)query->buf->used != sendto((int)query->skt->ident,
 	    query->buf->data, query->buf->used, (MSG_DONTWAIT | MSG_NOSIGNAL),
-	    (struct sockaddr*)&srv->s.addr, sa_type2size(&srv->s.addr))) {
+	    (struct sockaddr*)&srv->s.addr, sa_size(&srv->s.addr))) {
 		tpt_ev_enable(0, TP_EV_TIMER,
 		    &query->skt->queries_tmr[query->query_id]);
 		return (errno);

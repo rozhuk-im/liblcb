@@ -75,11 +75,14 @@
 
 
 void	sa_copy(const void *src, void *dst);
-void	sa_init(struct sockaddr_storage *addr, int family,
-	    void *sin_addr, uint16_t port);
-socklen_t sa_type2size(const struct sockaddr_storage *addr);
+int	sa_init(struct sockaddr_storage *addr, const sa_family_t family,
+	    const void *sin_addr, const uint16_t port);
+sa_family_t sa_family(const struct sockaddr_storage *addr);
+socklen_t sa_size(const struct sockaddr_storage *addr);
 uint16_t sa_port_get(const struct sockaddr_storage *addr);
-void	sa_port_set(struct sockaddr_storage *addr, uint16_t port);
+int	sa_port_set(struct sockaddr_storage *addr, const uint16_t port);
+void 	*sa_addr_get(struct sockaddr_storage *addr);
+int	sa_addr_set(struct sockaddr_storage *addr, const void *sin_addr);
 int	sa_addr_is_specified(const struct sockaddr_storage *addr);
 int	sa_addr_is_loopback(const struct sockaddr_storage *addr);
 int	sa_addr_is_multicast(const struct sockaddr_storage *addr);
@@ -101,8 +104,8 @@ int	sa_addr_port_to_str(const struct sockaddr_storage *addr,
 int	str_net_to_ss(const char *buf, size_t buf_size, struct sockaddr_storage *addr,
 	    uint16_t *preflen_ret);
 void	net_addr_truncate_preflen(struct sockaddr_storage *net_addr, uint16_t preflen);
-void	net_addr_truncate_mask(int family, uint32_t *net, uint32_t *mask);
-int	is_addr_in_net(int family, const uint32_t *net, const uint32_t *mask,
+void	net_addr_truncate_mask(sa_family_t family, uint32_t *net, uint32_t *mask);
+int	is_addr_in_net(sa_family_t family, const uint32_t *net, const uint32_t *mask,
 	    const uint32_t *addr);
 
 int	inet_len2mask(size_t len, struct in_addr *mask);
@@ -136,34 +139,6 @@ sain4_init(struct sockaddr_storage *addr) {
 }
 
 static inline void
-sain4_p_set(struct sockaddr_storage *addr, uint16_t port) {
-	((struct sockaddr_in*)addr)->sin_port = htons(port);
-}
-
-static inline uint16_t
-sain4_p_get(const struct sockaddr_storage *addr) {
-	return (ntohs(((const struct sockaddr_in*)addr)->sin_port));
-}
-
-static inline void
-sain4_a_set(struct sockaddr_storage *addr, void *sin_addr) {
-	memcpy(&((struct sockaddr_in*)addr)->sin_addr, sin_addr,
-	    sizeof(struct in_addr));
-}
-
-static inline void
-sain4_a_set_val(struct sockaddr_storage *addr, uint32_t sin_addr) {
-	((struct sockaddr_in*)addr)->sin_addr.s_addr = sin_addr;
-}
-
-
-static inline void
-sain4_astr_set(struct sockaddr_storage *addr, const char *straddr) {
-	((struct sockaddr_in*)addr)->sin_addr.s_addr = inet_addr(straddr);
-}
-
-
-static inline void
 sain6_init(struct sockaddr_storage *addr) {
 
 	memset(addr, 0, sizeof(struct sockaddr_in6));
@@ -176,23 +151,6 @@ sain6_init(struct sockaddr_storage *addr) {
 	//((struct sockaddr_in6*)addr)->sin6_addr
 	//((struct sockaddr_in6*)addr)->sin6_scope_id = 0;
 }
-
-static inline void
-sain6_p_set(struct sockaddr_storage *addr, uint16_t port) {
-	((struct sockaddr_in6*)addr)->sin6_port = htons(port);
-}
-
-static inline uint16_t
-sain6_p_get(const struct sockaddr_storage *addr) {
-	return (ntohs(((const struct sockaddr_in6*)addr)->sin6_port));
-}
-
-static inline void
-sain6_a_set(struct sockaddr_storage *addr, void *sin6_addr) {
-	memcpy(&((struct sockaddr_in6*)addr)->sin6_addr, sin6_addr,
-	    sizeof(struct in6_addr));
-}
-
 
 
 #endif /* __NET_HELPERS_H__ */

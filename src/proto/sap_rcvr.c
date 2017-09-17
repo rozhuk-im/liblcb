@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,9 +52,7 @@
 #include "utils/data_cache.h"
 #include "utils/log.h"
 
-
 #define RECV_BUF_SIZE	4096
-
 
 
 typedef struct sap_rcvr_s {
@@ -65,7 +63,6 @@ typedef struct sap_rcvr_s {
 	uintptr_t	sktv4;		/* IPv4 UDP socket. */
 	//uintptr_t	sktv6;		/* IPv6 UDP socket. */
 } sap_rcvr_t;
-
 
 
 typedef struct sdp_lite_s {
@@ -80,8 +77,6 @@ typedef struct sdp_lite_s {
 } sdp_lite_t, *sdp_lite_p;
 
 
-
-
 /* Used for DNS cache dump callback. */
 typedef struct sap_rcvr_cache_dump_s {
 	char *buf;
@@ -93,8 +88,9 @@ typedef struct sap_rcvr_cache_dump_s {
 sdp_lite_p	sdp_lite_alloc(const uint8_t *id, uint16_t id_size, uint16_t name_size);
 void		sdp_lite_free(sdp_lite_p sdpl);
 int		data_cache_enum_cb_fn(void *udata, data_cache_item_p dc_item);
-static int 	sap_receiver_recv_cb(tp_task_p tptask, int error, int eof,
-		    size_t data2transfer_size, void *arg);
+static int 	sap_receiver_recv_cb(tp_task_p tptask, int error,
+		    uint32_t eof __unused,
+		    size_t data2transfer_size __unused, void *arg);
 
 
 
@@ -113,8 +109,11 @@ sap_data_cache_hash(const uint8_t *key, size_t key_size) {
 	key_size = LOWORD(key_size);
 	if (NULL == key || 0 == key_size)
 		return (ret);
-	for (i = 0; i < key_size; i ++)
+
+	for (i = 0; i < key_size; i ++) {
 		ret ^= (uint8_t)key[i];
+	}
+
 	return (ret);
 }
 
@@ -134,8 +133,12 @@ int
 sap_data_cache_cmp_data(const uint8_t *key, size_t key_size, void *data) {
 
 	key_size = LOWORD(key_size);
-	if (((sdp_lite_p)data)->id_size != key_size)
-		return (key_size - ((sdp_lite_p)data)->id_size);
+	if (((sdp_lite_p)data)->id_size != key_size) {
+		if (key_size > ((sdp_lite_p)data)->id_size)
+			return (1);
+		return (-1);
+	}
+
 	return (memcmp(key, ((sdp_lite_p)data)->id, key_size));
 }
 
@@ -170,10 +173,10 @@ sdp_lite_free(sdp_lite_p sdpl) {
 }
 
 
-
 int
 sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
-    uint32_t cache_time, uint32_t cache_clean_interval, sap_rcvr_p *sap_rcvr_ret) {
+    uint32_t cache_time, uint32_t cache_clean_interval,
+    sap_rcvr_p *sap_rcvr_ret) {
 	sap_rcvr_p srcvr;
 	int error;
 
@@ -239,6 +242,7 @@ sap_receiver_listener_add4(sap_rcvr_p srcvr, const char *ifname, size_t ifname_s
     const char *mcaddr, size_t mcaddr_size) {
 	char mcaddrstr[INET_ADDRSTRLEN];
 	struct sockaddr_storage mc_addr;
+	in_addr_t sin_addr;
 
 	if (NULL == srcvr || NULL == mcaddr || (sizeof(mcaddrstr) - 1) < mcaddr_size)
 		return (EINVAL);
@@ -246,19 +250,21 @@ sap_receiver_listener_add4(sap_rcvr_p srcvr, const char *ifname, size_t ifname_s
 	memcpy(mcaddrstr, mcaddr, mcaddr_size);
 	mcaddrstr[mcaddr_size] = 0;
 
-	sain4_init(&mc_addr);
-	sain4_astr_set(&mc_addr, mcaddrstr);
-	
+	sin_addr = inet_addr(mcaddrstr);
+
+	sa_init(&mc_addr, AF_INET, &sin_addr, 0);
+
 	return (skt_mc_join_ifname(srcvr->sktv4, 1, ifname, ifname_size, &mc_addr));
 }
 
 
 static int
-sap_receiver_recv_cb(tp_task_p tptask, int error, int eof __unused,
-    size_t data2transfer_size __unused, void *arg) {
+sap_receiver_recv_cb(tp_task_p tptask, int error,
+    uint32_t eof __unused, size_t data2transfer_size __unused, void *arg) {
 	sap_rcvr_p srcvr = arg;
 	uint32_t if_index = 0xffffffff;
 	uint8_t *sdp_msg;
+	ssize_t ios;
 	size_t transfered_size, sdp_msg_size;
 	uint8_t *origin = NULL, *sess_name = NULL, *media = NULL, *conn = NULL, *ptm;
 	size_t origin_size = 0, sess_name_size = 0, media_size = 0, conn_size = 0;
@@ -269,25 +275,26 @@ sap_receiver_recv_cb(tp_task_p tptask, int error, int eof __unused,
 	sap_hdr_p sap_hdr = (sap_hdr_p)buf;
 	uint8_t *feilds[8];
 	size_t feilds_sizes[8], cnt;
-	uint16_t port;
-	uint32_t media_proto = 0;	/* udp/rtp/srtp*/
+	uint16_t port, media_proto = 0; /* udp/rtp/srtp*/
 
 	if (0 != error) {
 		LOG_ERR(error, "on receive");
 		goto rcv_next;
 	}
 
-	transfered_size = skt_recvfrom(tp_task_ident_get(tptask),
+	ios = skt_recvfrom(tp_task_ident_get(tptask),
 	    buf, sizeof(buf), MSG_DONTWAIT, NULL, &if_index);
-	if ((size_t)-1 == transfered_size) {
+	if (-1 == ios) {
 		error = errno;
-		if (0 == error)
+		if (0 == error) {
 			error = EINVAL;
+		}
 	}
 	if (0 != error) {
 		LOG_ERR(error, "recvmsg");
 		goto rcv_next;
 	}
+	transfered_size = (size_t)ios;
 	if (0 == sap_packet_is_valid(buf, transfered_size)) {
 		LOG_EV_FMT("SAP bad packet.");
 		goto rcv_next;
@@ -304,7 +311,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error, int eof __unused,
 	}
 
 	sdp_msg = sap_packet_get_payload(buf, transfered_size);
-	sdp_msg_size = (transfered_size - (sdp_msg - buf));
+	sdp_msg_size = (transfered_size - (size_t)(sdp_msg - buf));
 	buf[transfered_size] = 0;
 	if (0 != sdp_msg_sec_chk(sdp_msg, sdp_msg_size)) {
 		LOG_EV("SAP data: BAD!!!");
@@ -337,16 +344,17 @@ sap_receiver_recv_cb(tp_task_p tptask, int error, int eof __unused,
 		data_cache_item_unlock(dc_item);
 		goto rcv_next;
 	}
-	port = UStr8ToUNum32(feilds[1], feilds_sizes[1]);
+	port = (uint16_t)UStr8ToUNum32(feilds[1], feilds_sizes[1]);
 	if (3 == feilds_sizes[2] &&
-	    0 == memcmp("udp", feilds[2], feilds_sizes[2]))
+	    0 == memcmp("udp", feilds[2], feilds_sizes[2])) {
 		media_proto = 1;
-	else if (7 == feilds_sizes[2] &&
-	     0 == memcmp("RTP/AVP", feilds[2], feilds_sizes[2]))
+	} else if (7 == feilds_sizes[2] &&
+	     0 == memcmp("RTP/AVP", feilds[2], feilds_sizes[2])) {
 		media_proto = 2;
-	else if (8 == feilds_sizes[2] &&
-	     0 == memcmp("RTP/SAVP", feilds[2], feilds_sizes[2]))
+	} else if (8 == feilds_sizes[2] &&
+	     0 == memcmp("RTP/SAVP", feilds[2], feilds_sizes[2])) {
 		media_proto = 3;
+	}
 
 	/* Handle c= (connection). */
 	sdp_msg_type_get(sdp_msg, sdp_msg_size, 'c', NULL, &conn, &conn_size);
@@ -365,34 +373,30 @@ sap_receiver_recv_cb(tp_task_p tptask, int error, int eof __unused,
 	}
 	/* Prepare ip address. */
 	ptm = mem_chr(feilds[2], feilds_sizes[2], '/');
-	if (NULL == ptm)
+	if (NULL == ptm) {
 		ptm = (feilds[2] + feilds_sizes[2]);
-	memcpy(straddr, feilds[2], (ptm - feilds[2]));
+	}
+	memcpy(straddr, feilds[2], (size_t)(ptm - feilds[2]));
 	straddr[(ptm - feilds[2])] = 0;
 	/* Try convert into binary form. */
-	if (0 == memcmp("IP4", feilds[1], 3)) { /* IPv4 addr. */
-		sain4_init(&sdpl->addr);
-		if (0 == inet_pton(AF_INET, straddr,
-		    &((struct sockaddr_in*)&sdpl->addr)->sin_addr)) { /* Addr format err.*/
+	if (0 == memcmp("IP4", feilds[1], 3) || /* IPv4 addr. */
+	    0 == memcmp("IP6", feilds[1], 3)) { /* IPv6 addr. */
+		sa_init(&sdpl->addr,
+		    (('4' == feilds[1][2]) ? AF_INET : AF_INET6),
+		    NULL, 0);
+		if (0 == inet_pton(sa_family(&sdpl->addr), straddr,
+		    sa_addr_get(&sdpl->addr))) { /* Addr format err.*/
 			data_cache_item_unlock(dc_item);
 			goto rcv_next;
 		}
-		sain4_p_set(&sdpl->addr, port);
-	} else if (0 == memcmp("IP6", feilds[1], 3)) { /* IPv6 addr. */
-		sain6_init(&sdpl->addr);
-		if (0 == inet_pton(AF_INET6, straddr,
-		    &((struct sockaddr_in6*)&sdpl->addr)->sin6_addr)) { /* Addr format err.*/
-			data_cache_item_unlock(dc_item);
-			goto rcv_next;
-		}
-		sain6_p_set(&sdpl->addr, port);
+		sa_port_set(&sdpl->addr, port);
 	} else { /* Unknown/invalid addr type. */
 		data_cache_item_unlock(dc_item);
 		goto rcv_next;
 	}
 	memcpy(sdpl->name, sess_name, sess_name_size); // XXX
 	sdpl->name[sess_name_size] = 0;
-	sdpl->name_size = sess_name_size;
+	sdpl->name_size = (uint16_t)sess_name_size;
 	sdpl->media_proto = media_proto;
 	sdpl->flags = 1;
 	sdpl->if_index = if_index;

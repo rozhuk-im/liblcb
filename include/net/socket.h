@@ -169,7 +169,7 @@ int	skt_accept(uintptr_t skt, struct sockaddr_storage *addr,
 
 int	skt_bind(const struct sockaddr_storage *addr, int type,
 	    int protocol, uint32_t flags, uintptr_t *skt_ret);
-int	skt_bind_ap(int family, void *addr, uint16_t port,
+int	skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
 	    int type, int protocol, uint32_t flags, uintptr_t *skt_ret);
 #define SKT_BIND_FLAG_MASK	(SKT_CREATE_FLAG_MASK | SO_F_REUSEADDR | SO_F_REUSEPORT)
 

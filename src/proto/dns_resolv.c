@@ -208,14 +208,14 @@ dns_rslvr_cache_addr_cmp(dns_rslvr_cache_addr_p a1, dns_rslvr_cache_addr_p a2) {
 
 	if (a1->family != a2->family)
 		return (1);
+
 	switch (a1->family) {
 	case AF_INET:
 		return (memcmp(&a1->addr4, &a2->addr4, sizeof(struct in_addr)));
-		break;
 	case AF_INET6:
 		return (memcmp(&a1->addr6, &a2->addr6, sizeof(struct in6_addr)));
-		break;
 	}
+
 	return (1);
 }
 
@@ -225,21 +225,9 @@ dns_rslvr_cache_addr_cp(dns_rslvr_cache_addr_p caddrs, size_t addrs_count,
 	size_t i;
 
 	for (i = 0; i < addrs_count; i ++) {
-		switch (caddrs[i].family) {
-		case AF_INET:
-			sain4_init(&addrs[i]);
-			//sain4_p_set(&addrs[i], 0);
-			sain4_a_set(&addrs[i], &caddrs[i].addr4);
-			continue;
-			break;
-		case AF_INET6:
-			sain6_init(&addrs[i]);
-			//sain6_p_set(&addrs[i], 0);
-			sain6_a_set(&addrs[i], &caddrs[i].addr6);
-			continue;
-			break;
-		}
+		sa_init(&addrs[i], caddrs[i].family, &caddrs[i].addr4, 0);
 	}
+
 	return (0);
 }
 
@@ -512,8 +500,8 @@ dns_rslvr_task_alloc(dns_rslvr_p rslvr, dns_resolv_cb cb_func, void *arg,
 	//task->loop_count = 0;
 	task->cb_func = cb_func;
 	task->udata = arg;
-	error = tpt_ev_add_ex(tp_thread_get_pvt(rslvr->tp), TP_EV_TIMER, TP_F_DISPATCH, 0,
-	    rslvr->timeout, &rslvr->tasks_tmr[task_id]);
+	error = tpt_ev_add_ex(tp_thread_get_pvt(rslvr->tp), TP_EV_TIMER,
+	    TP_F_DISPATCH, 0, rslvr->timeout, &rslvr->tasks_tmr[task_id]);
 	if (0 != error) {
 		dns_rslvr_task_free(task);
 		return (error);
@@ -583,7 +571,7 @@ dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs,
 	io_buf_init(&rslvr->buf, 0, rslvr->buf_data, sizeof(rslvr->buf_data));
 	IO_BUF_MARK_TRANSFER_ALL_FREE(&rslvr->buf);
 
-	rslvr->sktv4 = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	rslvr->sktv4 = (uintptr_t)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if ((uintptr_t)-1 == rslvr->sktv4) {
 		error = errno;
 		goto err_out;
@@ -593,7 +581,7 @@ dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs,
 		goto err_out;
 	/* Tune socket. */
 #ifdef SO_NOSIGPIPE
-	setsockopt(rslvr->sktv4, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));
+	setsockopt((int)rslvr->sktv4, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));
 #endif
 	error = skt_snd_tune(rslvr->sktv4, buf, 1);
 	if (0 != error)
@@ -643,7 +631,7 @@ dns_resolver_destroy(dns_rslvr_p rslvr) {
 		return;
 
 	tp_task_destroy(rslvr->io_pkt_rcvr4);
-	close(rslvr->sktv4);
+	close((int)rslvr->sktv4);
 
 	/* Destroy all tasks. */
 	/* XXX Lock */
@@ -681,7 +669,7 @@ data_cache_enum_cb_fn(void *udata, hbucket_entry_p entry) {
 	if ((cd->buf_size - cd->cur_off) < DNS_MAX_NAME_LENGTH)
 		return (1); /* No buf space, stop enum. */
 	if (DNS_R_CD_F_CNAME & cache_entry->flags) {
-		cd->cur_off += snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
+		cd->cur_off += (size_t)snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
 		    "%-32s [ addrs: cn,	ttl: %-2"PRIi32",	"
 		    "upd/task q len: %zu,	ret count: %"PRIu64",	data: %s ]\r\n",
 		    cache_entry->name,
@@ -689,10 +677,10 @@ data_cache_enum_cb_fn(void *udata, hbucket_entry_p entry) {
 		    ((DNS_R_CD_F_UPDATING & cache_entry->flags) ? (1 + cache_entry->tasks_count) : 0),
 		    cache_entry->returned_count, cache_entry->data_alias_name);
 	} else {
-		cd->cur_off += snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
+		cd->cur_off += (size_t)snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
 		    "%-32s [ addrs: %"PRIu16",	ttl: %-2"PRIi32",	"
 		    "upd/task q len: %zu,	ret count: %"PRIu64",	data: IPs ]\r\n",
-		    cache_entry->name, cache_entry->data_count,
+		    cache_entry->name, (int)cache_entry->data_count,
 		    (int32_t)(cache_entry->valid_untill - time(NULL)),
 		    ((DNS_R_CD_F_UPDATING & cache_entry->flags) ? (1 + cache_entry->tasks_count) : 0),
 		    cache_entry->returned_count);
@@ -713,7 +701,7 @@ dns_resolver_cache_text_dump(dns_rslvr_p rslvr, char *buf, size_t buf_size,
 	cache_dump.buf_size = buf_size;
 	cache_dump.cur_off = 0;
 	hbucket_entry_enum(rslvr->hbskt, data_cache_enum_cb_fn, &cache_dump);
-	cache_dump.cur_off += snprintf((cache_dump.buf + cache_dump.cur_off),
+	cache_dump.cur_off += (size_t)snprintf((cache_dump.buf + cache_dump.cur_off),
 	    (cache_dump.buf_size - cache_dump.cur_off),
 	    "entries count: %zu\r\n"
 	    "tasks queued count: %"PRIu16"\r\n",
@@ -733,7 +721,8 @@ dns_resolv_hostaddr_int(dns_rslvr_p rslvr, int send_request,
 	hbucket_zone_p zone = NULL;
 	hbucket_entry_p entry;
 	time_t time_now = time(NULL);
-	size_t loop_count = 0, addrs_count;
+	size_t addrs_count;
+	uint16_t loop_count = 0;
 	int error, cache_entry_updating = 0;
 	struct sockaddr_storage ssaddrs[DNS_RESOLVER_MAX_ADDRS];
 
@@ -868,8 +857,8 @@ dns_resolver_task_done(dns_rslvr_task_p task, int error,
 	struct sockaddr_storage ssaddrs[DNS_RESOLVER_MAX_ADDRS];
 
 	/* Udpate cache data. */
-	dns_rslvr_cache_entry_data_add(task->cache_entry, addrs, addrs_count, 0,
-	    valid_untill);
+	dns_rslvr_cache_entry_data_add(task->cache_entry, addrs,
+	    (uint16_t)addrs_count, 0, valid_untill);
 
 	if (NULL != task->cb_func) {
 		addrs_count = min(addrs_count, SIZEOF(ssaddrs));
@@ -916,10 +905,10 @@ dns_resolver_send(dns_rslvr_task_p task) {
 	    0, 0, dns_ex_flags.u16, 0, NULL, &msg_size);
 	dns_hdr_ar_inc(dns_hdr, 1);
 
-	if ((ssize_t)msg_size != sendto(task->rslvr->sktv4, dns_hdr,
+	if ((ssize_t)msg_size != sendto((int)task->rslvr->sktv4, dns_hdr,
 	    msg_size, (MSG_DONTWAIT | MSG_NOSIGNAL),
-	    &task->rslvr->dns_addrs[task->cur_srv_idx],
-	    sa_type2size(&task->rslvr->dns_addrs[task->cur_srv_idx])))
+	    (struct sockaddr*)&task->rslvr->dns_addrs[task->cur_srv_idx],
+	    sa_size(&task->rslvr->dns_addrs[task->cur_srv_idx])))
 		return (errno);
 	tpt_ev_enable_ex(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
 	    task->rslvr->timeout, &task->rslvr->tasks_tmr[task->task_id]);
@@ -956,7 +945,7 @@ dns_resolver_task_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 }
 
 static int
-dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
+dns_resolver_recv_cb(tp_task_p tptask __unused, int error, struct sockaddr_storage *addr,
     io_buf_p buf, size_t transfered_size, void *arg) {
 	dns_rslvr_p rslvr = arg;
 	dns_rslvr_task_p task;
@@ -967,7 +956,7 @@ dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
 	uint8_t *rr_data;
 	time_t time_now, valid_untill = 0;
 	int restarted = 0; /* Found cname in answer, call dns_resolv_hostaddr_int() and now looking for another name. */
-	uint32_t rr_ttl = 0;
+	uint32_t rr_ttl = 0, tmu32;
 	uint16_t rr_type = 0, rr_class = 0, rr_data_size = 0;
 	dns_rslvr_cache_addr_t addrs[DNS_RESOLVER_MAX_ADDRS];
 
@@ -1005,7 +994,7 @@ dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
 		} else {
 			while (0 == dns_msg_rr_get_data(dns_hdr, msg_size, Offset,
 			    NULL, 0, &rr_type, &rr_class, &rr_ttl, &rr_data_size,
-			    &rr_data, &rr_size)) {
+			    (void**)&rr_data, &rr_size)) {
 				Offset += rr_size;
 				if (DNS_RR_TYPE_SOA != rr_type)
 					continue;
@@ -1024,10 +1013,10 @@ dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
 					break;
 				/* Skeep: Serial, Refresh, Retry, Expire. */
 				rr_data += (sizeof(uint32_t) * 4);
-				valid_untill = (time_now +
-				    min(rr_ttl, ntohl((*((uint32_t*)rr_data)))));
+				memcpy(&tmu32, rr_data, sizeof(tmu32));
+				valid_untill = (time_now + min(rr_ttl, ntohl(tmu32)));
 				LOGD_EV_FMT("%s, SOA ttl = %i, minimum = %i",
-				task->cache_entry->name, rr_ttl, ntohl((*((uint32_t*)rr_data))));
+				    task->cache_entry->name, rr_ttl, ntohl(tmu32));
 				break;
 			}
 			error = EFAULT;//error = dns_hdr->Flags.bits.rcode;
@@ -1041,7 +1030,7 @@ dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
 	while (SIZEOF(addrs) > addrs_count) {
 		error = dns_msg_rr_find(dns_hdr, msg_size, &Offset, &rr_count,
 		    task->cache_entry->name, task->cache_entry->name_size, &rr_type,
-		    &rr_class, &rr_ttl, &rr_data_size, &rr_data, &rr_size);
+		    &rr_class, &rr_ttl, &rr_data_size, (void**)&rr_data, &rr_size);
 		if (0 != error) {
 			//LOGD_ERR_FMT(error, "dns_msg_rr_find(): %s, err = %i, total_rr_count = %zu, rr_count = %zu, msg_size = %zu, Offset = %zu", task->cache_entry->name, error, total_rr_count, rr_count, msg_size, Offset);
 			if (ESPIPE == error)
@@ -1084,8 +1073,9 @@ dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
 			}
 			/* Name have an alias and no addr, store alias to cache and
 			 * try to find addrs for alias name. */
-			dns_rslvr_cache_entry_data_add(task->cache_entry, addrs, tm,
-			    DNS_R_CD_F_CNAME, (time_now + rr_ttl));// XXX ret error handle
+			dns_rslvr_cache_entry_data_add(task->cache_entry,
+			    addrs, (uint16_t)tm, DNS_R_CD_F_CNAME,
+			    (time_now + rr_ttl)); // XXX ret error handle
 			/* Update resolv task. */
 			task->cache_entry = NULL;
 			task->loop_count ++;
@@ -1100,7 +1090,6 @@ dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
 			Offset = an_off; // restart adrs search in answer
 			rr_count = total_rr_count;
 			continue;
-			break;
 		}
 	} /* while. */
 	if ((0 != restarted || 0 != error) && 0 == addrs_count) { /* No addr for cname in answer, request it. */

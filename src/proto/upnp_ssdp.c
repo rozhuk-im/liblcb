@@ -208,25 +208,25 @@ upnp_ssdp_init__int(void) {
 	/* Init static global constants. */
 	error = sa_addr_port_from_str(&ssdp_v4_mc_addr, UPNP_SSDP_V4_ADDR,
 	    (sizeof(UPNP_SSDP_V4_ADDR) - 1));
-	sain4_p_set(&ssdp_v4_mc_addr, UPNP_SSDP_PORT);
+	sa_port_set(&ssdp_v4_mc_addr, UPNP_SSDP_PORT);
 	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V4_ADDR)");
 
 	error = sa_addr_port_from_str(&ssdp_v6_mc_addr_link_local,
 	    UPNP_SSDP_V6_ADDR_LINK_LOCAL,
 	    (sizeof(UPNP_SSDP_V6_ADDR_LINK_LOCAL) - 1));
-	sain6_p_set(&ssdp_v6_mc_addr_link_local, UPNP_SSDP_PORT);
+	sa_port_set(&ssdp_v6_mc_addr_link_local, UPNP_SSDP_PORT);
 	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_LINK_LOCAL)");
 	
 	error = sa_addr_port_from_str(&ssdp_v6_mc_addr_site_local,
 	    UPNP_SSDP_V6_ADDR_SITE_LOCAL,
 	    (sizeof(UPNP_SSDP_V6_ADDR_SITE_LOCAL) - 1));
-	sain6_p_set(&ssdp_v6_mc_addr_site_local, UPNP_SSDP_PORT);
+	sa_port_set(&ssdp_v6_mc_addr_site_local, UPNP_SSDP_PORT);
 	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_SITE_LOCAL)");
 
 	error = sa_addr_port_from_str(&ssdp_v6_mc_addr_event,
 	    UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV,
 	    (sizeof(UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV) - 1));
-	sain6_p_set(&ssdp_v6_mc_addr_event, UPNP_SSDP_V6_EVENT_PORT);
+	sa_port_set(&ssdp_v6_mc_addr_event, UPNP_SSDP_V6_EVENT_PORT);
 	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV)");
 
 	ssdp_static_initialized ++;
@@ -1383,7 +1383,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *a
 	}
 
 	if (-1 == sendto((int)skt, buf.data, buf.used, (MSG_DONTWAIT | MSG_NOSIGNAL),
-	    (struct sockaddr*)addr, sa_type2size(addr))) {
+	    (struct sockaddr*)addr, sa_size(addr))) {
 		error = errno;
 		sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
 		LOG_ERR_FMT(error, "sendto: %s, size = %zu", straddr, buf.used);

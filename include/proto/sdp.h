@@ -81,7 +81,7 @@ sdp_msg_type_get(uint8_t *sdp_msg, size_t sdp_msg_size, const uint8_t type,
 				if (NULL == val_end) {
 					val_end = (sdp_msg + sdp_msg_size);
 				}
-				(*val_ret_size) = (val_end - val);
+				(*val_ret_size) = (size_t)(val_end - val);
 			}
 			return (0);
 		}
@@ -121,9 +121,9 @@ sdp_msg_feilds_get(uint8_t *buf, size_t buf_size, size_t max_feilds,
 		/* Calculate data size. */
 		ptm = mem_chr_ptr(cur_pos, buf, buf_size, ' ');
 		if (NULL != ptm) {
-			data_size = (ptm - cur_pos);
+			data_size = (size_t)(ptm - cur_pos);
 		} else {
-			data_size = (max_pos - cur_pos);
+			data_size = (size_t)(max_pos - cur_pos);
 		}
 		feilds[ret] = cur_pos;
 		feilds_sizes[ret] = data_size;
