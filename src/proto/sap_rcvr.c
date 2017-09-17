@@ -46,7 +46,7 @@
 #include "utils/macro.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_task.h"
-#include "net/net_socket.h"
+#include "net/socket.h"
 #include "net/net_helpers.h"
 #include "proto/sap_rcvr.h"
 #include "utils/data_cache.h"
@@ -183,7 +183,7 @@ sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
 	srcvr = zalloc(sizeof(sap_rcvr_t));
 	if (NULL == srcvr)
 		return (errno);
-	error = io_net_bind_ap(AF_INET, NULL, SAP_PORT,
+	error = skt_bind_ap(AF_INET, NULL, SAP_PORT,
 	    SOCK_DGRAM, IPPROTO_UDP,
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &srcvr->sktv4);
@@ -194,11 +194,11 @@ sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
 	/* Tune socket. */
 	/* kb -> bytes */
 	skt_recv_buf_size *= 1024;
-	if (0 != io_net_rcv_tune(srcvr->sktv4, skt_recv_buf_size, 1)) {
+	if (0 != skt_rcv_tune(srcvr->sktv4, skt_recv_buf_size, 1)) {
 		error = errno;
 		goto err_out;
 	}
-	error = io_net_enable_recv_ifindex(srcvr->sktv4, 1);
+	error = skt_enable_recv_ifindex(srcvr->sktv4, 1);
 	if (0 != error)
 		goto err_out;
 
@@ -249,7 +249,7 @@ sap_receiver_listener_add4(sap_rcvr_p srcvr, const char *ifname, size_t ifname_s
 	sain4_init(&mc_addr);
 	sain4_astr_set(&mc_addr, mcaddrstr);
 	
-	return (io_net_mc_join_ifname(srcvr->sktv4, 1, ifname, ifname_size, &mc_addr));
+	return (skt_mc_join_ifname(srcvr->sktv4, 1, ifname, ifname_size, &mc_addr));
 }
 
 
@@ -277,7 +277,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error, int eof __unused,
 		goto rcv_next;
 	}
 
-	transfered_size = io_net_recvfrom(tp_task_ident_get(tptask),
+	transfered_size = skt_recvfrom(tp_task_ident_get(tptask),
 	    buf, sizeof(buf), MSG_DONTWAIT, NULL, &if_index);
 	if ((size_t)-1 == transfered_size) {
 		error = errno;

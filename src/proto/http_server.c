@@ -54,7 +54,7 @@
 
 
 #include "threadpool/threadpool_task.h"
-#include "net/net_socket.h"
+#include "net/socket.h"
 #include "net/net_helpers.h"
 #include "utils/info.h"
 #include "net/hostname_list.h"
@@ -146,7 +146,7 @@ http_srv_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
 		return;
 	/* Init. */
 	mem_bzero(s_ret, sizeof(http_srv_settings_t));
-	io_net_skt_opts_init(HTTP_SRV_S_SKT_OPTS_INT_MASK,
+	skt_opts_init(HTTP_SRV_S_SKT_OPTS_INT_MASK,
 	    HTTP_SRV_S_SKT_OPTS_INT_VALS, &s_ret->skt_opts);
 	s_ret->skt_opts.mask |= SO_F_NONBLOCK;
 	s_ret->skt_opts.bit_vals |= SO_F_NONBLOCK;
@@ -249,7 +249,7 @@ http_srv_xml_load_settings(const uint8_t *buf, size_t buf_size,
 	/* Socket options. */
 	if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
 	    &data, &data_size, (const uint8_t*)"skt", NULL)) {
-		io_net_skt_opts_xml_load(data, data_size,
+		skt_opts_xml_load(data, data_size,
 		    HTTP_SRV_S_SKT_OPTS_LOAD_MASK, &s->skt_opts);
 	}
 	xml_get_val_size_t_args(buf, buf_size, NULL, &s->rcv_io_buf_init_size,
@@ -296,7 +296,7 @@ http_srv_xml_load_bind(const uint8_t *buf, size_t buf_size,
 		sa_port_set(&s->addr, tm16);
 	}
 	/* Socket options. */
-	io_net_skt_opts_xml_load(buf, buf_size, HTTP_SRV_S_SKT_OPTS_LOAD_MASK, &s->skt_opts);
+	skt_opts_xml_load(buf, buf_size, HTTP_SRV_S_SKT_OPTS_LOAD_MASK, &s->skt_opts);
 
 	return (0);
 }
@@ -419,7 +419,7 @@ http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
 		memcpy(&srv->s, s, sizeof(http_srv_settings_t));
 	}
 	/* kb -> bytes, sec -> msec */
-	io_net_skt_opts_cvt(IO_NET_SKT_OPTS_MULT_K, &srv->s.skt_opts);
+	skt_opts_cvt(SKT_OPTS_MULT_K, &srv->s.skt_opts);
 	srv->s.rcv_io_buf_init_size *= 1024;
 	srv->s.rcv_io_buf_max_size *= 1024;
 	srv->s.snd_io_buf_init_size *= 1024;
@@ -595,7 +595,7 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 
 #ifdef __linux__ /* Linux specific code. */
 	/* Linux can balance incomming connections. */
-	if (IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&s->skt_opts, SO_F_REUSEPORT)) { /* listen socket per thread. */
+	if (SKT_OPTS_IS_FLAG_ACTIVE(&s->skt_opts, SO_F_REUSEPORT)) { /* listen socket per thread. */
 		max_threads = tp_thread_count_max_get(srv->tp);
 	}
 #endif
@@ -610,31 +610,31 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 		memcpy(&bnd->hst_name_lst, hst_name_lst, sizeof(hostname_list_t));
 	}
 	/* kb -> bytes, sec -> msec */
-	io_net_skt_opts_cvt(IO_NET_SKT_OPTS_MULT_K, &bnd->s.skt_opts);
+	skt_opts_cvt(SKT_OPTS_MULT_K, &bnd->s.skt_opts);
 
 	/* Create listen sockets per thread or on one on rand thread. */
 	for (i = 0; i < max_threads; i ++) {
-		error = io_net_bind(&bnd->s.addr, SOCK_STREAM, IPPROTO_TCP,
-		    (SO_F_NONBLOCK | IO_NET_SKT_OPTS_GET_FLAGS_VALS(&bnd->s.skt_opts, IO_NET_BIND_FLAG_MASK)),
+		error = skt_bind(&bnd->s.addr, SOCK_STREAM, IPPROTO_TCP,
+		    (SO_F_NONBLOCK | SKT_OPTS_GET_FLAGS_VALS(&bnd->s.skt_opts, SKT_BIND_FLAG_MASK)),
 		    &skt);
 		if (0 != error) {
 			skt = (uintptr_t)-1;
 			goto err_out;
 		}
-		error = io_net_listen(skt, bnd->s.skt_opts.backlog);
+		error = skt_listen(skt, bnd->s.skt_opts.backlog);
 		if (0 != error)
 			goto err_out;
 		/* Tune socket. */
-		error = io_net_skt_opts_set_ex(skt, SO_F_TCP_LISTEN_AF_MASK,
+		error = skt_opts_set_ex(skt, SO_F_TCP_LISTEN_AF_MASK,
 		    &bnd->s.skt_opts, &err_mask);
 		if (0 != error) {
 			bnd->s.skt_opts.bit_vals &= ~(err_mask & SO_F_ACC_FILTER);
-			LOG_ERR(error, "io_net_skt_opts_set_ex(SO_F_TCP_LISTEN_AF_MASK) fail, this is not fatal.");
+			LOG_ERR(error, "skt_opts_set_ex(SO_F_TCP_LISTEN_AF_MASK) fail, this is not fatal.");
 		}
 		
 #ifdef __linux__ /* Linux specific code. */
 	/* Linux can balance incomming connections. */
-		if (IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
+		if (SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
 			tpt = tp_thread_get(srv->tp, i);
 		} else {
 			tpt = tp_thread_get_rr(srv->tp);
@@ -1062,7 +1062,7 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 	/* Default values for new client. */
 #ifdef __linux__ /* Linux specific code. */
 	/* Linux can balance incomming connections. */
-	if (IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
+	if (SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
 		tpt = tp_task_tpt_get(tptask);
 	} else {
 		tpt = tp_thread_get_rr(srv->tp);
@@ -1107,14 +1107,14 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 	}
 	sa_copy(addr, &cli->addr);
 	/* Tune socket. */
-	error = io_net_skt_opts_set_ex(skt, SO_F_TCP_ES_CONN_MASK,
+	error = skt_opts_set_ex(skt, SO_F_TCP_ES_CONN_MASK,
 	    &bnd->s.skt_opts, NULL);
-	LOG_ERR_FMT(error, "%s: io_net_skt_opts_set_ex(), this is not fatal.", straddr);
+	LOG_ERR_FMT(error, "%s: skt_opts_set_ex(), this is not fatal.", straddr);
 	/* Receive http request. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
 	/* Shedule data receive / Receive http request. */
 	error = tp_task_start_ex(
-	    (0 == IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_ACC_FILTER)),
+	    (0 == SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_ACC_FILTER)),
 	    cli->tptask, TP_EV_READ, 0, bnd->s.skt_opts.rcv_timeout, 0,
 	    cli->rcv_buf, http_srv_recv_done_cb);
 	if (0 != error) { /* Error. */

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,8 +65,8 @@
 
 #include "utils/helpers.h"
 #include "net/net_helpers.h"
-#include "net/net_socket.h"
-#ifdef IO_NET_XML_CONFIG
+#include "net/socket.h"
+#ifdef SOCKET_XML_CONFIG
 #	include "utils/xml.h"
 #	include "utils/helpers.h"
 #	include "utils/log.h"
@@ -74,9 +74,9 @@
 
 
 
-#ifdef IO_NET_XML_CONFIG
+#ifdef SOCKET_XML_CONFIG
 int
-io_net_skt_opts_xml_load(const uint8_t *buf, size_t buf_size, uint32_t mask,
+skt_opts_xml_load(const uint8_t *buf, size_t buf_size, uint32_t mask,
     skt_opts_p opts) {
 	const uint8_t *data;
 	size_t data_size;
@@ -139,7 +139,7 @@ io_net_skt_opts_xml_load(const uint8_t *buf, size_t buf_size, uint32_t mask,
 			yn_set_flag32(data, data_size, SO_F_KEEPALIVE, &opts->bit_vals);
 			opts->mask |= SO_F_KEEPALIVE;
 		}
-		if (IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(opts, SO_F_KEEPALIVE)) {
+		if (SKT_OPTS_IS_FLAG_ACTIVE(opts, SO_F_KEEPALIVE)) {
 			/* SO_F_TCP_KEEPIDLE */
 			if (0 != (SO_F_TCP_KEEPIDLE & mask)) {
 				if (0 == xml_get_val_uint32_args(buf, buf_size, NULL,
@@ -293,10 +293,10 @@ io_net_skt_opts_xml_load(const uint8_t *buf, size_t buf_size, uint32_t mask,
 
 	return (0);
 }
-#endif /* IO_NET_XML_CONFIG */
+#endif /* SOCKET_XML_CONFIG */
 
 void
-io_net_skt_opts_init(uint32_t mask, uint32_t bit_vals, skt_opts_p opts) {
+skt_opts_init(uint32_t mask, uint32_t bit_vals, skt_opts_p opts) {
 
 	if (NULL == opts)
 		return;
@@ -307,7 +307,7 @@ io_net_skt_opts_init(uint32_t mask, uint32_t bit_vals, skt_opts_p opts) {
 }
 
 void
-io_net_skt_opts_cvt(int mult, skt_opts_p opts) {
+skt_opts_cvt(int mult, skt_opts_p opts) {
 	uint32_t dtbl[4] = { 1, 1000, 1000000, 1000000000 };
 	uint32_t btbl[4] = { 1, 1024, 1048576, 1073741824 };
 
@@ -328,7 +328,7 @@ io_net_skt_opts_cvt(int mult, skt_opts_p opts) {
 }
 
 int
-io_net_skt_opts_set_ex(uintptr_t skt, uint32_t mask, skt_opts_p opts,
+skt_opts_set_ex(uintptr_t skt, uint32_t mask, skt_opts_p opts,
     uint32_t *err_mask) {
 	int error = 0, ival;
 	uint32_t error_mask = 0;
@@ -501,7 +501,7 @@ io_net_skt_opts_set_ex(uintptr_t skt, uint32_t mask, skt_opts_p opts,
 
 	/* SO_F_ACC_FILTER */
 	if (0 != (SO_F_ACC_FILTER & mask) &&
-	    IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(opts, SO_F_ACC_FILTER)) {
+	    SKT_OPTS_IS_FLAG_ACTIVE(opts, SO_F_ACC_FILTER)) {
 #ifdef SO_ACCEPTFILTER
 		if (0 != setsockopt((int)skt, SOL_SOCKET, SO_ACCEPTFILTER,
 		    &opts->tcp_acc_filter, sizeof(struct accept_filter_arg))) {
@@ -569,18 +569,18 @@ err_out:
 }
 
 int
-io_net_skt_opts_set(uintptr_t skt, uint32_t mask, uint32_t bit_vals) {
+skt_opts_set(uintptr_t skt, uint32_t mask, uint32_t bit_vals) {
 	skt_opts_t opts;
 
 	opts.mask = (SO_F_BIT_VALS_MASK & mask);
 	opts.bit_vals = bit_vals;
 	
-	return (io_net_skt_opts_set_ex(skt, mask, &opts, NULL));
+	return (skt_opts_set_ex(skt, mask, &opts, NULL));
 }
 
 
 int
-io_net_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
+skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 
 	if (0 == lowat) {
 		lowat ++;
@@ -593,7 +593,7 @@ io_net_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 }
 
 int
-io_net_snd_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
+skt_snd_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 
 	if (0 == lowat) {
 		lowat ++;
@@ -609,7 +609,7 @@ io_net_snd_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 
 /* Set congestion control algorithm for socket. */
 int
-io_net_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size) {
+skt_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size) {
 
 	if (NULL == cc || 0 == cc_size || TCP_CA_NAME_MAX <= cc_size)
 		return (EINVAL);
@@ -620,7 +620,7 @@ io_net_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size) {
 }
 
 int
-io_net_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
+skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 	socklen_t optlen;
 
 	if (NULL == cc || 0 == cc_size)
@@ -637,7 +637,7 @@ io_net_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) 
 
 /* Check is congestion control algorithm avaible. */
 int
-io_net_is_tcp_cc_avail(const char *cc, size_t cc_size) {
+skt_is_tcp_cc_avail(const char *cc, size_t cc_size) {
 	uintptr_t skt;
 	int res = 0;
 
@@ -657,7 +657,7 @@ io_net_is_tcp_cc_avail(const char *cc, size_t cc_size) {
 }
 
 int
-io_net_get_tcp_maxseg(uintptr_t skt, int *val_ret) {
+skt_get_tcp_maxseg(uintptr_t skt, int *val_ret) {
 	socklen_t optlen;
 
 	if (NULL == val_ret)
@@ -669,7 +669,7 @@ io_net_get_tcp_maxseg(uintptr_t skt, int *val_ret) {
 }
 
 int
-io_net_set_tcp_nodelay(uintptr_t skt, int val) {
+skt_set_tcp_nodelay(uintptr_t skt, int val) {
 
 	if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val)))
 		return (errno);
@@ -677,7 +677,7 @@ io_net_set_tcp_nodelay(uintptr_t skt, int val) {
 }
 
 int
-io_net_set_tcp_nopush(uintptr_t skt, int val) {
+skt_set_tcp_nopush(uintptr_t skt, int val) {
 
 #ifdef TCP_NOPUSH
 	if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_NOPUSH, &val, sizeof(val)))
@@ -691,7 +691,7 @@ io_net_set_tcp_nopush(uintptr_t skt, int val) {
 }
 
 int
-io_net_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
+skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
 
 	if (NULL == accf || 0 == accf_size)
 		return (EINVAL);
@@ -717,7 +717,7 @@ io_net_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
 
 
 int
-io_net_mc_join(uintptr_t skt, int join, uint32_t if_index,
+skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
     const struct sockaddr_storage *mc_addr) {
 	struct group_req mc_group;
 
@@ -737,7 +737,7 @@ io_net_mc_join(uintptr_t skt, int join, uint32_t if_index,
 }
 
 int
-io_net_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
+skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
     size_t ifname_size, const struct sockaddr_storage *mc_addr) {
 	struct ifreq ifr;
 
@@ -749,11 +749,11 @@ io_net_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 	ifr.ifr_name[ifname_size] = 0;
 	if (-1 == ioctl((int)skt, SIOCGIFINDEX, &ifr))
 		return (errno); /* Cant get if index */
-	return (io_net_mc_join(skt, join, (uint32_t)ifr.ifr_ifindex, mc_addr));
+	return (skt_mc_join(skt, join, (uint32_t)ifr.ifr_ifindex, mc_addr));
 }
 
 int
-io_net_enable_recv_ifindex(uintptr_t skt, int enable) {
+skt_enable_recv_ifindex(uintptr_t skt, int enable) {
 	socklen_t addrlen;
 	struct sockaddr_storage ssaddr;
 
@@ -799,7 +799,7 @@ io_net_enable_recv_ifindex(uintptr_t skt, int enable) {
 
 
 int
-io_net_socket(int domain, int type, int protocol, uint32_t flags,
+skt_create(int domain, int type, int protocol, uint32_t flags,
     uintptr_t *skt_ret) {
 	uintptr_t skt;
 	int error, on = 1;
@@ -851,7 +851,7 @@ err_out:
 }
 
 int
-io_net_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
+skt_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t s;
 
@@ -887,7 +887,7 @@ io_net_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
 }
 
 int
-io_net_bind(const struct sockaddr_storage *addr, int type, int protocol,
+skt_bind(const struct sockaddr_storage *addr, int type, int protocol,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t skt = (uintptr_t)-1;
 	int error, on = 1;
@@ -895,7 +895,7 @@ io_net_bind(const struct sockaddr_storage *addr, int type, int protocol,
 	if (NULL == addr || NULL == skt_ret)
 		return (EINVAL);
 		
-	error = io_net_socket(addr->ss_family, type, protocol, flags, &skt);
+	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
 		return (error);
 	
@@ -919,7 +919,7 @@ io_net_bind(const struct sockaddr_storage *addr, int type, int protocol,
 }
 
 int
-io_net_bind_ap(int family, void *addr, uint16_t port,
+skt_bind_ap(int family, void *addr, uint16_t port,
     int type, int protocol, uint32_t flags, uintptr_t *skt_ret) {
 	struct sockaddr_storage sa;
 
@@ -942,11 +942,11 @@ io_net_bind_ap(int family, void *addr, uint16_t port,
 		return (EINVAL);
 	}
 
-	return (io_net_bind(&sa, type, protocol, flags, skt_ret));
+	return (skt_bind(&sa, type, protocol, flags, skt_ret));
 }
 
 ssize_t
-io_net_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
+skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
     struct sockaddr_storage *from, uint32_t *if_index) {
 	ssize_t transfered_size;
 	struct msghdr mhdr;
@@ -1017,7 +1017,7 @@ io_net_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 
 
 int
-io_net_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size, int flags,
+skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size, int flags,
     off_t *transfered_size) {
 	int error = 0;
 
@@ -1054,7 +1054,7 @@ err_out:
 
 
 int
-io_net_listen(uintptr_t skt, int backlog) {
+skt_listen(uintptr_t skt, int backlog) {
 
 	if (-1 == listen((int)skt, backlog))
 		return (errno);
@@ -1062,7 +1062,7 @@ io_net_listen(uintptr_t skt, int backlog) {
 }
 
 int
-io_net_connect(const struct sockaddr_storage *addr, int type, int protocol,
+skt_connect(const struct sockaddr_storage *addr, int type, int protocol,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t skt;
 	int error;
@@ -1070,7 +1070,7 @@ io_net_connect(const struct sockaddr_storage *addr, int type, int protocol,
 	if (NULL == addr || NULL == skt_ret)
 		return (EINVAL);
 
-	error = io_net_socket(addr->ss_family, type, protocol, flags, &skt);
+	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
 		return (error);
 	if (-1 == connect((int)skt, (const struct sockaddr*)addr, sa_type2size(addr))) {
@@ -1086,7 +1086,7 @@ io_net_connect(const struct sockaddr_storage *addr, int type, int protocol,
 }
 
 int
-io_net_is_connect_error(int error) {
+skt_is_connect_error(int error) {
 
 	switch (error) {
 #ifdef BSD /* BSD specific code. */
@@ -1112,7 +1112,7 @@ io_net_is_connect_error(int error) {
  * ai_family: PF_UNSPEC, AF_INET, AF_INET6
  */
 int
-io_net_sync_resolv(const char *hname, uint16_t port, int ai_family,
+skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
     struct sockaddr_storage *addrs, size_t addrs_count, size_t *addrs_count_ret) {
 	int error;
 	size_t i;
@@ -1142,7 +1142,7 @@ io_net_sync_resolv(const char *hname, uint16_t port, int ai_family,
 }
 
 int
-io_net_sync_resolv_connect(const char *hname, uint16_t port,
+skt_sync_resolv_connect(const char *hname, uint16_t port,
     int domain, int type, int protocol, uintptr_t *skt_ret) {
 	int error = 0;
 	uintptr_t skt = (uintptr_t)-1;
@@ -1161,7 +1161,7 @@ io_net_sync_resolv_connect(const char *hname, uint16_t port,
 	if (0 != error)  /* NOTREACHED */
 		return (error);
 	for (res = res0; NULL != res; res = res->ai_next) {
-		error = io_net_socket(res->ai_family, res->ai_socktype,
+		error = skt_create(res->ai_family, res->ai_socktype,
 		    res->ai_protocol, 0, &skt);
 		if (0 != error)
 			continue;

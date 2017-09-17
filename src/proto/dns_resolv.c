@@ -55,7 +55,7 @@
 #include "proto/dns.h"
 
 #include "threadpool/threadpool_task.h"
-#include "net/net_socket.h"
+#include "net/socket.h"
 #include "utils/helpers.h"
 #include "utils/macro.h"
 #include "net/net_helpers.h"
@@ -595,10 +595,10 @@ dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs,
 #ifdef SO_NOSIGPIPE
 	setsockopt(rslvr->sktv4, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));
 #endif
-	error = io_net_snd_tune(rslvr->sktv4, buf, 1);
+	error = skt_snd_tune(rslvr->sktv4, buf, 1);
 	if (0 != error)
 		goto err_out;
-	error = io_net_rcv_tune(rslvr->sktv4, rcv_buf, 1);
+	error = skt_rcv_tune(rslvr->sktv4, rcv_buf, 1);
 	if (0 != error)
 		goto err_out;
 

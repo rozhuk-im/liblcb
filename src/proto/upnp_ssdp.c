@@ -57,7 +57,7 @@
 #include "utils/io_buf.h"
 #include "utils/info.h"
 #include "threadpool/threadpool_task.h"
-#include "net/net_socket.h"
+#include "net/socket.h"
 #include "utils/log.h"
 #include "proto/upnp_ssdp.h"
 
@@ -304,24 +304,24 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	/* IPv4 */
 	if (0 == (UPNP_SSDP_S_F_IPV4 & s->flags))
 		goto skeep_ipv4;
-	//error = io_net_bind((struct sockaddr*)&ssdp_v4_mc_addr, SOCK_DGRAM, IPPROTO_UDP, (SO_F_NONBLOCK), &skt);
+	//error = skt_bind((struct sockaddr*)&ssdp_v4_mc_addr, SOCK_DGRAM, IPPROTO_UDP, (SO_F_NONBLOCK), &skt);
 	//if (0 != error) /* Bind to mc addr fail, try bind inaddr_any. */
-	error = io_net_bind_ap(AF_INET, NULL, UPNP_SSDP_PORT,
+	error = skt_bind_ap(AF_INET, NULL, UPNP_SSDP_PORT,
 	    SOCK_DGRAM, IPPROTO_UDP,
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &skt);
 	if (0 != error) {
 		skt = (uintptr_t)-1;
-		LOG_ERR(error, "io_net_bind_ap");
+		LOG_ERR(error, "skt_bind_ap");
 		goto err_out;
 	}
 	/* Tune socket. */
-	error = io_net_snd_tune(skt, s->skt_snd_buf, 1);
+	error = skt_snd_tune(skt, s->skt_snd_buf, 1);
 	if (0 != error)
-		LOG_ERR(error, "io_net_snd_tune");
-	error = io_net_rcv_tune(skt, s->skt_rcv_buf, 1);
+		LOG_ERR(error, "skt_snd_tune");
+	error = skt_rcv_tune(skt, s->skt_rcv_buf, 1);
 	if (0 != error)
-		LOG_ERR(error, "io_net_rcv_tune");
+		LOG_ERR(error, "skt_rcv_tune");
 	if (0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_TTL,
 	    &s->ttl, sizeof(int))) {
 		LOG_ERR(errno, "setsockopt: IP_MULTICAST_TTL");
@@ -330,9 +330,9 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	    &off, sizeof(int))) {
 		LOG_ERR(errno, "setsockopt: IP_MULTICAST_LOOP");
 	}
-	error = io_net_enable_recv_ifindex(skt, 1);
+	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {
-		LOG_ERR(error, "io_net_enable_recv_ifindex");
+		LOG_ERR(error, "skt_enable_recv_ifindex");
 		goto err_out;
 	}
 	error = tp_task_notify_create(tp_thread_get_rr(tp), skt,
@@ -345,22 +345,22 @@ skeep_ipv4:
 	/* IPv6 */
 	if (0 == (UPNP_SSDP_S_F_IPV6 & s->flags))
 		goto skeep_ipv6;
-	error = io_net_bind_ap(AF_INET6, NULL, UPNP_SSDP_PORT,
+	error = skt_bind_ap(AF_INET6, NULL, UPNP_SSDP_PORT,
 	    SOCK_DGRAM, IPPROTO_UDP,
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &skt);
 	if (0 != error) {
 		skt = (uintptr_t)-1;
-		LOG_ERR(error, "io_net_bind_ap");
+		LOG_ERR(error, "skt_bind_ap");
 		goto err_out;
 	}
 	/* Tune socket. */
-	error = io_net_snd_tune(skt, s->skt_snd_buf, 1);
+	error = skt_snd_tune(skt, s->skt_snd_buf, 1);
 	if (0 != error)
-		LOG_ERR(error, "io_net_snd_tune");
-	error = io_net_rcv_tune(skt, s->skt_rcv_buf, 1);
+		LOG_ERR(error, "skt_snd_tune");
+	error = skt_rcv_tune(skt, s->skt_rcv_buf, 1);
 	if (0 != error)
-		LOG_ERR(error, "io_net_rcv_tune");
+		LOG_ERR(error, "skt_rcv_tune");
 	if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
 	    &off, sizeof(int))) {
 		LOG_ERR(errno, "setsockopt: IPV6_MULTICAST_LOOP");
@@ -369,9 +369,9 @@ skeep_ipv4:
 	    &s->hop_limit, sizeof(int))) {
 		LOG_ERR(errno, "setsockopt: IPV6_MULTICAST_HOPS");
 	}
-	error = io_net_enable_recv_ifindex(skt, 1);
+	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {
-		LOG_ERR(error, "io_net_enable_recv_ifindex");
+		LOG_ERR(error, "skt_enable_recv_ifindex");
 		goto err_out;
 	}
 	error = tp_task_notify_create(tp_thread_get_rr(tp), skt,
@@ -736,24 +736,24 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 
 	/* Join to multicast groups. */
 	if (NULL != ssdp->mc_rcvr_v4) {
-		error = io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4),
+		error = skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4),
 		    1, if_index, &ssdp_v4_mc_addr);
 		if (0 != error) {
-			LOG_ERR(error, "io_net_mc_join4");
+			LOG_ERR(error, "skt_mc_join4");
 			goto err_out;
 		}
 	}
 	if (NULL != ssdp->mc_rcvr_v6) {
-		error = io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
+		error = skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
 		    1, if_index, &ssdp_v6_mc_addr_link_local);
 		if (0 != error) {
-			LOG_ERR(error, "io_net_mc_join6_1");
+			LOG_ERR(error, "skt_mc_join6_1");
 			goto err_out;
 		}
-		error = io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
+		error = skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
 		    1, if_index, &ssdp_v6_mc_addr_site_local);
 		if (0 != error) {
-			LOG_ERR(error, "io_net_mc_join6_2");
+			LOG_ERR(error, "skt_mc_join6_2");
 			goto err_out;
 		}
 	}
@@ -776,13 +776,13 @@ err_out:
 	/* Error. */
 	/* Leave multicast groups. */
 	if (NULL != ssdp->mc_rcvr_v4) {
-		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4), 0,
+		skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4), 0,
 		    if_index, &ssdp_v4_mc_addr);
 	}
 	if (NULL != ssdp->mc_rcvr_v6) {
-		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    if_index, &ssdp_v6_mc_addr_site_local);
-		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    if_index, &ssdp_v6_mc_addr_link_local);
 	}
 	free(s_if);
@@ -804,7 +804,7 @@ upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 			    &ssdp_v4_mc_addr,
 			    UPNP_SSDP_S_A_BYEBYE, NULL, 0);
 		}
-		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4), 0,
+		skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4), 0,
 		    s_if->if_index, &ssdp_v4_mc_addr);
 	}
 	if (NULL != ssdp->mc_rcvr_v6) {
@@ -813,7 +813,7 @@ upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 			    &ssdp_v6_mc_addr_site_local,
 			    UPNP_SSDP_S_A_BYEBYE, NULL, 0);
 		}
-		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    s_if->if_index, &ssdp_v6_mc_addr_site_local);
 
 		if (ssdp->byebye) {
@@ -821,7 +821,7 @@ upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 			    &ssdp_v6_mc_addr_link_local,
 			    UPNP_SSDP_S_A_BYEBYE, NULL, 0);
 		}
-		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    s_if->if_index, &ssdp_v6_mc_addr_link_local);
 	}
 	/* Remove frome ifaces list */
@@ -905,13 +905,13 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	}
 
 	while (transfered_size < data2transfer_size) { /* recv loop. */
-		ios = io_net_recvfrom(tp_task_ident_get(tptask),
+		ios = skt_recvfrom(tp_task_ident_get(tptask),
 		    buf, sizeof(buf), MSG_DONTWAIT, addr, &if_index);
 		if (-1 == ios) {
 			error = errno;
 			if (0 == error)
 				error = EINVAL;
-			error = IO_NET_ERR_FILTER(error);
+			error = SKT_ERR_FILTER(error);
 			LOG_ERR(error, "recvmsg");
 			break;
 		}

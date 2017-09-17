@@ -49,7 +49,7 @@
 
 #include "utils/macro.h"
 #include "threadpool/threadpool_task.h"
-#include "net/net_socket.h"
+#include "net/socket.h"
 #include "utils/helpers.h"
 #include "net/net_helpers.h"
 #include "utils/log.h"
@@ -541,17 +541,17 @@ radius_client_socket_alloc(uint16_t family, radius_cli_thr_p thr) {
 	skt = zalloc(sizeof(radius_cli_skt_t));
 	if (NULL == skt)
 		return (ENOMEM);
-	error = io_net_socket(family, SOCK_DGRAM, IPPROTO_UDP,
+	error = skt_create(family, SOCK_DGRAM, IPPROTO_UDP,
 	    SO_F_NONBLOCK, &skt->ident);
 	if (0 != error) {
 		skt->ident = (uintptr_t)-1;
 		goto err_out;
 	}
 	/* Tune socket. */
-	error = io_net_snd_tune(skt->ident, thr->rad_cli->s.skt_snd_buf, 1);
+	error = skt_snd_tune(skt->ident, thr->rad_cli->s.skt_snd_buf, 1);
 	if (0 != error)
 		goto err_out;
-	error = io_net_rcv_tune(skt->ident, thr->rad_cli->s.skt_rcv_buf, 1);
+	error = skt_rcv_tune(skt->ident, thr->rad_cli->s.skt_rcv_buf, 1);
 	if (0 != error)
 		goto err_out;
 

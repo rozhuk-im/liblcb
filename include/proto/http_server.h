@@ -41,7 +41,7 @@
 #include "threadpool/threadpool_task.h"
 #include "utils/io_buf.h"
 #include "net/hostname_list.h"
-#include "net/net_socket.h"
+#include "net/socket.h"
 
 
 #define HTTP_SRV_MAX_CUSTOM_HDRS_CNT	((IOV_MAX / 2) - 4) /* Limit for http_srv_snd() */

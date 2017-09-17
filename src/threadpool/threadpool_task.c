@@ -44,7 +44,7 @@
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
-#include "net/net_socket.h"
+#include "net/socket.h"
 #ifdef DEBUG
 #	include "utils/log.h"
 #endif
@@ -618,7 +618,7 @@ err_out: /* Error. */
 	if (0 == error) {
 		error = EINVAL;
 	}
-	error = IO_NET_ERR_FILTER(error);
+	error = SKT_ERR_FILTER(error);
 	if (0 == error) {
 		tptask->tot_transfered_size += transfered_size; /* Save transfered_size. */
 		cb_ret = TP_TASK_CB_CONTINUE;
@@ -711,7 +711,7 @@ call_cb:
 			if (0 == error) {
 				error = EINVAL;
 			}
-			error = IO_NET_ERR_FILTER(error);
+			error = SKT_ERR_FILTER(error);
 			if (0 == error) { /* No more data. */
 				cb_ret = TP_TASK_CB_CONTINUE;
 				goto call_cb_handle;
@@ -765,10 +765,10 @@ call_cb:
 	cb_ret = TP_TASK_CB_CONTINUE;
 	for (i = 0; i < data2transfer_size; i ++) { /* Accept all connections! */
 		addrlen = sizeof(ssaddr);
-		error = io_net_accept(tptask->tp_data.ident,
+		error = skt_accept(tptask->tp_data.ident,
 		    &ssaddr, &addrlen, SO_F_NONBLOCK, &skt);
 		if (0 != error) { /* Error. */
-			error = IO_NET_ERR_FILTER(error);
+			error = SKT_ERR_FILTER(error);
 			if (0 == error) { /* No more new connections. */
 				cb_ret = TP_TASK_CB_CONTINUE;
 				goto call_cb_handle;
@@ -1019,7 +1019,7 @@ tp_task_connect_ex_start(tp_task_p tptask, int do_connect) {
 
 try_connect:
 	/* Create socket, try to connect, start IO task with created socket. */
-	error = io_net_connect(&conn_prms->addrs[tptask->tot_transfered_size],
+	error = skt_connect(&conn_prms->addrs[tptask->tot_transfered_size],
 	    conn_prms->type, conn_prms->protocol,
 	    SO_F_NONBLOCK, &tptask->tp_data.ident);
 	if (0 != error) { /* Cant create socket. */
