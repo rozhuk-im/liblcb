@@ -1353,6 +1353,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *a
 		    dhost_addr, url, nt_loc, dev->boot_id, dev->uuid, usn_pre_nt, usn_nt,
 		    dev->boot_id,
 		    dev->config_id, (dev->boot_id + 1));
+		break;
 	case UPNP_SSDP_S_A_SRESPONSE: /* 1.3.3 Discovery: Search: Response */
 		add_search_port = (UPNP_SSDP_PORT != ssdp->search_port);
 		IO_BUF_PRINTF(&buf,
