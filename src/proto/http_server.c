@@ -55,6 +55,7 @@
 
 #include "threadpool/threadpool_task.h"
 #include "net/socket.h"
+#include "net/socket_address.h"
 #include "net/net_helpers.h"
 #include "utils/info.h"
 #include "net/hostname_list.h"

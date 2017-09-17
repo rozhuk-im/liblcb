@@ -28,8 +28,8 @@
  */
 
 
-#ifndef __NET_HELPERS_H__
-#define __NET_HELPERS_H__
+#ifndef __NET_SOCKET_ADDRESS_H__
+#define __NET_SOCKET_ADDRESS_H__
 
 #include <sys/param.h>
 
@@ -44,30 +44,35 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-
-int	str_net_to_ss(const char *buf, size_t buf_size, struct sockaddr_storage *addr,
-	    uint16_t *preflen_ret);
-void	net_addr_truncate_preflen(struct sockaddr_storage *net_addr, uint16_t preflen);
-void	net_addr_truncate_mask(sa_family_t family, uint32_t *net, uint32_t *mask);
-int	is_addr_in_net(sa_family_t family, const uint32_t *net, const uint32_t *mask,
-	    const uint32_t *addr);
-
-int	inet_len2mask(size_t len, struct in_addr *mask);
-int	inet_mask2len(const struct in_addr *mask);
-
-int	inet6_len2mask(size_t len, struct in6_addr *mask);
-int	inet6_mask2len(const struct in6_addr *mask);
-
-int	get_if_addr_by_name(const char *if_name, size_t if_name_size, sa_family_t family,
-	    struct sockaddr_storage *addr);
-int	get_if_addr_by_idx(uint32_t if_index, sa_family_t family,
-	    struct sockaddr_storage *addr);
-int	is_host_addr(const struct sockaddr_storage *addr);
-int	is_host_addr_ex(const struct sockaddr_storage *addr, void **data);
-void	is_host_addr_ex_free(void *data);
-
-size_t	iovec_calc_size(struct iovec *iov, size_t iov_cnt);
-void	iovec_set_offset(struct iovec *iov, size_t iov_cnt, size_t iov_off);
+#define STR_ADDR_LEN		(56) /* 46(INET6_ADDRSTRLEN) + 2('[]') + 1(':') + 5(port num) + zero */
 
 
-#endif /* __NET_HELPERS_H__ */
+void	sa_copy(const void *src, void *dst);
+int	sa_init(struct sockaddr_storage *addr, const sa_family_t family,
+	    const void *sin_addr, const uint16_t port);
+sa_family_t sa_family(const struct sockaddr_storage *addr);
+socklen_t sa_size(const struct sockaddr_storage *addr);
+uint16_t sa_port_get(const struct sockaddr_storage *addr);
+int	sa_port_set(struct sockaddr_storage *addr, const uint16_t port);
+void 	*sa_addr_get(struct sockaddr_storage *addr);
+int	sa_addr_set(struct sockaddr_storage *addr, const void *sin_addr);
+int	sa_addr_is_specified(const struct sockaddr_storage *addr);
+int	sa_addr_is_loopback(const struct sockaddr_storage *addr);
+int	sa_addr_is_multicast(const struct sockaddr_storage *addr);
+int	sa_addr_is_broadcast(const struct sockaddr_storage *addr);
+int	sa_addr_port_is_eq(const struct sockaddr_storage *addr1,
+	    const struct sockaddr_storage *addr2);
+int	sa_addr_is_eq(const struct sockaddr_storage *addr1,
+	    const struct sockaddr_storage *addr2);
+
+int	sa_addr_from_str(struct sockaddr_storage *addr,
+	    const char *buf, size_t buf_size);
+int	sa_addr_port_from_str(struct sockaddr_storage *addr,
+	    const char *buf, size_t buf_size);
+int	sa_addr_to_str(const struct sockaddr_storage *addr,
+	    char *buf, size_t buf_size, size_t *buf_size_ret);
+int	sa_addr_port_to_str(const struct sockaddr_storage *addr,
+	     char *buf, size_t buf_size, size_t *buf_size_ret);
+
+
+#endif /* __NET_SOCKET_ADDRESS_H__ */

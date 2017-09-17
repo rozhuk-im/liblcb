@@ -35,6 +35,7 @@
 
 #include "utils/mem_utils.h"
 #include "utils/macro.h"
+#include "net/socket_address.h"
 #include "net/net_helpers.h"
 #include "utils/bt_encode.h"
 #include "proto/bt_tracker.h"

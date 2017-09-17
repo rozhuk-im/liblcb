@@ -50,8 +50,9 @@
 #include "utils/macro.h"
 #include "threadpool/threadpool_task.h"
 #include "net/socket.h"
-#include "utils/helpers.h"
+#include "net/socket_address.h"
 #include "net/net_helpers.h"
+#include "utils/helpers.h"
 #include "utils/log.h"
 #include "proto/radius_client.h"
 #ifdef RADIUS_CLIENT_XML_CONFIG

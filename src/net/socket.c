@@ -64,6 +64,7 @@
 #include "utils/mem_utils.h"
 
 #include "utils/helpers.h"
+#include "net/socket_address.h"
 #include "net/net_helpers.h"
 #include "net/socket.h"
 #ifdef SOCKET_XML_CONFIG

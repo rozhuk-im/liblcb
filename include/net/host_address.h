@@ -46,7 +46,7 @@
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
 #include "utils/str2num.h"
-#include "net/net_helpers.h"
+#include "net/socket_address.h"
 
 
 #define HOST_ADDR_PREALLOC	8

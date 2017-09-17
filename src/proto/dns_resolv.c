@@ -56,9 +56,10 @@
 
 #include "threadpool/threadpool_task.h"
 #include "net/socket.h"
+#include "net/socket_address.h"
+#include "net/net_helpers.h"
 #include "utils/helpers.h"
 #include "utils/macro.h"
-#include "net/net_helpers.h"
 #include "utils/log.h"
 #include "proto/dns_resolv.h"
 
@@ -123,7 +124,7 @@ typedef struct dns_rslvr_s {
 
 typedef struct dns_rslvr_cache_addr_s { // 8 + 4 + 16 = 28 bytes
 	time_t		valid_untill;
-	uint32_t	family;		/* Addr family. */
+	sa_family_t	family;		/* Addr family. */
 	union {
 		struct in_addr	addr4;	// IPv4 address 4 bytes
 		struct in6_addr	addr6;	// IPv6 address 16 bytes
