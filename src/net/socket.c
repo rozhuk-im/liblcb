@@ -65,7 +65,7 @@
 
 #include "utils/helpers.h"
 #include "net/socket_address.h"
-#include "net/net_helpers.h"
+#include "net/utils.h"
 #include "net/socket.h"
 #ifdef SOCKET_XML_CONFIG
 #	include "utils/xml.h"

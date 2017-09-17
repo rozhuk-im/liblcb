@@ -51,7 +51,7 @@
 #include "threadpool/threadpool_task.h"
 #include "net/socket.h"
 #include "net/socket_address.h"
-#include "net/net_helpers.h"
+#include "net/utils.h"
 #include "utils/helpers.h"
 #include "utils/log.h"
 #include "proto/radius_client.h"

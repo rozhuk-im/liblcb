@@ -49,7 +49,7 @@
 #include "utils/mem_utils.h"
 #include "utils/str2num.h"
 #include "net/socket_address.h"
-#include "net/net_helpers.h"
+#include "net/utils.h"
 
 
 /* For convert netmask <-> prefix len. */

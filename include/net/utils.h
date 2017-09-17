@@ -28,8 +28,8 @@
  */
 
 
-#ifndef __NET_HELPERS_H__
-#define __NET_HELPERS_H__
+#ifndef __NET_UTILS_H__
+#define __NET_UTILS_H__
 
 #include <sys/param.h>
 
@@ -70,4 +70,4 @@ size_t	iovec_calc_size(struct iovec *iov, size_t iov_cnt);
 void	iovec_set_offset(struct iovec *iov, size_t iov_cnt, size_t iov_off);
 
 
-#endif /* __NET_HELPERS_H__ */
+#endif /* __NET_UTILS_H__ */

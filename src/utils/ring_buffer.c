@@ -51,7 +51,7 @@
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
-#include "net/net_helpers.h"
+#include "net/utils.h"
 #ifdef DEBUG
 #include "utils/log.h"
 #endif
