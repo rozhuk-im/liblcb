@@ -147,19 +147,19 @@ typedef struct upnp_ssdp_dev_s {
 	/* Internal data. */
 	uint32_t	dev_ifs_cnt;
 	upnp_ssdp_dev_if_p *dev_ifs;	/* Associated interfaces */
-	thrp_udata_t	ann_tmr;	/* Announce send timer. */
+	tp_udata_t	ann_tmr;	/* Announce send timer. */
 	upnp_ssdp_p	ssdp;		/* Need in timer proc. */
 } upnp_ssdp_dev_t;
 
 
 typedef struct upnp_ssdp_s {
-	thrp_p		thrp;
+	tp_p		tp;
 	upnp_ssdp_if_p	*s_ifs;	/* interfaces */
 	uint32_t	s_ifs_cnt;	/*  */
 	upnp_ssdp_dev_p	*root_devs;
 	uint32_t	root_devs_cnt;	/*  */
-	io_task_p	mc_rcvr_v4;	/* MC packets receiver: one for all ifaces. */
-	io_task_p	mc_rcvr_v6;	/* MC packets receiver: one for all ifaces. */
+	tp_task_p	mc_rcvr_v4;	/* MC packets receiver: one for all ifaces. */
+	tp_task_p	mc_rcvr_v6;	/* MC packets receiver: one for all ifaces. */
 	/* 1. Discovery / SSDP */
 	uint16_t	search_port;	/* UPnP 1.1: SEARCHPORT.UPNP.ORG: (49152-65535) identifies the port at which the device listens to unicast M-SEARCH messages */
 	char		http_server[256]; /* 'OS/version UPnP/1.1 product/version' */
@@ -180,8 +180,8 @@ int	upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name,
 void	upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if);
 
 /* 1. Discovery / SSDP */
-void	upnp_ssdp_timer_cb(thrp_event_p ev, thrp_udata_p thrp_udata);
-int	upnp_ssdp_mc_recv_cb(io_task_p iotask, int error, uint32_t eof,
+void	upnp_ssdp_timer_cb(tp_event_p ev, tp_udata_p tp_udata);
+int	upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof,
 	    size_t data2transfer_size, void *arg);
 int	upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 	    struct sockaddr_storage *addr, int action,
@@ -264,7 +264,7 @@ upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret) {
 }
 
 int
-upnp_ssdp_create(thrp_p thrp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
+upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	upnp_ssdp_p ssdp;
 	uintptr_t skt;
 	int error;
@@ -295,7 +295,7 @@ upnp_ssdp_create(thrp_p thrp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	s->skt_snd_buf *= 1024;
 	s->skt_rcv_buf *= 1024;
 
-	ssdp->thrp = thrp;
+	ssdp->tp = tp;
 	ssdp->search_port = s->search_port;
 	memcpy(ssdp->http_server, s->http_server, s->http_server_size);
 	ssdp->http_server[s->http_server_size] = 0;
@@ -335,8 +335,8 @@ upnp_ssdp_create(thrp_p thrp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 		LOG_ERR(error, "io_net_enable_recv_ifindex");
 		goto err_out;
 	}
-	error = io_task_notify_create(thrp_thread_get_rr(thrp), skt,
-	    IO_TASK_F_CLOSE_ON_DESTROY, THRP_EV_READ, 0,
+	error = tp_task_notify_create(tp_thread_get_rr(tp), skt,
+	    TP_TASK_F_CLOSE_ON_DESTROY, TP_EV_READ, 0,
 	    upnp_ssdp_mc_recv_cb, ssdp, &ssdp->mc_rcvr_v4);
 	if (0 != error)
 		goto err_out;
@@ -374,8 +374,8 @@ skeep_ipv4:
 		LOG_ERR(error, "io_net_enable_recv_ifindex");
 		goto err_out;
 	}
-	error = io_task_notify_create(thrp_thread_get_rr(thrp), skt,
-	    IO_TASK_F_CLOSE_ON_DESTROY, THRP_EV_READ, 0,
+	error = tp_task_notify_create(tp_thread_get_rr(tp), skt,
+	    TP_TASK_F_CLOSE_ON_DESTROY, TP_EV_READ, 0,
 	    upnp_ssdp_mc_recv_cb, ssdp, &ssdp->mc_rcvr_v6);
 	if (0 != error)
 		goto err_out;
@@ -412,8 +412,8 @@ upnp_ssdp_destroy(upnp_ssdp_p ssdp) {
 		}
 		free(ssdp->s_ifs);
 	}
-	io_task_destroy(ssdp->mc_rcvr_v4);
-	io_task_destroy(ssdp->mc_rcvr_v6);
+	tp_task_destroy(ssdp->mc_rcvr_v4);
+	tp_task_destroy(ssdp->mc_rcvr_v6);
 	free(ssdp);
 }
 
@@ -484,8 +484,8 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	/* Timer */
 	dev->ann_tmr.cb_func = upnp_ssdp_timer_cb;
 	dev->ann_tmr.ident = (uintptr_t)dev;
-	error = thrpt_ev_add_ex(thrp_thread_get_pvt(ssdp->thrp),
-	    THRP_EV_TIMER, 0, 0, dev->ann_interval, &dev->ann_tmr);
+	error = tpt_ev_add_ex(tp_thread_get_pvt(ssdp->tp),
+	    TP_EV_TIMER, 0, 0, dev->ann_interval, &dev->ann_tmr);
 	if (0 != error)
 		goto err_out;
 	/* Send announces. */
@@ -515,7 +515,7 @@ upnp_ssdp_dev_del(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev) {
 	if (NULL == ssdp || NULL == dev)
 		return;
 	/* Destroy announce timer. */
-	thrpt_ev_del(THRP_EV_TIMER, &dev->ann_tmr);
+	tpt_ev_del(TP_EV_TIMER, &dev->ann_tmr);
 	/* Notify all. */
 	if (ssdp->byebye) {
 		upnp_ssdp_dev_notify_sendto_mc(ssdp, dev, UPNP_SSDP_S_A_BYEBYE);
@@ -736,7 +736,7 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 
 	/* Join to multicast groups. */
 	if (NULL != ssdp->mc_rcvr_v4) {
-		error = io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v4),
+		error = io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4),
 		    1, if_index, &ssdp_v4_mc_addr);
 		if (0 != error) {
 			LOG_ERR(error, "io_net_mc_join4");
@@ -744,13 +744,13 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 		}
 	}
 	if (NULL != ssdp->mc_rcvr_v6) {
-		error = io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v6),
+		error = io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
 		    1, if_index, &ssdp_v6_mc_addr_link_local);
 		if (0 != error) {
 			LOG_ERR(error, "io_net_mc_join6_1");
 			goto err_out;
 		}
-		error = io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v6),
+		error = io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
 		    1, if_index, &ssdp_v6_mc_addr_site_local);
 		if (0 != error) {
 			LOG_ERR(error, "io_net_mc_join6_2");
@@ -776,13 +776,13 @@ err_out:
 	/* Error. */
 	/* Leave multicast groups. */
 	if (NULL != ssdp->mc_rcvr_v4) {
-		io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v4), 0,
+		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4), 0,
 		    if_index, &ssdp_v4_mc_addr);
 	}
 	if (NULL != ssdp->mc_rcvr_v6) {
-		io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    if_index, &ssdp_v6_mc_addr_site_local);
-		io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    if_index, &ssdp_v6_mc_addr_link_local);
 	}
 	free(s_if);
@@ -804,7 +804,7 @@ upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 			    &ssdp_v4_mc_addr,
 			    UPNP_SSDP_S_A_BYEBYE, NULL, 0);
 		}
-		io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v4), 0,
+		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4), 0,
 		    s_if->if_index, &ssdp_v4_mc_addr);
 	}
 	if (NULL != ssdp->mc_rcvr_v6) {
@@ -813,7 +813,7 @@ upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 			    &ssdp_v6_mc_addr_site_local,
 			    UPNP_SSDP_S_A_BYEBYE, NULL, 0);
 		}
-		io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    s_if->if_index, &ssdp_v6_mc_addr_site_local);
 
 		if (ssdp->byebye) {
@@ -821,7 +821,7 @@ upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 			    &ssdp_v6_mc_addr_link_local,
 			    UPNP_SSDP_S_A_BYEBYE, NULL, 0);
 		}
-		io_net_mc_join(io_task_ident_get(ssdp->mc_rcvr_v6), 0,
+		io_net_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    s_if->if_index, &ssdp_v6_mc_addr_link_local);
 	}
 	/* Remove frome ifaces list */
@@ -866,8 +866,8 @@ upnp_ssdp_send_notify(upnp_ssdp_p ssdp) {
 }
 
 void
-upnp_ssdp_timer_cb(thrp_event_p ev __unused, thrp_udata_p thrp_udata) {
-	upnp_ssdp_dev_p dev = (upnp_ssdp_dev_p)thrp_udata->ident;
+upnp_ssdp_timer_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
+	upnp_ssdp_dev_p dev = (upnp_ssdp_dev_p)tp_udata->ident;
 
 	//LOGD_EV("...");
 	if (NULL == dev)
@@ -883,7 +883,7 @@ upnp_ssdp_timer_cb(thrp_event_p ev __unused, thrp_udata_p thrp_udata) {
 }
 
 int
-upnp_ssdp_mc_recv_cb(io_task_p iotask, int error, uint32_t eof __unused,
+upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
     size_t data2transfer_size, void *arg) {
 	upnp_ssdp_p ssdp = arg;
 	uint32_t if_index = 0;
@@ -901,11 +901,11 @@ upnp_ssdp_mc_recv_cb(io_task_p iotask, int error, uint32_t eof __unused,
 
 	if (0 != error) {
 		LOG_ERR(error, "on receive");
-		return (IO_TASK_CB_CONTINUE);
+		return (TP_TASK_CB_CONTINUE);
 	}
 
 	while (transfered_size < data2transfer_size) { /* recv loop. */
-		ios = io_net_recvfrom(io_task_ident_get(iotask),
+		ios = io_net_recvfrom(tp_task_ident_get(tptask),
 		    buf, sizeof(buf), MSG_DONTWAIT, addr, &if_index);
 		if (-1 == ios) {
 			error = errno;
@@ -990,7 +990,7 @@ upnp_ssdp_mc_recv_cb(io_task_p iotask, int error, uint32_t eof __unused,
 		    ptm, tm);
 	} /* end recv while */
 
-	return (IO_TASK_CB_CONTINUE);
+	return (TP_TASK_CB_CONTINUE);
 }
 
 
@@ -1247,7 +1247,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *a
 	case AF_INET:
 		if (NULL == ssdp->mc_rcvr_v4)
 			return (0); /* IPv4 disabled. */
-		skt = io_task_ident_get(ssdp->mc_rcvr_v4);
+		skt = tp_task_ident_get(ssdp->mc_rcvr_v4);
 		if (NULL != s_if) {
 			mem_bzero(&ipmrn, sizeof(ipmrn));
 			ipmrn.imr_ifindex = (int)s_if->if_index;
@@ -1265,7 +1265,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *a
 	case AF_INET6:
 		if (NULL == ssdp->mc_rcvr_v6)
 			return (0); /* IPv6 disabled. */
-		skt = io_task_ident_get(ssdp->mc_rcvr_v6);
+		skt = tp_task_ident_get(ssdp->mc_rcvr_v6);
 		if (NULL != s_if) {
 			if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 			    &s_if->if_index, sizeof(uint32_t))) {

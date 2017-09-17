@@ -37,7 +37,7 @@
 typedef struct sap_rcvr_s	*sap_rcvr_p;
 
 
-int	sap_receiver_create(thrp_p thp, uint32_t skt_recv_buf_size,
+int	sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
 	    uint32_t cache_time, uint32_t cache_clean_interval,
 	    sap_rcvr_p *sap_rcvr_ret);
 void	sap_receiver_destroy(sap_rcvr_p srcvr);

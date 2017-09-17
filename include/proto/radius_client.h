@@ -87,14 +87,14 @@ int	radius_client_xml_load_settings(const uint8_t *buf, size_t buf_size,
 int	radius_client_server_xml_load_settings(const uint8_t *buf, size_t buf_size,
 	    radius_cli_srv_settings_p s);
 int	radius_client_xml_load_start(const uint8_t *buf, size_t buf_size,
-	    thrp_p thrp,
+	    tp_p tp,
 	    radius_cli_settings_p cli_settings,
 	    radius_cli_srv_settings_p cli_srv_settings,
 	    radius_cli_p *rad_cli);
 #endif
 
 
-int	radius_client_create(thrp_p thrp, radius_cli_settings_p s,
+int	radius_client_create(tp_p tp, radius_cli_settings_p s,
 	    radius_cli_p *rad_cli_ret);
 void	radius_client_destroy(radius_cli_p rad_cli);
 
@@ -104,7 +104,7 @@ void	radius_client_server_remove_by_addr(radius_cli_p rad_cli,
 	    struct sockaddr_storage *addr);
 
 
-int	radius_client_query(radius_cli_p rad_cli, thrpt_p thrpt, size_t query_id,
+int	radius_client_query(radius_cli_p rad_cli, tpt_p tpt, size_t query_id,
 	    io_buf_p buf, radius_cli_cb cb_func, void *arg,
 	    radius_cli_query_p *query_ret);
 #define RADIUS_CLIENT_QUERY_ID_AUTO	(~((size_t)0))

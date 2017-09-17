@@ -65,7 +65,7 @@ typedef struct upnp_ssdp_settings_s { /* Settings */
 
 
 void	upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret);
-int	upnp_ssdp_create(thrp_p thrp, upnp_ssdp_settings_p s, upnp_ssdp_p *ssdp_ret);
+int	upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ssdp_ret);
 void	upnp_ssdp_destroy(upnp_ssdp_p ssdp);
 
 

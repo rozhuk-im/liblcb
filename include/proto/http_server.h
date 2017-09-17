@@ -85,7 +85,7 @@ typedef struct http_srv_cli_callbacks_s {
 
 
 typedef int (*http_srv_on_conn_cb)(http_srv_bind_p bnd, void *srv_udata,
-    uintptr_t skt, struct sockaddr_storage *addr, thrpt_p *thrpt,
+    uintptr_t skt, struct sockaddr_storage *addr, tpt_p *tpt,
     http_srv_cli_ccb_p ccb, void **udata);
 /* Called after HTTP request received, and data after POST request.
  * Return values
@@ -208,13 +208,13 @@ int	http_srv_xml_load_settings(const uint8_t *buf, size_t buf_size,
 	    http_srv_settings_p s);
 int	http_srv_xml_load_bind(const uint8_t *buf, size_t buf_size,
 	    http_srv_bind_settings_p s);
-int	http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, thrp_p thrp,
+int	http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, tp_p tp,
 	    http_srv_on_conn_cb on_conn, http_srv_cli_ccb_p ccb,
 	    http_srv_settings_p srv_settings, void *udata,
 	    http_srv_p *http_srv);
 #endif
 
-int	http_srv_create(thrp_p thrp,
+int	http_srv_create(tp_p tp,
 	    http_srv_on_conn_cb on_conn, http_srv_cli_ccb_p ccb,
 	    hostname_list_p hst_name_lst, http_srv_settings_p s, void *udata,
 	    http_srv_p *srv_ret);
@@ -222,8 +222,8 @@ void	http_srv_shutdown(http_srv_p srv); /* Stop accept new clients. Optional. Al
 void	http_srv_destroy(http_srv_p srv);
 size_t	http_srv_get_bind_count(http_srv_p srv);
 int	http_srv_stat_get(http_srv_p srv, http_srv_stat_p stat);
-thrp_p	http_srv_thrp_get(http_srv_p srv);
-int	http_srv_thrp_set(http_srv_p srv, thrp_p thrp);
+tp_p	http_srv_tp_get(http_srv_p srv);
+int	http_srv_tp_set(http_srv_p srv, tp_p tp);
 int	http_srv_on_conn_cb_set(http_srv_p srv, http_srv_on_conn_cb on_conn);
 int	http_srv_ccb_get(http_srv_p srv, http_srv_cli_ccb_p ccb);
 int	http_srv_ccb_set(http_srv_p srv, http_srv_cli_ccb_p ccb);
@@ -247,10 +247,10 @@ int		http_srv_bind_get_addr(http_srv_bind_p bnd, struct sockaddr_storage *addr);
 
 void		http_srv_cli_free(http_srv_cli_p cli); /* Disconnect and free all resources. */
 
-io_task_p	http_srv_cli_get_iotask(http_srv_cli_p cli);
-io_task_p	http_srv_cli_export_iotask(http_srv_cli_p cli);
-int		http_srv_cli_import_iotask(http_srv_cli_p cli,
-		    io_task_p iotask, thrpt_p thrpt);
+tp_task_p	http_srv_cli_get_tptask(http_srv_cli_p cli);
+tp_task_p	http_srv_cli_export_tptask(http_srv_cli_p cli);
+int		http_srv_cli_import_tptask(http_srv_cli_p cli,
+		    tp_task_p tptask, tpt_p tpt);
 
 io_buf_p	http_srv_cli_get_buf(http_srv_cli_p cli);
 /* Responce buffer management. */

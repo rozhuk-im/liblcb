@@ -81,7 +81,7 @@ typedef struct dns_rslvr_cache_entry_s	*dns_rslvr_cache_entry_p;
 
 typedef struct dns_rslvr_task_s {
 	dns_rslvr_p	rslvr;		/*  */
-	thrpt_p		thrpt;		/* Need for timers and correct callback. */
+	tpt_p		tpt;		/* Need for timers and correct callback. */
 	dns_rslvr_cache_entry_p cache_entry; /* Used for update existing cache item. */
 	dns_rslvr_task_p next_task;	/* Next task to notify in cache_entry queue. */
 	uint16_t	task_id;	/* ID in dns msg and Index in tasks_tmr array. */
@@ -98,13 +98,13 @@ typedef struct dns_rslvr_task_s {
 
 
 typedef struct dns_rslvr_s {
-	thrpt_p		thrp;		/* Need for timers. */
+	tpt_p		tp;		/* Need for timers. */
 	hbucket_p	hbskt;		/* Cache resolved records. */
 	time_t		next_clean_time;
 	uint32_t	clean_interval;
 
-	io_task_p	io_pkt_rcvr4;	/* Packet receiver IPv4 skt. */
-	//io_task_p	io_pkt_rcvr6;	/* Packet receiver IPv4 skt. */
+	tp_task_p	io_pkt_rcvr4;	/* Packet receiver IPv4 skt. */
+	//tp_task_p	io_pkt_rcvr6;	/* Packet receiver IPv4 skt. */
 	uintptr_t	sktv4;		/* IPv4 UDP socket. */
 	//uintptr_t	sktv6;		/* IPv6 UDP socket. */
 	io_buf_t	buf;		/* Buffer for recv reply. */
@@ -115,7 +115,7 @@ typedef struct dns_rslvr_s {
 	uint16_t	retry_count;	/* Num of timeout retry req to NS server. */
 	uint16_t	tasks_count;	/* Now resolving for ... hosts. */
 	uint16_t	tasks_index;	/* Next task item index. */
-	thrp_udata_t	tasks_tmr[DNS_RESOLVER_MAX_TASKS]; /* Index in this array
+	tp_udata_t	tasks_tmr[DNS_RESOLVER_MAX_TASKS]; /* Index in this array
 							* used as ID in dns msg. */
 	uint8_t		buf_data[DNS_RESOLVER_MAX_UDP_MSG_SIZE];
 } dns_rslvr_t;
@@ -173,8 +173,8 @@ static void	dns_resolver_task_done(dns_rslvr_task_p task, int error,
 		    dns_rslvr_cache_addr_p addrs, size_t addrs_count,
 		    time_t valid_untill);
 static int	dns_resolver_send(dns_rslvr_task_p task);
-static void	dns_resolver_task_timeout_cb(thrp_event_p ev, thrp_udata_p thrp_udata);
-static int	dns_resolver_recv_cb(io_task_p iotask, int error,
+static void	dns_resolver_task_timeout_cb(tp_event_p ev, tp_udata_p tp_udata);
+static int	dns_resolver_recv_cb(tp_task_p tptask, int error,
 		    struct sockaddr_storage *addr, io_buf_p buf,
 		    size_t transfered_size, void *arg);
 
@@ -512,13 +512,13 @@ dns_rslvr_task_alloc(dns_rslvr_p rslvr, dns_resolv_cb cb_func, void *arg,
 	//task->loop_count = 0;
 	task->cb_func = cb_func;
 	task->udata = arg;
-	error = thrpt_ev_add_ex(thrp_thread_get_pvt(rslvr->thrp), THRP_EV_TIMER, THRP_F_DISPATCH, 0,
+	error = tpt_ev_add_ex(tp_thread_get_pvt(rslvr->tp), TP_EV_TIMER, TP_F_DISPATCH, 0,
 	    rslvr->timeout, &rslvr->tasks_tmr[task_id]);
 	if (0 != error) {
 		dns_rslvr_task_free(task);
 		return (error);
 	}
-	thrpt_ev_enable(0, THRP_EV_TIMER, &rslvr->tasks_tmr[task_id]);
+	tpt_ev_enable(0, TP_EV_TIMER, &rslvr->tasks_tmr[task_id]);
 	(*task_ret) = task;
 
 	return (0);
@@ -531,7 +531,7 @@ dns_rslvr_task_free(dns_rslvr_task_p task) {
 	if (NULL == task)
 		return;
 	rslvr = task->rslvr;
-	thrpt_ev_del(THRP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
+	tpt_ev_del(TP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
 	/* XXX Lock */
 	rslvr->tasks_tmr[task->task_id].ident = 0;
 	rslvr->tasks_count --;
@@ -558,7 +558,7 @@ dns_rslvr_task_notify_chain(dns_rslvr_task_p task, uint8_t *name, size_t name_si
 }
 
 int
-dns_resolver_create(thrp_p thrp, const struct sockaddr_storage *dns_addrs, 
+dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs, 
     uint16_t dns_addrs_count, uintptr_t timeout, uint16_t retry_count,
     uint32_t neg_cache, dns_rslvr_p *dns_rslvr_ret) {
 	dns_rslvr_p rslvr;
@@ -567,7 +567,7 @@ dns_resolver_create(thrp_p thrp, const struct sockaddr_storage *dns_addrs,
 	int error;
 	size_t i;
 
-	if (NULL == thrp || NULL == dns_addrs || 0 == dns_addrs_count ||
+	if (NULL == tp || NULL == dns_addrs || 0 == dns_addrs_count ||
 	    DNS_TTL_MAX < neg_cache || DNS_RESOLVER_TTL_MIN > neg_cache ||
 	    NULL == dns_rslvr_ret)
 		return (EINVAL);
@@ -607,7 +607,7 @@ dns_resolver_create(thrp_p thrp, const struct sockaddr_storage *dns_addrs,
 	rslvr->dns_addrs_count = dns_addrs_count;
 	for (i = 0; i < dns_addrs_count; i ++)
 		sa_copy(&dns_addrs[i], &rslvr->dns_addrs[i]);
-	rslvr->thrp = thrp;
+	rslvr->tp = tp;
 	rslvr->timeout = timeout;
 	rslvr->neg_cache = neg_cache;
 	rslvr->retry_count = retry_count;
@@ -615,7 +615,7 @@ dns_resolver_create(thrp_p thrp, const struct sockaddr_storage *dns_addrs,
 		rslvr->tasks_tmr[i].cb_func = dns_resolver_task_timeout_cb;
 
 
-	error = io_task_pkt_rcvr_create(thrp_thread_get_pvt(thrp), rslvr->sktv4,
+	error = tp_task_pkt_rcvr_create(tp_thread_get_pvt(tp), rslvr->sktv4,
 	    0, 0, &rslvr->buf, dns_resolver_recv_cb, rslvr, &rslvr->io_pkt_rcvr4);
 	if (0 != error)
 		goto err_out;
@@ -642,7 +642,7 @@ dns_resolver_destroy(dns_rslvr_p rslvr) {
 	if (NULL == rslvr)
 		return;
 
-	io_task_destroy(rslvr->io_pkt_rcvr4);
+	tp_task_destroy(rslvr->io_pkt_rcvr4);
 	close(rslvr->sktv4);
 
 	/* Destroy all tasks. */
@@ -664,12 +664,12 @@ dns_resolver_destroy(dns_rslvr_p rslvr) {
 	free(rslvr);
 }
 
-thrpt_p
-dns_resolver_thrpt_get(dns_rslvr_p rslvr) {
+tpt_p
+dns_resolver_tpt_get(dns_rslvr_p rslvr) {
 
 	if (NULL == rslvr)
 		return (NULL);
-	return (rslvr->thrp);
+	return (rslvr->tp);
 }
 
 
@@ -921,7 +921,7 @@ dns_resolver_send(dns_rslvr_task_p task) {
 	    &task->rslvr->dns_addrs[task->cur_srv_idx],
 	    sa_type2size(&task->rslvr->dns_addrs[task->cur_srv_idx])))
 		return (errno);
-	thrpt_ev_enable_ex(1, THRP_EV_TIMER, THRP_F_DISPATCH, 0,
+	tpt_ev_enable_ex(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
 	    task->rslvr->timeout, &task->rslvr->tasks_tmr[task->task_id]);
 
 	return (0);
@@ -929,11 +929,11 @@ dns_resolver_send(dns_rslvr_task_p task) {
 
 
 static void
-dns_resolver_task_timeout_cb(thrp_event_p ev __unused, thrp_udata_p thrp_udata) {
-	dns_rslvr_task_p task = (dns_rslvr_task_p)thrp_udata->ident;
+dns_resolver_task_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
+	dns_rslvr_task_p task = (dns_rslvr_task_p)tp_udata->ident;
 	int error;
 
-	thrpt_ev_enable(0, THRP_EV_TIMER, thrp_udata);
+	tpt_ev_enable(0, TP_EV_TIMER, tp_udata);
 	if (NULL == task) /* Task already done/removed. */
 		return;
 
@@ -956,7 +956,7 @@ dns_resolver_task_timeout_cb(thrp_event_p ev __unused, thrp_udata_p thrp_udata) 
 }
 
 static int
-dns_resolver_recv_cb(io_task_p iotask, int error, struct sockaddr_storage *addr,
+dns_resolver_recv_cb(tp_task_p tptask, int error, struct sockaddr_storage *addr,
     io_buf_p buf, size_t transfered_size, void *arg) {
 	dns_rslvr_p rslvr = arg;
 	dns_rslvr_task_p task;
@@ -988,7 +988,7 @@ dns_resolver_recv_cb(io_task_p iotask, int error, struct sockaddr_storage *addr,
 		goto rcv_next;
 
 	/* Looks like answer for resolv task... */
-	thrpt_ev_enable(0, THRP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
+	tpt_ev_enable(0, TP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
 
 	time_now = time(NULL);
 	valid_untill = (time_now + rslvr->neg_cache);
@@ -1118,5 +1118,5 @@ call_cb:
 rcv_next:
 	IO_BUF_MARK_AS_EMPTY(buf);
 	IO_BUF_MARK_TRANSFER_ALL_FREE(buf);
-	return (IO_TASK_CB_CONTINUE);
+	return (TP_TASK_CB_CONTINUE);
 }

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,8 @@
  */
 
  
-#ifndef __CORE_IO_TASK_H__
-#define __CORE_IO_TASK_H__
+#ifndef __THREAD_POOL_TASK_H__
+#define __THREAD_POOL_TASK_H__
 
 
 #include <sys/param.h>
@@ -48,41 +48,41 @@
 
 
 
-typedef struct io_task_s *io_task_p;
-/* io_task flags: */
-#define IO_TASK_F_CLOSE_ON_DESTROY	(((uint32_t)1) << 0) /* Call close(ident) in io_task_destroy(). */
-#define IO_TASK_F_CB_AFTER_EVERY_READ	(((uint32_t)1) << 1) /* Call cb_func after each read/recv. 
-					* Allways set for IO_TASK_TYPE_SOCK_DGRAM with
-					* IO_TASK_F_CB_TYPE_DEFAULT
+typedef struct tp_task_s *tp_task_p;
+/* tp_task flags: */
+#define TP_TASK_F_CLOSE_ON_DESTROY	(((uint32_t)1) << 0) /* Call close(ident) in tp_task_destroy(). */
+#define TP_TASK_F_CB_AFTER_EVERY_READ	(((uint32_t)1) << 1) /* Call cb_func after each read/recv. 
+					* Allways set for TP_TASK_TYPE_SOCK_DGRAM with
+					* TP_TASK_F_CB_TYPE_DEFAULT
 					*/
 
 
 /* Replace 'io_buf_p' for connect_ex(). */
-typedef struct io_task_connect_params_s {
+typedef struct tp_task_connect_params_s {
 	struct timespec	time_limit;	/* Time limit for all retries / max connect time. 0 - no limit. */
 	uint64_t	retry_delay;	/* Wait before retry / time before try connect to next addr. */
-	uint64_t	max_tries;	/* Num tries to connect. 0 - no limit, also set IO_TASK_CONNECT_F_ROUND_ROBIN. */
+	uint64_t	max_tries;	/* Num tries to connect. 0 - no limit, also set TP_TASK_CONNECT_F_ROUND_ROBIN. */
 	uint32_t	flags;		/* Flags. */
 	int		type;		/* Socket type. */
 	int		protocol;	/* Socket proto. */
 	size_t		addrs_count;	/* Addresses count. */
 	struct sockaddr_storage *addrs;	/* Addresses connect to. */
-} io_task_conn_prms_t, *io_task_conn_prms_p;
+} tp_task_conn_prms_t, *tp_task_conn_prms_p;
 
-#define IO_TASK_CONNECT_F_INITIAL_DELAY	(((uint32_t)1) << 0) /* Delay before first try. retry_delay must be set to non zero! */
-#define IO_TASK_CONNECT_F_ROUND_ROBIN	(((uint32_t)1) << 1) /* while (max_tries --) { connect(addrs[0]...addrs[addrs_count]); sleep(retry_delay) }. */
+#define TP_TASK_CONNECT_F_INITIAL_DELAY	(((uint32_t)1) << 0) /* Delay before first try. retry_delay must be set to non zero! */
+#define TP_TASK_CONNECT_F_ROUND_ROBIN	(((uint32_t)1) << 1) /* while (max_tries --) { connect(addrs[0]...addrs[addrs_count]); sleep(retry_delay) }. */
 
 
 
 /* Replace 'io_buf_p' for send_file(). */
 /* TODO: write 
- * - io_task_sendfile_handler();
- * - io_task_create_sendfile();
- * - io_task_sendfile_cb().
+ * - tp_task_sendfile_handler();
+ * - tp_task_create_sendfile();
+ * - tp_task_sendfile_cb().
  */
-typedef struct io_task_sendfile_s { /* send_file */
-	/*uintptr_t	fd; - send data from io_task.ident */
-	/*off_t		offset; - io_task.offset */
+typedef struct tp_task_sendfile_s { /* send_file */
+	/*uintptr_t	fd; - send data from tp_task.ident */
+	/*off_t		offset; - tp_task.offset */
 	uintptr_t	s; /* Socket to send data. */
 	size_t		nbytes; /* Number of bytes to send. */
 #ifdef BSD /* BSD specific code. */
@@ -90,234 +90,234 @@ typedef struct io_task_sendfile_s { /* send_file */
 	off_t		sbytes;
 	int		flags;
 #endif /* BSD specific code. */
-} io_task_sf_t, *io_task_sf_p;
+} tp_task_sf_t, *tp_task_sf_p;
 
 
-/* Internal thrpt_cb thrp.data.cb funtions handlers: */
+/* Internal tp_cb tp.data.cb funtions handlers: */
 
-void	io_task_rw_handler(thrp_event_p ev, thrp_udata_p thrp_udata);
+void	tp_task_rw_handler(tp_event_p ev, tp_udata_p tp_udata);
 /* read() / write() from/to buf. */
-/* cb func type: io_task_cb */
+/* cb func type: tp_task_cb */
 
-void	io_task_sr_handler(thrp_event_p ev, thrp_udata_p thrp_udata);
+void	tp_task_sr_handler(tp_event_p ev, tp_udata_p tp_udata);
 /* send() / recv() from/to buf. */
-/* cb func type: io_task_cb */
+/* cb func type: tp_task_cb */
 
-void	io_task_notify_handler(thrp_event_p ev, thrp_udata_p thrp_udata);
+void	tp_task_notify_handler(tp_event_p ev, tp_udata_p tp_udata);
 /* Only notify cb function about IO ready for descriptor. */
-/* cb func type: io_task_notify_cb */
+/* cb func type: tp_task_notify_cb */
 
-void	io_task_pkt_rcvr_handler(thrp_event_p ev, thrp_udata_p thrp_udata);
+void	tp_task_pkt_rcvr_handler(tp_event_p ev, tp_udata_p tp_udata);
 /* recvfrom() to buf. */
-/* cb func type: io_task_pkt_rcvr_cb */
+/* cb func type: tp_task_pkt_rcvr_cb */
 
-void	io_task_accept_handler(thrp_event_p ev, thrp_udata_p thrp_udata);
+void	tp_task_accept_handler(tp_event_p ev, tp_udata_p tp_udata);
 /* Notify cb function on new connection received, pass new socket and perr addr. */
-/* cb func type: io_task_accept_cb */
+/* cb func type: tp_task_accept_cb */
 
-void	io_task_connect_handler(thrp_event_p ev, thrp_udata_p thrp_udata);
-/* Call io_task_stop() and notify cb function then descriptor ready to write. */
-/* cb func type: io_task_connect_cb */
+void	tp_task_connect_handler(tp_event_p ev, tp_udata_p tp_udata);
+/* Call tp_task_stop() and notify cb function then descriptor ready to write. */
+/* cb func type: tp_task_connect_cb */
 
-void	io_task_connect_ex_handler(thrp_event_p ev, thrp_udata_p thrp_udata);
-/* Call io_task_stop() and notify cb function then descriptor ready to write. */
-/* cb func type: io_task_connect_ex_cb */
+void	tp_task_connect_ex_handler(tp_event_p ev, tp_udata_p tp_udata);
+/* Call tp_task_stop() and notify cb function then descriptor ready to write. */
+/* cb func type: tp_task_connect_ex_cb */
 
 
 /* Call back functions return codes: */
-#define IO_TASK_CB_ERROR	-1 /* error, call done func with error code */
-#define IO_TASK_CB_NONE		0 /* Do nothink / All done, call done func, error = 0. */
-#define IO_TASK_CB_EOF		1 /* end of file / conn close / half closed: other side call shutdown(, SHUT_WR) */
-#define IO_TASK_CB_CONTINUE	2 /* recv/read / send/write - reshedule task
-				* eg call io_task_enable().
-				* should not retun if THRP_F_ONESHOT event_flags is set
+#define TP_TASK_CB_ERROR	-1 /* error, call done func with error code */
+#define TP_TASK_CB_NONE		0 /* Do nothink / All done, call done func, error = 0. */
+#define TP_TASK_CB_EOF		1 /* end of file / conn close / half closed: other side call shutdown(, SHUT_WR) */
+#define TP_TASK_CB_CONTINUE	2 /* recv/read / send/write - reshedule task
+				* eg call tp_task_enable().
+				* should not retun if TP_F_ONESHOT event_flags is set
 				*/
-/* Return IO_TASK_CB_CONTINUE to continue recv/rechedule io. 
- * All other return codes stop callback untill io_task_enable(1) is called
- * if THRP_F_DISPATCH flag was set.
- * THRP_F_DISPATCH = auto disable task before callback. ie manual mode.
- * If event flag THRP_F_DISPATCH not set in io_task_start(event_flags) then you must
- * call io_task_stop() / io_task_enable(0) / io_task_ident_close() / io_task_destroy()
- * before return code other than IO_TASK_CB_CONTINUE.
+/* Return TP_TASK_CB_CONTINUE to continue recv/rechedule io. 
+ * All other return codes stop callback untill tp_task_enable(1) is called
+ * if TP_F_DISPATCH flag was set.
+ * TP_F_DISPATCH = auto disable task before callback. ie manual mode.
+ * If event flag TP_F_DISPATCH not set in tp_task_start(event_flags) then you must
+ * call tp_task_stop() / tp_task_enable(0) / tp_task_ident_close() / tp_task_destroy()
+ * before return code other than TP_TASK_CB_CONTINUE.
  */
 
 
-#define IO_TASK_IOF_F_SYS	(((uint32_t)1) << 0) /* System return EOF. */
-#define IO_TASK_IOF_F_BUF	(((uint32_t)1) << 1) /* All data in task buf transfered. Only for read/recv. */
+#define TP_TASK_IOF_F_SYS	(((uint32_t)1) << 0) /* System return EOF. */
+#define TP_TASK_IOF_F_BUF	(((uint32_t)1) << 1) /* All data in task buf transfered. Only for read/recv. */
 
 /* Call back function types. */
-typedef int (*io_task_cb)(io_task_p iotask, int error, io_buf_p buf,
+typedef int (*tp_task_cb)(tp_task_p tptask, int error, io_buf_p buf,
     uint32_t eof, size_t transfered_size, void *udata);
 /* Transfer data to/from buf and then call back. */
 
-typedef int (*io_task_pkt_rcvr_cb)(io_task_p iotask, int error,
+typedef int (*tp_task_pkt_rcvr_cb)(tp_task_p tptask, int error,
     struct sockaddr_storage *addr, io_buf_p buf, size_t transfered_size,
     void *udata);
-/* Designed for receive datagramms. If IO_TASK_F_CB_AFTER_EVERY_READ not set
+/* Designed for receive datagramms. If TP_TASK_F_CB_AFTER_EVERY_READ not set
  * then packets data will store in singe buffer, and thet call cb function
  * with peer addr from last received packet. */
 
-typedef int (*io_task_notify_cb)(io_task_p iotask, int error,
+typedef int (*tp_task_notify_cb)(tp_task_p tptask, int error,
     uint32_t eof, size_t data2transfer_size, void *udata);
 /* Notify call back function: ident ready for data transfer. */
 
-typedef int (*io_task_accept_cb)(io_task_p iotask, int error,
+typedef int (*tp_task_accept_cb)(tp_task_p tptask, int error,
     uintptr_t skt_new, struct sockaddr_storage *addr, void *udata);
 /* Callback then new connection received. */
 
-typedef int (*io_task_connect_cb)(io_task_p iotask, int error, void *udata);
+typedef int (*tp_task_connect_cb)(tp_task_p tptask, int error, void *udata);
 /* Callback then connection to remonte host established.
- * Handler call io_task_stop() before io_task_connect_cb call.
+ * Handler call tp_task_stop() before tp_task_connect_cb call.
  * Use in case you need connect and receive data.
- * For connect and send use io_task_sr_handler() + io_task_cb() for write. */
-/* IO_TASK_CB_CONTINUE return code - ignored. */
+ * For connect and send use tp_task_sr_handler() + tp_task_cb() for write. */
+/* TP_TASK_CB_CONTINUE return code - ignored. */
 
-typedef int (*io_task_connect_ex_cb)(io_task_p iotask, int error,
-    io_task_conn_prms_p conn_prms, size_t addr_index, void *udata);
-/* Callback then connection established or error happen (if IO_TASK_F_CB_AFTER_EVERY_READ set). */
-/* IO_TASK_CB_CONTINUE return code - ignored if error = 0 or error = -1. */
+typedef int (*tp_task_connect_ex_cb)(tp_task_p tptask, int error,
+    tp_task_conn_prms_p conn_prms, size_t addr_index, void *udata);
+/* Callback then connection established or error happen (if TP_TASK_F_CB_AFTER_EVERY_READ set). */
+/* TP_TASK_CB_CONTINUE return code - ignored if error = 0 or error = -1. */
 
 
 
 /* Create io task and set some data. */
-int	io_task_create(thrpt_p thrpt, uintptr_t ident,
-	    thrpt_cb thrp_cb_func, uint32_t flags, void *udata,
-	    io_task_p *iotask_ret);
-/* thrpt - Thread pool thread pointer
+int	tp_task_create(tpt_p tpt, uintptr_t ident,
+	    tp_cb tp_cb_func, uint32_t flags, void *udata,
+	    tp_task_p *tptask_ret);
+/* tpt - Thread pool thread pointer
  * ident - socket/file descriptor
- * thrp_cb_func - io_task_XXX_handler(...) - internal io task handler function
- * flags - io task flags: IO_TASK_F_*
+ * tp_cb_func - tp_task_XXX_handler(...) - internal io task handler function
+ * flags - io task flags: TP_TASK_F_*
  * arg - associated user data, passed to cb_func()
- * iotask_ret - pointer to return created iotask.
+ * tptask_ret - pointer to return created tptask.
  */
-/* io_task_create() + io_task_start() */
-int	io_task_create_start(thrpt_p thrpt, uintptr_t ident,
-	    thrpt_cb thrp_cb_func, uint32_t flags, uint16_t event,
+/* tp_task_create() + tp_task_start() */
+int	tp_task_create_start(tpt_p tpt, uintptr_t ident,
+	    tp_cb tp_cb_func, uint32_t flags, uint16_t event,
 	    uint16_t event_flags, uint64_t timeout, off_t offset,
-	    io_buf_p buf, io_task_cb cb_func, void *udata,
-	    io_task_p *iotask_ret);
-/* Call io_task_stop(); optional: close(ident). */
-void	io_task_destroy(io_task_p iotask);
+	    io_buf_p buf, tp_task_cb cb_func, void *udata,
+	    tp_task_p *tptask_ret);
+/* Call tp_task_stop(); optional: close(ident). */
+void	tp_task_destroy(tp_task_p tptask);
 
 
-/* Set some vars in io_task_s and shedule io for 'ident'. */
-int	io_task_start_ex(int shedule_first_io, io_task_p iotask,
+/* Set some vars in tp_task_s and shedule io for 'ident'. */
+int	tp_task_start_ex(int shedule_first_io, tp_task_p tptask,
 	    uint16_t event, uint16_t event_flags, uint64_t timeout,
-	    off_t offset, io_buf_p buf, io_task_cb cb_func);
-int	io_task_start(io_task_p iotask, uint16_t event,
+	    off_t offset, io_buf_p buf, tp_task_cb cb_func);
+int	tp_task_start(tp_task_p tptask, uint16_t event,
 	    uint16_t event_flags, uint64_t timeout, off_t offset,
-	    io_buf_p buf, io_task_cb cb_func);
+	    io_buf_p buf, tp_task_cb cb_func);
 /*
  * sfio - shedule first io, set 0 if you want do first recv/send/read/write without
  *  sheduling via kqueue/epoll.
  *  Need to receive data after accept() + accept_filter callback: we know that data
  *  allready received, but not shure that all data/full request.
- * iotask - point to io task.
- * event - THRP_EV_*.
- * event_flags - THRP_F_*, see thrpt_ev_add()
+ * tptask - point to io task.
+ * event - TP_EV_*.
+ * event_flags - TP_F_*, see tpt_ev_add()
  * timeout - time out for io in ms (1 second = 1000 ms).
  * buf - pointer to io_buf for read/write
  *  buf->offset + buf->transfer_size <= buf->size
- *  If buf is null then io_task_cb() called every time.
- * cb_func - call back function: io_task_cb, io_task_XXX_cb, see 'Call back function types'.
+ *  If buf is null then tp_task_cb() called every time.
+ * cb_func - call back function: tp_task_cb, tp_task_XXX_cb, see 'Call back function types'.
  */
 
-int	io_task_restart(io_task_p iotask);
-/* Same as io_task_start(), but without any params, can be used after io_task_stop(). */
+int	tp_task_restart(tp_task_p tptask);
+/* Same as tp_task_start(), but without any params, can be used after tp_task_stop(). */
 
 /* Remove shedule io for 'ident'. */
-void	io_task_stop(io_task_p iotask);
+void	tp_task_stop(tp_task_p tptask);
 
 /* Enable/disable io for 'ident'. */
-int	io_task_enable(io_task_p iotask, int enable);
+int	tp_task_enable(tp_task_p tptask, int enable);
 
 
-/* Set/get some vars in io_task_s. */
-/* Call io_task_stop() before set!!! */
-thrpt_p	io_task_thrpt_get(io_task_p iotask);
-void	io_task_thrpt_set(io_task_p iotask, thrpt_p thrpt);
+/* Set/get some vars in tp_task_s. */
+/* Call tp_task_stop() before set!!! */
+tpt_p	tp_task_tpt_get(tp_task_p tptask);
+void	tp_task_tpt_set(tp_task_p tptask, tpt_p tpt);
 
-uintptr_t io_task_ident_get(io_task_p iotask);
-void	io_task_ident_set(io_task_p iotask, uintptr_t ident);
-/* Call io_task_stop() before! */
+uintptr_t tp_task_ident_get(tp_task_p tptask);
+void	tp_task_ident_set(tp_task_p tptask, uintptr_t ident);
+/* Call tp_task_stop() before! */
 
-void	io_task_ident_close(io_task_p iotask);
-/* io_task_stop(); close(ident); ident = -1 */
+void	tp_task_ident_close(tp_task_p tptask);
+/* tp_task_stop(); close(ident); ident = -1 */
 
-thrpt_cb io_task_thrp_cb_func_get(io_task_p iotask);
-void	io_task_thrp_cb_func_set(io_task_p iotask, thrpt_cb cb_func);
-/* Set io_task_XXX_handler(...) - internal io task handler function. */
+tp_cb tp_task_tp_cb_func_get(tp_task_p tptask);
+void	tp_task_tp_cb_func_set(tp_task_p tptask, tp_cb cb_func);
+/* Set tp_task_XXX_handler(...) - internal io task handler function. */
 
-io_task_cb io_task_cb_func_get(io_task_p iotask);
-void	io_task_cb_func_set(io_task_p iotask, io_task_cb cb_func);
+tp_task_cb tp_task_cb_func_get(tp_task_p tptask);
+void	tp_task_cb_func_set(tp_task_p tptask, tp_task_cb cb_func);
 
-void	*io_task_udata_get(io_task_p iotask);
-void	io_task_udata_set(io_task_p iotask, void *udata);
+void	*tp_task_udata_get(tp_task_p tptask);
+void	tp_task_udata_set(tp_task_p tptask, void *udata);
 
-/* Task flag IO_TASK_F_* manipulation. */
-void	io_task_flags_set(io_task_p iotask, uint32_t flags);
-uint32_t io_task_flags_add(io_task_p iotask, uint32_t flags);
-uint32_t io_task_flags_del(io_task_p iotask, uint32_t flags);
-uint32_t io_task_flags_get(io_task_p iotask);
+/* Task flag TP_TASK_F_* manipulation. */
+void	tp_task_flags_set(tp_task_p tptask, uint32_t flags);
+uint32_t tp_task_flags_add(tp_task_p tptask, uint32_t flags);
+uint32_t tp_task_flags_del(tp_task_p tptask, uint32_t flags);
+uint32_t tp_task_flags_get(tp_task_p tptask);
 
-off_t	io_task_offset_get(io_task_p iotask);
-void	io_task_offset_set(io_task_p iotask, off_t offset);
+off_t	tp_task_offset_get(tp_task_p tptask);
+void	tp_task_offset_set(tp_task_p tptask, off_t offset);
 
 /* No affect on task in wait event state, apply on start/continue after callback. */
-uint64_t io_task_timeout_get(io_task_p iotask);
-void	io_task_timeout_set(io_task_p iotask, uint64_t timeout);
+uint64_t tp_task_timeout_get(tp_task_p tptask);
+void	tp_task_timeout_set(tp_task_p tptask, uint64_t timeout);
 
-io_buf_p io_task_buf_get(io_task_p iotask);
-void	io_task_buf_set(io_task_p iotask, io_buf_p buf);
+io_buf_p tp_task_buf_get(tp_task_p tptask);
+void	tp_task_buf_set(tp_task_p tptask, io_buf_p buf);
 
 
 // Generic (default build-in) check functions for recv and send
 // will receive until connection open and some free space in buf
-int	io_task_cb_check(io_buf_p buf, uint32_t eof, size_t transfered_size);
+int	tp_task_cb_check(io_buf_p buf, uint32_t eof, size_t transfered_size);
 
 
 /* Creates notifier for read/write ready. */
-int	io_task_notify_create(thrpt_p thrpt, uintptr_t ident,
+int	tp_task_notify_create(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint16_t event, uint64_t timeout,
-	    io_task_notify_cb cb_func, void *udata,
-	    io_task_p *iotask_ret);
+	    tp_task_notify_cb cb_func, void *udata,
+	    tp_task_p *tptask_ret);
 /* Creates packet receiver. */
-int	io_task_pkt_rcvr_create(thrpt_p thrpt, uintptr_t ident,
+int	tp_task_pkt_rcvr_create(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint64_t timeout, io_buf_p buf,
-	    io_task_pkt_rcvr_cb cb_func, void *udata,
-	    io_task_p *iotask_ret);
-/* Valid flags: IO_TASK_F_CB_AFTER_EVERY_READ */
-/* Call io_task_destroy() then no needed. */
+	    tp_task_pkt_rcvr_cb cb_func, void *udata,
+	    tp_task_p *tptask_ret);
+/* Valid flags: TP_TASK_F_CB_AFTER_EVERY_READ */
+/* Call tp_task_destroy() then no needed. */
 
 
-int	io_task_create_accept(thrpt_p thrpt, uintptr_t ident,
+int	tp_task_create_accept(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint64_t timeout,
-	    io_task_accept_cb cb_func, void *udata,
-	    io_task_p *iotask_ret);
-/* Valid flags: IO_TASK_F_CLOSE_ON_DESTROY */
+	    tp_task_accept_cb cb_func, void *udata,
+	    tp_task_p *tptask_ret);
+/* Valid flags: TP_TASK_F_CLOSE_ON_DESTROY */
 
 
-int	io_task_create_connect(thrpt_p thrpt, uintptr_t ident,
-	    uint32_t flags, uint64_t timeout, io_task_connect_cb cb_func,
-	    void *udata, io_task_p *iotask_ret);
+int	tp_task_create_connect(tpt_p tpt, uintptr_t ident,
+	    uint32_t flags, uint64_t timeout, tp_task_connect_cb cb_func,
+	    void *udata, tp_task_p *tptask_ret);
 
-int	io_task_create_connect_send(thrpt_p thrpt, uintptr_t ident,
+int	tp_task_create_connect_send(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint64_t timeout, io_buf_p buf,
-	    io_task_cb cb_func, void *udata, io_task_p *iotask_ret);
+	    tp_task_cb cb_func, void *udata, tp_task_p *tptask_ret);
 /* timeout - for connect, then for send (write) data. */
 
-int	io_task_create_connect_ex(thrpt_p thrpt, uint32_t flags,
-	    uint64_t timeout, io_task_conn_prms_p conn_prms,
-	    io_task_connect_ex_cb cb_func, void *udata,
-	    io_task_p *iotask_ret);
+int	tp_task_create_connect_ex(tpt_p tpt, uint32_t flags,
+	    uint64_t timeout, tp_task_conn_prms_p conn_prms,
+	    tp_task_connect_ex_cb cb_func, void *udata,
+	    tp_task_p *tptask_ret);
 /* Connect to first addr, if timeout/error then wait retry_delay
  * and try connect to second addr.
- * IO_TASK_F_CB_AFTER_EVERY_READ - report about fails.
+ * TP_TASK_F_CB_AFTER_EVERY_READ - report about fails.
  * Function return control before cb_func called.
  * If time_limit is set then timeout must be != 0 and lower than time_limit.
  */
 /* timeout - for connect try.
- * conn_prms - keep until cb_func called or iotask not stop/
+ * conn_prms - keep until cb_func called or tptask not stop/
  * conn_prms->time_limit - time limit for all retries / max connect time. 0 - no limit.
  * conn_prms->retry_delay - time before try connect to next addr.
  * conn_prms->max_tries - num tries connect to addrs[0]...addrs[addrs_count]
@@ -336,4 +336,4 @@ int	io_task_create_connect_ex(thrpt_p thrpt, uint32_t flags,
  */
 
 
-#endif /* __CORE_IO_TASK_H__ */
+#endif /* __THREAD_POOL_TASK_H__ */

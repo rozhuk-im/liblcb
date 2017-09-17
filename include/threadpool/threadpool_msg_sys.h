@@ -45,58 +45,58 @@
 #include "threadpool.h"
 
 
-typedef struct thread_pool_thread_msg_queue_s	*thrpt_msg_queue_p;	/* Thread pool thread message queue. */
+typedef struct thread_pool_thread_msg_queue_s	*tpt_msg_queue_p;	/* Thread pool thread message queue. */
 
-typedef void (*thrpt_msg_cb)(thrpt_p thrpt, void *udata);
-typedef void (*thrpt_msg_done_cb)(thrpt_p thrpt, size_t send_msg_cnt,
+typedef void (*tpt_msg_cb)(tpt_p tpt, void *udata);
+typedef void (*tpt_msg_done_cb)(tpt_p tpt, size_t send_msg_cnt,
     size_t error_cnt, void *udata);
 
 
-thrpt_msg_queue_p thrpt_msg_queue_create(thrpt_p thrpt);
-void		thrpt_msg_queue_destroy(thrpt_msg_queue_p msg_queue);
+tpt_msg_queue_p tpt_msg_queue_create(tpt_p tpt);
+void		tpt_msg_queue_destroy(tpt_msg_queue_p msg_queue);
 
 
 /* Thread messages. Unicast and Broadcast. */
 /* Only threads from pool can receive messages. */
-int	thrpt_msg_send(thrpt_p dst, thrpt_p src, uint32_t flags, thrpt_msg_cb msg_cb,
+int	tpt_msg_send(tpt_p dst, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
 	    void *udata);
-/* thrpt_msg_send() return:
+/* tpt_msg_send() return:
  * 0 = no errors, message sended
  * EINVAL - on invalid arg
- * EHOSTDOWN - dst thread not running and THRP_MSG_F_FORCE flag not set
+ * EHOSTDOWN - dst thread not running and TP_MSG_F_FORCE flag not set
  * other err codes from kevent() on BSD and write() on linux
  */
-int	thrpt_msg_bsend_ex(thrp_p thrp, thrpt_p src, uint32_t flags, thrpt_msg_cb msg_cb,
+int	tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
 	    void *udata, size_t *send_msg_cnt, size_t *error_cnt);
-#define thrpt_msg_bsend(__thrp, __src, __flags, __msg_cb, __udata)	\
-	    thrpt_msg_bsend_ex(__thrp, __src, __flags, __msg_cb, __udata, NULL, NULL)
-/* thrpt_msg_bsend_ex() return:
+#define tpt_msg_bsend(__tp, __src, __flags, __msg_cb, __udata)	\
+	    tpt_msg_bsend_ex(__tp, __src, __flags, __msg_cb, __udata, NULL, NULL)
+/* tpt_msg_bsend_ex() return:
  * 0 = no errors, at least 1 message sended
  * EINVAL - on invalid arg
  * ESPIPE - no messages sended, all send operations fail
  * + errors count, + send_msg_cnt
  */
-int	thrpt_msg_cbsend(thrp_p thrp, thrpt_p src, uint32_t flags, thrpt_msg_cb msg_cb,
-	    void *udata, thrpt_msg_done_cb done_cb);
-/* thrpt_msg_cbsend() return:
+int	tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
+	    void *udata, tpt_msg_done_cb done_cb);
+/* tpt_msg_cbsend() return:
  * error code if none messages sended,
  * 0 if at least one message sended + sended messages and errors count on done cb. */
 /* Unicast + broadcast messages flags. */
-#define THRP_MSG_F_SELF_DIRECT	(((uint32_t)1) <<  0) /* Directly call cb func for calling thread. */
-#define THRP_MSG_F_FORCE	(((uint32_t)1) <<  1) /* If thread mark as not running - directly call cb func.
-					   * WARNING! if thread not running - thrpt will be ignored. */
-#define THRP_MSG_F_FAIL_DIRECT	(((uint32_t)1) <<  2) /* Directly call cb func if fail to send. */
-#define THRP_MSG_F__ALL__	(THRP_MSG_F_SELF_DIRECT | THRP_MSG_F_FORCE | THRP_MSG_F_FAIL_DIRECT)
+#define TP_MSG_F_SELF_DIRECT	(((uint32_t)1) <<  0) /* Directly call cb func for calling thread. */
+#define TP_MSG_F_FORCE		(((uint32_t)1) <<  1) /* If thread mark as not running - directly call cb func.
+					   * WARNING! if thread not running - tpt will be ignored. */
+#define TP_MSG_F_FAIL_DIRECT	(((uint32_t)1) <<  2) /* Directly call cb func if fail to send. */
+#define TP_MSG_F__ALL__		(TP_MSG_F_SELF_DIRECT | TP_MSG_F_FORCE | TP_MSG_F_FAIL_DIRECT)
 /* Broadcast flags. */
-#define THRP_BMSG_F_SELF_SKIP	(((uint32_t)1) <<  8) /* Do not send mesg to caller thread. */
-#define THRP_BMSG_F_SYNC	(((uint32_t)1) <<  9) /* Wait before all thread process message before return.
+#define TP_BMSG_F_SELF_SKIP	(((uint32_t)1) <<  8) /* Do not send mesg to caller thread. */
+#define TP_BMSG_F_SYNC		(((uint32_t)1) <<  9) /* Wait before all thread process message before return.
 						       * WARNING! This deadlock, frizes possible. */
-#define THRP_BMSG_F_SYNC_USLEEP	(((uint32_t)1) << 10) /* Wait before all thread process message before return. */
-#define THRP_BMSG_F__ALL__	(THRP_BMSG_F_SELF_SKIP | THRP_BMSG_F_SYNC | THRP_BMSG_F_SYNC_USLEEP)
+#define TP_BMSG_F_SYNC_USLEEP	(((uint32_t)1) << 10) /* Wait before all thread process message before return. */
+#define TP_BMSG_F__ALL__	(TP_BMSG_F_SELF_SKIP | TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP)
 /* Broadcast with result cb. */
-#define THRP_CBMSG_F_SELF_SKIP	THRP_BMSG_F_SELF_SKIP
-#define THRP_CBMSG_F_ONE_BY_ONE	(((uint32_t)1) << 16) /* Send message to next thread after current thread process message. */
-#define THRP_CBMSG__ALL__	(THRP_CBMSG_F_SELF_SKIP | THRP_CBMSG_F_ONE_BY_ONE)
+#define TP_CBMSG_F_SELF_SKIP	TP_BMSG_F_SELF_SKIP
+#define TP_CBMSG_F_ONE_BY_ONE	(((uint32_t)1) << 16) /* Send message to next thread after current thread process message. */
+#define TP_CBMSG__ALL__		(TP_CBMSG_F_SELF_SKIP | TP_CBMSG_F_ONE_BY_ONE)
 
 
 #endif /* __THREAD_POOL_MESSAGE_SYSTEM_H__ */

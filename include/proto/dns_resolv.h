@@ -48,12 +48,12 @@ typedef struct dns_rslvr_task_s	*dns_rslvr_task_p; /* thread pool */
 typedef int (*dns_resolv_cb)(dns_rslvr_task_p task, int error,
     struct sockaddr_storage *addrs, size_t addrs_count, void *arg);
 
-int	dns_resolver_create(thrp_p thrp, const struct sockaddr_storage *dns_addrs,
+int	dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs,
 	    uint16_t dns_addrs_count, uintptr_t timeout, uint16_t retry_count,
 	    uint32_t neg_cache, dns_rslvr_p *dns_rslvr_ret);
 void	dns_resolver_destroy(dns_rslvr_p rslvr);
 
-thrpt_p	dns_resolver_thrpt_get(dns_rslvr_p rslvr);
+tpt_p	dns_resolver_tpt_get(dns_rslvr_p rslvr);
 int	dns_resolver_cache_text_dump(dns_rslvr_p rslvr, char *buf, size_t buf_size,
 	    size_t *size_ret);
 

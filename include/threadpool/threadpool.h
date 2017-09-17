@@ -43,145 +43,145 @@
 #include <time.h>
 
 
-typedef struct thread_pool_s		*thrp_p;	/* Thread pool. */
-typedef struct thread_pool_thread_s	*thrpt_p;	/* Thread pool thread. */
-typedef struct thread_pool_udata_s	*thrp_udata_p;	/* Thread pool user data. */
+typedef struct thread_pool_s		*tp_p;		/* Thread pool. */
+typedef struct thread_pool_thread_s	*tpt_p;		/* Thread pool thread. */
+typedef struct thread_pool_udata_s	*tp_udata_p;	/* Thread pool user data. */
 
 
-typedef struct thrp_event_s { /* Thread pool event. */
+typedef struct thread_pool_event_s { /* Thread pool event. */
 	uint16_t	event;	/* Filter for event. */
 	uint16_t	flags;	/* Action flags. */
 	uint32_t	fflags;	/* Filter flag value. */
 	uint64_t	data;	/* Filter data value: Read: ioctl(FIONREAD), write: ioctl(FIONSPACE) FIONWRITE, SIOCGIFBUFS, (SIOCOUTQ/SIOCINQ TIOCOUTQ/TIOCINQ + getsockopt(s, SOL_SOCKET, SO_SNDBUF, ...))? */
-} thrp_event_t, *thrp_event_p;
+} tp_event_t, *tp_event_p;
 
 /* Events		val	FreeBSD		__linux__ */
-#define THRP_EV_READ	0 /* EVFILT_READ	EPOLLET | EPOLLIN | EPOLLRDHUP | EPOLLERR */
-#define THRP_EV_WRITE	1 /* EVFILT_WRITE	EPOLLET | EPOLLOUT | EPOLLERR */
-#define THRP_EV_TIMER	2 /* EVFILT_TIMER	THRP_EV_READ + timerfd_create */
-#define THRP_EV_LAST	THRP_EV_TIMER
-#define THRP_EV_MASK	0x0003 /* For internal use. */
-#define THRP_EV_NONE	0xffff /* Recerved for internal use. */
+#define TP_EV_READ	0 /* EVFILT_READ	EPOLLET | EPOLLIN | EPOLLRDHUP | EPOLLERR */
+#define TP_EV_WRITE	1 /* EVFILT_WRITE	EPOLLET | EPOLLOUT | EPOLLERR */
+#define TP_EV_TIMER	2 /* EVFILT_TIMER	TP_EV_READ + timerfd_create */
+#define TP_EV_LAST	TP_EV_TIMER
+#define TP_EV_MASK	0x0003 /* For internal use. */
+#define TP_EV_NONE	0xffff /* Recerved for internal use. */
 
 /* Event flags. */
-/* Only for set.		val			FreeBSD		__linux__ */
-#define THRP_F_ONESHOT	(((uint16_t)1) << 0) /* Set: EV_ONESHOT		EPOLLONESHOT */ /* Delete event after recv. */
-#define THRP_F_DISPATCH	(((uint16_t)1) << 1) /* Set: EV_DISPATCH	EPOLLONESHOT */ /* DISABLE event after recv. */
-#define THRP_F_EDGE	(((uint16_t)1) << 2) /* Set: EV_CLEAR		EPOLLET */ /* Report only if avaible data changed.*/
+/* Only for set.	val			FreeBSD			__linux__ */
+#define TP_F_ONESHOT	(((uint16_t)1) << 0) /* Set: EV_ONESHOT		EPOLLONESHOT */ /* Delete event after recv. */
+#define TP_F_DISPATCH	(((uint16_t)1) << 1) /* Set: EV_DISPATCH	EPOLLONESHOT */ /* DISABLE event after recv. */
+#define TP_F_EDGE	(((uint16_t)1) << 2) /* Set: EV_CLEAR		EPOLLET */ /* Report only if avaible data changed.*/
  									/* If not set will report if data/space avaible untill disable/delete event. */
-#define THRP_F_S_MASK	0x0007 /* For internal use - flags set mask. */
+#define TP_F_S_MASK	0x0007 /* For internal use - flags set mask. */
 /* Return only. */
-#define THRP_F_EOF	(((uint16_t)1) << 3) /* Ret: EV_EOF		EPOLLRDHUP */
-#define THRP_F_ERROR	(((uint16_t)1) << 4) /* Ret: EV_EOF+fflags	EPOLLERR +  getsockopt(SO_ERROR) */ /* fflags contain error code. */
+#define TP_F_EOF	(((uint16_t)1) << 3) /* Ret: EV_EOF		EPOLLRDHUP */
+#define TP_F_ERROR	(((uint16_t)1) << 4) /* Ret: EV_EOF+fflags	EPOLLERR +  getsockopt(SO_ERROR) */ /* fflags contain error code. */
 
 
 
-typedef void (*thrpt_cb)(thrp_event_p ev, thrp_udata_p thrp_udata);
+typedef void (*tp_cb)(tp_event_p ev, tp_udata_p tp_udata);
 
 typedef struct thread_pool_udata_s { /* Thread pool ident and opaque user data. */
-	thrpt_cb	cb_func;/* Function to handle IO complete/err. */
+	tp_cb		cb_func;/* Function to handle IO complete/err. */
 	uintptr_t	ident;	/* Identifier for this event: socket, file, etc.
 				 * For timer ident can be ponter to mem or any
 				 * unique number. */
-	thrpt_p		thrpt;	/* Internal data, do not use!!! Pointer to thread data. */
+	tpt_p		tpt;	/* Internal data, do not use!!! Pointer to thread data. */
 	uint64_t	tpdata;	/* Internal data, do not use!!!
 				 * Linux: timer - timer file handle;
-				 * read/write/timer - event: THRP_EV_*;
-				 * THRP_F_* flags. */
+				 * read/write/timer - event: TP_EV_*;
+				 * TP_F_* flags. */
 	/* Opaque user data ... */
-} thrp_udata_t;
+} tp_udata_t;
 
 
-int	thrp_signal_handler_add_thrp(thrp_p thrp);
-void	thrp_signal_handler(int sig);
+int	tp_signal_handler_add_tp(tp_p tp);
+void	tp_signal_handler(int sig);
 
 
-typedef struct thrp_settings_s { /* Settings */
-	uint32_t	flags;	/* THRP_S_F_* */
+typedef struct thread_pool_settings_s { /* Settings */
+	uint32_t	flags;	/* TP_S_F_* */
 	size_t		threads_max;
 	uint64_t	tick_time;
-} thrp_settings_t, *thrp_settings_p;
+} tp_settings_t, *tp_settings_p;
 
-#define THRP_S_F_BIND2CPU	(((uint32_t)1) << 0) /* Bind threads to CPUs */
-#define THRP_S_F_CACHE_TIME_SYSC (((uint32_t)1) << 8) /* Cache thrpt_gettimev() syscals. */
-//--#define THRP_S_F_SHARE_EVENTS	(((uint32_t)1) << 1) /* Not affected if threads_max = 1 */
+#define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs */
+#define TP_S_F_CACHE_TIME_SYSC	(((uint32_t)1) << 8)	/* Cache tpt_gettimev() syscals. */
+//--#define TP_S_F_SHARE_EVENTS	(((uint32_t)1) << 1)	/* Not affected if threads_max = 1 */
 
 /* Default values. */
-#define THRP_S_DEF_FLAGS	(THRP_S_F_BIND2CPU)
-#define THRP_S_DEF_THREADS_MAX	(0)
-#define THRP_S_DEF_TICK_TIME	(10)
+#define TP_S_DEF_FLAGS		(TP_S_F_BIND2CPU)
+#define TP_S_DEF_THREADS_MAX	(0)
+#define TP_S_DEF_TICK_TIME	(10)
 
-void	thrp_def_settings(thrp_settings_p s_ret);
+void	tp_def_settings(tp_settings_p s_ret);
 
 #ifdef THREAD_POOL_XML_CONFIG
-int	thrp_xml_load_settings(const uint8_t *buf, size_t buf_size,
-	    thrp_settings_p s);
+int	tp_xml_load_settings(const uint8_t *buf, size_t buf_size,
+	    tp_settings_p s);
 #endif
 
 
 
-int	thrp_init(void);
-int	thrp_create(thrp_settings_p s, thrp_p *pthrp);
+int	tp_init(void);
+int	tp_create(tp_settings_p s, tp_p *ptp);
 
-void	thrp_shutdown(thrp_p thrp);
-void	thrp_shutdown_wait(thrp_p thrp);
-void	thrp_destroy(thrp_p thrp);
+void	tp_shutdown(tp_p tp);
+void	tp_shutdown_wait(tp_p tp);
+void	tp_destroy(tp_p tp);
 
-int	thrp_threads_create(thrp_p thrp, int skip_first);
-int	thrp_thread_attach_first(thrp_p thrp);
-int	thrp_thread_dettach(thrpt_p thrpt);
-size_t	thrp_thread_count_max_get(thrp_p thrp);
-size_t	thrp_thread_count_get(thrp_p thrp);
+int	tp_threads_create(tp_p tp, int skip_first);
+int	tp_thread_attach_first(tp_p tp);
+int	tp_thread_dettach(tpt_p tpt);
+size_t	tp_thread_count_max_get(tp_p tp);
+size_t	tp_thread_count_get(tp_p tp);
 
-thrpt_p	thrp_thread_get_current(void);
-thrpt_p	thrp_thread_get(thrp_p thrp, size_t thread_num);
-thrpt_p	thrp_thread_get_rr(thrp_p thrp);
-thrpt_p	thrp_thread_get_pvt(thrp_p thrp); /* Shared virtual thread. */
-int	thrp_thread_get_cpu_id(thrpt_p thrpt);
-size_t	thrp_thread_get_num(thrpt_p thrpt);
+tpt_p	tp_thread_get_current(void);
+tpt_p	tp_thread_get(tp_p tp, size_t thread_num);
+tpt_p	tp_thread_get_rr(tp_p tp);
+tpt_p	tp_thread_get_pvt(tp_p tp); /* Shared virtual thread. */
+int	tp_thread_get_cpu_id(tpt_p tpt);
+size_t	tp_thread_get_num(tpt_p tpt);
 
-thrp_p	thrpt_get_thrp(thrpt_p thrpt);
-size_t	thrpt_is_running(thrpt_p thrpt);
-void	*thrpt_get_msg_queue(thrpt_p thrpt);
+tp_p	tpt_get_tp(tpt_p tpt);
+size_t	tpt_is_running(tpt_p tpt);
+void	*tpt_get_msg_queue(tpt_p tpt);
 
 
 
-int	thrpt_ev_add(thrpt_p thrpt, uint16_t event, uint16_t flags,
-	    thrp_udata_p thrp_udata);
-int	thrpt_ev_add_ex(thrpt_p thrpt, uint16_t event, uint16_t flags,
-	    uint32_t fflags, uint64_t data, thrp_udata_p thrp_udata);
-int	thrpt_ev_add2(thrpt_p thrpt, thrp_event_p ev, thrp_udata_p thrp_udata);
-int	thrpt_timer_add(thrpt_p thrpt, int enable, uintptr_t ident,
-	    uint64_t timeout, uint16_t flags, thrpt_cb cb_func,
-	    thrp_udata_p thrp_udata);
+int	tpt_ev_add(tpt_p tpt, uint16_t event, uint16_t flags,
+	    tp_udata_p tp_udata);
+int	tpt_ev_add_ex(tpt_p tpt, uint16_t event, uint16_t flags,
+	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
+int	tpt_ev_add2(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata);
+int	tpt_timer_add(tpt_p tpt, int enable, uintptr_t ident,
+	    uint64_t timeout, uint16_t flags, tp_cb cb_func,
+	    tp_udata_p tp_udata);
 /*
- * flags - allowed: THRP_F_ONESHOT, THRP_F_DISPATCH, THRP_F_EDGE
+ * flags - allowed: TP_F_ONESHOT, TP_F_DISPATCH, TP_F_EDGE
  */
-int	thrpt_ev_del(uint16_t event, thrp_udata_p thrp_udata);
-int	thrpt_ev_enable(int enable, uint16_t event, thrp_udata_p thrp_udata);
-int	thrpt_ev_enable_ex(int enable, uint16_t event, uint16_t flags,
-	    uint32_t fflags, uint64_t data, thrp_udata_p thrp_udata);
+int	tpt_ev_del(uint16_t event, tp_udata_p tp_udata);
+int	tpt_ev_enable(int enable, uint16_t event, tp_udata_p tp_udata);
+int	tpt_ev_enable_ex(int enable, uint16_t event, uint16_t flags,
+	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
 
 #ifdef NOT_YET__FreeBSD__ /* Per thread queue functions. Only for kqueue! */
-int	thrpt_ev_q_add(thrpt_p thrpt, uint16_t event, uint16_t flags,
-	    thrp_udata_p thrp_udata);
-int	thrpt_ev_q_del(uint16_t event, thrp_udata_p thrp_udata);
-int	thrpt_ev_q_enable(int enable, uint16_t event, thrp_udata_p thrp_udata);
-int	thrpt_ev_q_enable_ex(int enable, uint16_t event, uint16_t flags,
-	    uint32_t fflags, uint64_t data, thrp_udata_p thrp_udata);
-int	thrpt_ev_q_flush(thrpt_p thrpt);
+int	tpt_ev_q_add(tpt_p tpt, uint16_t event, uint16_t flags,
+	    tp_udata_p tp_udata);
+int	tpt_ev_q_del(uint16_t event, tp_udata_p tp_udata);
+int	tpt_ev_q_enable(int enable, uint16_t event, tp_udata_p tp_udata);
+int	tpt_ev_q_enable_ex(int enable, uint16_t event, uint16_t flags,
+	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
+int	tpt_ev_q_flush(tpt_p tpt);
 #else
-#define	thrpt_ev_q_add		thrpt_ev_add
-#define	thrpt_ev_q_del		thrpt_ev_del
-#define	thrpt_ev_q_enable	thrpt_ev_enable
-#define	thrpt_ev_q_enable_ex	thrpt_ev_enable_ex
-#define	thrpt_ev_q_flush
+#define	tpt_ev_q_add		tpt_ev_add
+#define	tpt_ev_q_del		tpt_ev_del
+#define	tpt_ev_q_enable		tpt_ev_enable
+#define	tpt_ev_q_enable_ex	tpt_ev_enable_ex
+#define	tpt_ev_q_flush
 
 #endif
 
 /* Thread cached time functions. */
-int	thrpt_gettimev(thrpt_p thrpt, int real_time, struct timespec *tp);
-time_t	thrpt_gettime(thrpt_p thrpt, int real_time);
+int	tpt_gettimev(tpt_p tpt, int real_time, struct timespec *tp);
+time_t	tpt_gettime(tpt_p tpt, int real_time);
 
 
 #endif /* __THREAD_POOL_H__ */

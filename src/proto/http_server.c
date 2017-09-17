@@ -75,8 +75,8 @@
 
 
 typedef struct http_srv_bind_s {
-	io_task_p	*iotask;	/* Accept incomming task. */
-	size_t		iotask_cnt;
+	tp_task_p	*tptask;	/* Accept incomming task. */
+	size_t		tptask_cnt;
 	http_srv_p	srv;		/* HTTP server */
 	void		*udata;		/* Acceptor associated data. */
 	hostname_list_t	hst_name_lst;	/* List of host names on this bind. */
@@ -86,7 +86,7 @@ typedef struct http_srv_bind_s {
 
 
 typedef struct http_srv_s {
-	thrp_p			thrp;
+	tp_p			tp;
 	http_srv_on_conn_cb	on_conn; /* New client connected callback */
 	http_srv_cli_ccb_t	ccb;	/* Default client callbacks. */
 	void			*udata;	/* Server associated data. */
@@ -101,7 +101,7 @@ typedef struct http_srv_s {
 
 
 typedef struct http_srv_cli_s {
-	io_task_p		iotask;	/* recv/send from/to client, and socket container. */
+	tp_task_p		tptask;	/* recv/send from/to client, and socket container. */
 	io_buf_p		rcv_buf;/* Used for receive http request only. */
 	io_buf_p		buf;	/* Used for send http responce only. */
 	http_srv_bind_p		bnd;	/*  */
@@ -118,16 +118,16 @@ typedef struct http_srv_cli_s {
 #define HTTP_SRV_CLI_FI_NEXT_BYTE_SET	(((uint32_t)1) << 9) /* Keep here byte value from next request. */
 
 
-http_srv_cli_p	http_srv_cli_alloc(http_srv_bind_p bnd, thrpt_p thrpt,
+http_srv_cli_p	http_srv_cli_alloc(http_srv_bind_p bnd, tpt_p tpt,
 		    uintptr_t skt, http_srv_cli_ccb_p ccb, void *udata);
 void		http_srv_cli_free(http_srv_cli_p cli);
 
-static int	http_srv_new_conn_cb(io_task_p iotask, int error, uintptr_t skt,
+static int	http_srv_new_conn_cb(tp_task_p tptask, int error, uintptr_t skt,
 		    struct sockaddr_storage *addr, void *arg);
-static int	http_srv_recv_done_cb(io_task_p iotask, int error, io_buf_p buf,
+static int	http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
 		    uint32_t eof, size_t transfered_size, void *arg);
 static int	http_srv_send_responce(http_srv_cli_p cli, const uint8_t **delimiter);
-static int	http_srv_snd_done_cb(io_task_p iotask, int error, io_buf_p buf,
+static int	http_srv_snd_done_cb(tp_task_p tptask, int error, io_buf_p buf,
 		    uint32_t eof, size_t transfered_size, void *arg);
 
 /*
@@ -303,7 +303,7 @@ http_srv_xml_load_bind(const uint8_t *buf, size_t buf_size,
 
 
 int
-http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, thrp_p thrp,
+http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, tp_p tp,
     http_srv_on_conn_cb on_conn, http_srv_cli_ccb_p ccb,
     http_srv_settings_p srv_settings, void *udata,
     http_srv_p *http_srv) {
@@ -315,7 +315,7 @@ http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, thrp_p thrp,
 	http_srv_bind_settings_t bind_s;
 	hostname_list_t hst_name_lst;
 
-	if (NULL == buf || 0 == buf_size || NULL == thrp ||
+	if (NULL == buf || 0 == buf_size || NULL == tp ||
 	    NULL == srv_settings || NULL == http_srv)
 		return (EINVAL);
 
@@ -331,7 +331,7 @@ http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, thrp_p thrp,
 	hostname_list_init(&hst_name_lst);
 	http_srv_xml_load_hostnames(buf, buf_size, &hst_name_lst);
 
-	error = http_srv_create(thrp, on_conn, ccb, &hst_name_lst,
+	error = http_srv_create(tp, on_conn, ccb, &hst_name_lst,
 	    &srv_s, udata, http_srv);
 	if (0 != error) {
 		LOG_ERR(error, "http_srv_create()");
@@ -378,7 +378,7 @@ no_http_svr:
 
 
 int
-http_srv_create(thrp_p thrp, http_srv_on_conn_cb on_conn,
+http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
     http_srv_cli_ccb_p ccb, hostname_list_p hst_name_lst,
     http_srv_settings_p s, void *udata, http_srv_p *srv_ret) {
 	int error;
@@ -404,7 +404,7 @@ http_srv_create(thrp_p thrp, http_srv_on_conn_cb on_conn,
 		error = ENOMEM;
 		goto err_out;
 	}
-	srv->thrp = thrp;
+	srv->tp = tp;
 	srv->on_conn = on_conn;
 	if (NULL != ccb) {
 		srv->ccb = (*ccb); /* memcpy */
@@ -426,8 +426,8 @@ http_srv_create(thrp_p thrp, http_srv_on_conn_cb on_conn,
 	srv->s.hdrs_reserve_size *= 1024;
 	srv->s.http_server[srv->s.http_server_size] = 0;
 
-	srv->stat.start_time = thrpt_gettime(NULL, 1);
-	srv->stat.start_time_abs = thrpt_gettime(NULL, 0);
+	srv->stat.start_time = tpt_gettime(NULL, 1);
+	srv->stat.start_time_abs = tpt_gettime(NULL, 0);
 
 	(*srv_ret) = srv;
 	return (0);
@@ -488,20 +488,20 @@ http_srv_stat_get(http_srv_p srv, http_srv_stat_p stat) {
 	return (0);
 }
 
-thrp_p
-http_srv_thrp_get(http_srv_p srv) {
+tp_p
+http_srv_tp_get(http_srv_p srv) {
 
 	if (NULL == srv)
 		return (NULL);
-	return (srv->thrp);
+	return (srv->tp);
 }
 
 int
-http_srv_thrp_set(http_srv_p srv, thrp_p thrp) {
+http_srv_tp_set(http_srv_p srv, tp_p tp) {
 
 	if (NULL == srv)
 		return (EINVAL);
-	srv->thrp = thrp;
+	srv->tp = tp;
 	return (0);
 }
 
@@ -586,7 +586,7 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 	http_srv_bind_p bnd = NULL;
 	uintptr_t skt = (uintptr_t)-1;
 	size_t i, max_threads = 1;
-	thrpt_p thrpt;
+	tpt_p tpt;
 
 
 	LOGD_EV("...");
@@ -596,13 +596,13 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 #ifdef __linux__ /* Linux specific code. */
 	/* Linux can balance incomming connections. */
 	if (IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&s->skt_opts, SO_F_REUSEPORT)) { /* listen socket per thread. */
-		max_threads = thrp_thread_count_max_get(srv->thrp);
+		max_threads = tp_thread_count_max_get(srv->tp);
 	}
 #endif
-	bnd = zalloc(sizeof(http_srv_bind_t) + (sizeof(io_task_p) * max_threads));
+	bnd = zalloc(sizeof(http_srv_bind_t) + (sizeof(tp_task_p) * max_threads));
 	if (NULL == bnd)
 		return (ENOMEM);
-	bnd->iotask = (io_task_p*)(bnd + 1);
+	bnd->tptask = (tp_task_p*)(bnd + 1);
 	bnd->srv = srv;
 	memcpy(&bnd->s, s, sizeof(http_srv_bind_settings_t));
 	bnd->udata = udata;
@@ -635,20 +635,20 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 #ifdef __linux__ /* Linux specific code. */
 	/* Linux can balance incomming connections. */
 		if (IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
-			thrpt = thrp_thread_get(srv->thrp, i);
+			tpt = tp_thread_get(srv->tp, i);
 		} else {
-			thrpt = thrp_thread_get_rr(srv->thrp);
+			tpt = tp_thread_get_rr(srv->tp);
 		}
 #else
-		thrpt = thrp_thread_get_rr(srv->thrp);
+		tpt = tp_thread_get_rr(srv->tp);
 #endif
-		error = io_task_create_accept(thrpt, skt,
-		    IO_TASK_F_CLOSE_ON_DESTROY, 0, http_srv_new_conn_cb,
-		    bnd, &bnd->iotask[bnd->iotask_cnt]);
+		error = tp_task_create_accept(tpt, skt,
+		    TP_TASK_F_CLOSE_ON_DESTROY, 0, http_srv_new_conn_cb,
+		    bnd, &bnd->tptask[bnd->tptask_cnt]);
 		if (0 != error)
 			goto err_out;
-		LOGD_INFO_FMT("Acceptor: %zu started on thread %zu", bnd->iotask_cnt, i);
-		bnd->iotask_cnt ++;
+		LOGD_INFO_FMT("Acceptor: %zu started on thread %zu", bnd->tptask_cnt, i);
+		bnd->tptask_cnt ++;
 	}
 
 	/* Link server and acceptor. */
@@ -679,9 +679,9 @@ http_srv_bind_shutdown(http_srv_bind_p bnd) {
 	LOGD_EV("...");
 	if (NULL == bnd)
 		return;
-	for (i = 0; i < bnd->iotask_cnt; i ++) {
-		io_task_destroy(bnd->iotask[i]);
-		bnd->iotask[i] = NULL;
+	for (i = 0; i < bnd->tptask_cnt; i ++) {
+		tp_task_destroy(bnd->tptask[i]);
+		bnd->tptask[i] = NULL;
 	}
 }
 
@@ -706,9 +706,9 @@ http_srv_bind_remove(http_srv_bind_p bnd) {
 		}
 	}
 
-	for (i = 0; i < bnd->iotask_cnt; i ++) {
-		io_task_destroy(bnd->iotask[i]);
-		bnd->iotask[i] = NULL;
+	for (i = 0; i < bnd->tptask_cnt; i ++) {
+		tp_task_destroy(bnd->tptask[i]);
+		bnd->tptask[i] = NULL;
 	}
 	hostname_list_deinit(&bnd->hst_name_lst);
 	mem_filld(bnd, sizeof(http_srv_bind_t));
@@ -752,7 +752,7 @@ http_srv_bind_get_addr(http_srv_bind_p bnd, struct sockaddr_storage *addr) {
 
 /* HTTP Client */
 http_srv_cli_p
-http_srv_cli_alloc(http_srv_bind_p bnd, thrpt_p thrpt, uintptr_t skt,
+http_srv_cli_alloc(http_srv_bind_p bnd, tpt_p tpt, uintptr_t skt,
     http_srv_cli_ccb_p ccb, void *udata) {
 	http_srv_cli_p cli;
 
@@ -767,9 +767,9 @@ http_srv_cli_alloc(http_srv_bind_p bnd, thrpt_p thrpt, uintptr_t skt,
 	if (NULL == cli->rcv_buf)
 		goto err_out;
 	cli->buf = cli->rcv_buf;
-	if (0 != io_task_create(thrpt, skt, io_task_sr_handler,
-	    (IO_TASK_F_CLOSE_ON_DESTROY | IO_TASK_F_CB_AFTER_EVERY_READ),
-	    cli, &cli->iotask))
+	if (0 != tp_task_create(tpt, skt, tp_task_sr_handler,
+	    (TP_TASK_F_CLOSE_ON_DESTROY | TP_TASK_F_CB_AFTER_EVERY_READ),
+	    cli, &cli->tptask))
 		goto err_out;
 	cli->bnd = bnd;
 	cli->ccb = (*ccb); /* memcpy */
@@ -793,7 +793,7 @@ http_srv_cli_free(http_srv_cli_p cli) {
 	if (NULL != cli->ccb.on_destroy) { /* Call back handler. */
 		cli->ccb.on_destroy(cli, cli->udata, &cli->resp);
 	}
-	io_task_destroy(cli->iotask);
+	tp_task_destroy(cli->tptask);
 	io_buf_free(cli->rcv_buf);
 	if (cli->buf != cli->rcv_buf) {
 		io_buf_free(cli->buf);
@@ -828,39 +828,39 @@ http_srv_cli_next_req(http_srv_cli_p cli) {
 	mem_bzero(&cli->resp, sizeof(http_srv_resp_t));
 }
 
-io_task_p
-http_srv_cli_get_iotask(http_srv_cli_p cli) {
+tp_task_p
+http_srv_cli_get_tptask(http_srv_cli_p cli) {
 
 	if (NULL == cli)
 		return (NULL);
-	return (cli->iotask);
+	return (cli->tptask);
 }
 
-io_task_p
-http_srv_cli_export_iotask(http_srv_cli_p cli) {
-	io_task_p iotask;
+tp_task_p
+http_srv_cli_export_tptask(http_srv_cli_p cli) {
+	tp_task_p tptask;
 
 	if (NULL == cli)
 		return (NULL);
-	iotask = cli->iotask;
-	cli->iotask = NULL;
-	return (iotask);
+	tptask = cli->tptask;
+	cli->tptask = NULL;
+	return (tptask);
 }
 
 int
-http_srv_cli_import_iotask(http_srv_cli_p cli, io_task_p iotask,
-    thrpt_p thrpt) {
+http_srv_cli_import_tptask(http_srv_cli_p cli, tp_task_p tptask,
+    tpt_p tpt) {
 
-	if (NULL == cli || NULL == iotask)
+	if (NULL == cli || NULL == tptask)
 		return (EINVAL);
 
 	/* Convert to "ready to read notifier". */
-	io_task_stop(iotask);
-	io_task_udata_set(iotask, cli);
-	io_task_thrp_cb_func_set(iotask, io_task_sr_handler);
-	io_task_flags_set(iotask, (IO_TASK_F_CLOSE_ON_DESTROY | IO_TASK_F_CB_AFTER_EVERY_READ));
-	io_task_thrpt_set(iotask, thrpt);
-	cli->iotask = iotask;
+	tp_task_stop(tptask);
+	tp_task_udata_set(tptask, cli);
+	tp_task_tp_cb_func_set(tptask, tp_task_sr_handler);
+	tp_task_flags_set(tptask, (TP_TASK_F_CLOSE_ON_DESTROY | TP_TASK_F_CB_AFTER_EVERY_READ));
+	tp_task_tpt_set(tptask, tpt);
+	cli->tptask = tptask;
 
 	return (0);
 }
@@ -1038,12 +1038,12 @@ http_srv_cli_get_addr(http_srv_cli_p cli, struct sockaddr_storage *addr) {
 
 /* New connection received. */
 static int
-http_srv_new_conn_cb(io_task_p iotask __unused, int error, uintptr_t skt,
+http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
     struct sockaddr_storage *addr, void *arg) {
 	http_srv_cli_p cli;
 	http_srv_bind_p bnd;
 	http_srv_p srv;
-	thrpt_p thrpt;
+	tpt_p tpt;
 	http_srv_cli_ccb_t ccb;
 	void *udata;
 	char straddr[STR_ADDR_LEN];
@@ -1056,33 +1056,33 @@ http_srv_new_conn_cb(io_task_p iotask __unused, int error, uintptr_t skt,
 		close((int)skt);
 		srv->stat.errors ++;
 		LOG_ERR(error, "on new conn");
-		return (IO_TASK_CB_CONTINUE);
+		return (TP_TASK_CB_CONTINUE);
 	}
 
 	/* Default values for new client. */
 #ifdef __linux__ /* Linux specific code. */
 	/* Linux can balance incomming connections. */
 	if (IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
-		thrpt = io_task_thrpt_get(iotask);
+		tpt = tp_task_tpt_get(tptask);
 	} else {
-		thrpt = thrp_thread_get_rr(srv->thrp);
+		tpt = tp_thread_get_rr(srv->tp);
 	}
 #else
-	thrpt = thrp_thread_get_rr(srv->thrp);
+	tpt = tp_thread_get_rr(srv->tp);
 #endif
 	ccb = srv->ccb; /* memcpy */
 	udata = NULL;
 
 	/* Call back handler. */
 	if (NULL != srv->on_conn) {
-		error = srv->on_conn(bnd, srv->udata, skt, addr, &thrpt,
+		error = srv->on_conn(bnd, srv->udata, skt, addr, &tpt,
 		    &ccb, &udata);
 		switch (error) {
 		case HTTP_SRV_CB_DESTROY:
 			close((int)skt);
-			return (IO_TASK_CB_CONTINUE);
+			return (TP_TASK_CB_CONTINUE);
 		case HTTP_SRV_CB_NONE:
-			return (IO_TASK_CB_CONTINUE);
+			return (TP_TASK_CB_CONTINUE);
 		case HTTP_SRV_CB_CONTINUE:
 			break; /* OK, continue handling. */
 		default:
@@ -1095,7 +1095,7 @@ http_srv_new_conn_cb(io_task_p iotask __unused, int error, uintptr_t skt,
 		LOGD_INFO_FMT("New client: %s (fd: %zu)", straddr, skt);
 	}
 
-	cli = http_srv_cli_alloc(bnd, thrpt, skt, &ccb, udata);
+	cli = http_srv_cli_alloc(bnd, tpt, skt, &ccb, udata);
 	if (NULL == cli) {
 		if (NULL != ccb.on_destroy) { /* Call back handler. */
 			ccb.on_destroy(NULL, udata, NULL);
@@ -1103,7 +1103,7 @@ http_srv_new_conn_cb(io_task_p iotask __unused, int error, uintptr_t skt,
 		close((int)skt);
 		srv->stat.errors ++;
 		LOG_ERR_FMT(ENOMEM, "%s: http_srv_cli_alloc()", straddr);
-		return (IO_TASK_CB_CONTINUE);
+		return (TP_TASK_CB_CONTINUE);
 	}
 	sa_copy(addr, &cli->addr);
 	/* Tune socket. */
@@ -1113,22 +1113,22 @@ http_srv_new_conn_cb(io_task_p iotask __unused, int error, uintptr_t skt,
 	/* Receive http request. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
 	/* Shedule data receive / Receive http request. */
-	error = io_task_start_ex(
+	error = tp_task_start_ex(
 	    (0 == IO_NET_SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_ACC_FILTER)),
-	    cli->iotask, THRP_EV_READ, 0, bnd->s.skt_opts.rcv_timeout, 0,
+	    cli->tptask, TP_EV_READ, 0, bnd->s.skt_opts.rcv_timeout, 0,
 	    cli->rcv_buf, http_srv_recv_done_cb);
 	if (0 != error) { /* Error. */
 		LOG_ERR_FMT(error, "client ip: %s", straddr);
 		srv->stat.errors ++;
 		http_srv_cli_free(cli);
 	}
-	return (IO_TASK_CB_CONTINUE);
+	return (TP_TASK_CB_CONTINUE);
 }
 
 
 /* http request from client is received now, process it. */
 static int
-http_srv_recv_done_cb(io_task_p iotask, int error, io_buf_p buf,
+http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
     uint32_t eof, size_t transfered_size, void *arg) {
 	http_srv_cli_p cli;
 	http_srv_bind_p bnd;
@@ -1142,17 +1142,17 @@ http_srv_recv_done_cb(io_task_p iotask, int error, io_buf_p buf,
 
 	LOGD_EV("...");
 	debugd_break_if(NULL == arg);
-	debugd_break_if(iotask != ((http_srv_cli_p)arg)->iotask);
+	debugd_break_if(tptask != ((http_srv_cli_p)arg)->tptask);
 	debugd_break_if(buf != ((http_srv_cli_p)arg)->rcv_buf);
 
 	cli = (http_srv_cli_p)arg;
 	bnd = cli->bnd;
 	srv = bnd->srv;
-	/* iotask == cli->iotask !!! */
+	/* tptask == cli->tptask !!! */
 	/* buf == cli->rcv_buf !!! */
 	// buf->used = buf->offset;
-	action = io_task_cb_check(buf, eof, transfered_size);
-	if (0 != error || IO_TASK_CB_ERROR == action) { /* Fail! :( */
+	action = tp_task_cb_check(buf, eof, transfered_size);
+	if (0 != error || TP_TASK_CB_ERROR == action) { /* Fail! :( */
 err_out:
 		if (0 != error &&
 		    0 != LOG_IS_ENABLED()) {
@@ -1170,15 +1170,15 @@ err_out:
 			break;
 		}
 		http_srv_cli_free(cli);
-		return (IO_TASK_CB_NONE);
+		return (TP_TASK_CB_NONE);
 	}
 
-	if (0 != (IO_TASK_IOF_F_SYS & eof)) { /* Client call shutdown(, SHUT_WR) and can only receive data. */
+	if (0 != (TP_TASK_IOF_F_SYS & eof)) { /* Client call shutdown(, SHUT_WR) and can only receive data. */
 		cli->flags |= HTTP_SRV_CLI_F_HALF_CLOSED;
 	}
 
 	if (NULL != cli->req.data) { /* Header allready received in prev call, continue receve data. */
-		if (IO_TASK_CB_CONTINUE == action &&
+		if (TP_TASK_CB_CONTINUE == action &&
 		    0 != IO_BUF_TR_SIZE_GET(buf))
 			goto continue_recv; /* Continue receive request data. */
 		goto req_received; /* Have HTTP headers and (all data / OEF). */
@@ -1187,7 +1187,7 @@ err_out:
 	/* Analize HTTP header. */
 	ptm = mem_find_cstr(buf->data, buf->used, CRLFCRLF);
 	if (NULL == ptm) { /* No HTTP headers end found. */
-		if (IO_TASK_CB_CONTINUE != action) { /* Cant receive more, drop. */
+		if (TP_TASK_CB_CONTINUE != action) { /* Cant receive more, drop. */
 drop_cli_without_hdr:
 			if (0 != LOG_IS_ENABLED()) {
 				sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
@@ -1195,13 +1195,13 @@ drop_cli_without_hdr:
 			}
 			srv->stat.http_errors ++;
 			http_srv_cli_free(cli);
-			return (IO_TASK_CB_NONE);
+			return (TP_TASK_CB_NONE);
 		}
 		IO_BUF_MARK_TRANSFER_ALL_FREE(buf);
 continue_recv:
 		if (0 != IO_BUF_FREE_SIZE(buf) &&
 		    IO_BUF_TR_SIZE_GET(buf) <= IO_BUF_FREE_SIZE(buf))
-			return (IO_TASK_CB_CONTINUE); /* Continue receive. */
+			return (TP_TASK_CB_CONTINUE); /* Continue receive. */
 		/* Not enough buf space, try realloc more. */
 		tm = (IO_BUF_TR_SIZE_GET(buf) + buf->used);
 		if (tm > srv->s.rcv_io_buf_max_size)
@@ -1210,8 +1210,8 @@ continue_recv:
 		if (0 != error)
 			goto err_out;
 		buf = cli->rcv_buf;
-		io_task_buf_set(iotask, cli->rcv_buf);
-		return (IO_TASK_CB_CONTINUE); /* Continue receive. */
+		tp_task_buf_set(tptask, cli->rcv_buf);
+		return (TP_TASK_CB_CONTINUE); /* Continue receive. */
 	}
 http_hdr_found:
 	/* CRLFCRLF - end headers marker found. */
@@ -1232,7 +1232,7 @@ http_hdr_found:
 		srv->stat.http_errors ++;
 		cli->resp.status_code = 400;
 stop_and_drop_with_http_err:
-		io_task_stop(iotask);
+		tp_task_stop(tptask);
 		cli->resp.p_flags |= HTTP_SRV_RESP_P_F_CONN_CLOSE; /* Force 'connection: close'. */
 		cli->resp.p_flags |= HTTP_SRV_RESP_P_F_GEN_ERR_PAGES; /* Generate error page. */
 		goto send_error;
@@ -1283,19 +1283,19 @@ handle_content_length:
 			goto stop_and_drop_with_http_err;
 		}
 		/* Need receive nore data. */
-		if ((IO_TASK_CB_CONTINUE != action && IO_TASK_CB_NONE != action) ||
+		if ((TP_TASK_CB_CONTINUE != action && TP_TASK_CB_NONE != action) ||
 		    0 != (HTTP_SRV_CLI_F_HALF_CLOSED & cli->flags)) { /* But we cant! */
 			cli->resp.status_code = 400; /* Bad request. */
 			goto stop_and_drop_with_http_err;
 		}
-		io_task_flags_del(iotask, IO_TASK_F_CB_AFTER_EVERY_READ);
+		tp_task_flags_del(tptask, TP_TASK_F_CB_AFTER_EVERY_READ);
 		IO_BUF_TR_SIZE_SET(buf, (cli->req.data_size - tm));
 		//LOGD_EV_FMT("tm = %zu, buf->transfer_size = %zu...", tm, IO_BUF_TR_SIZE_GET(buf));
 		goto continue_recv;
 	}
 	
 req_received: /* Full request received! */
-	io_task_stop(iotask);
+	tp_task_stop(tptask);
 	/* Update stat. */
 	if (HTTP_REQ_METHOD__COUNT__ > cli->req.line.method_code) {
 		srv->stat.requests[cli->req.line.method_code] ++;
@@ -1467,9 +1467,9 @@ skip_host_hdr:
 		switch (action) {
 		case HTTP_SRV_CB_DESTROY:
 			http_srv_cli_free(cli);
-			return (IO_TASK_CB_NONE);
+			return (TP_TASK_CB_NONE);
 		case HTTP_SRV_CB_NONE:
-			return (IO_TASK_CB_NONE);
+			return (TP_TASK_CB_NONE);
 		case HTTP_SRV_CB_CONTINUE:
 			break; /* OK, continue handling. */
 		default:
@@ -1486,10 +1486,10 @@ skip_host_hdr:
 	/* Sending data. */
 send_error:
 	action = http_srv_send_responce(cli, &ptm);
-	if (IO_TASK_CB_CONTINUE == action) /* Next HTTP request headers end found. */
+	if (TP_TASK_CB_CONTINUE == action) /* Next HTTP request headers end found. */
 		goto http_hdr_found;
 
-	return (IO_TASK_CB_NONE);
+	return (TP_TASK_CB_NONE);
 }
 
 static int
@@ -1503,14 +1503,14 @@ http_srv_send_responce(http_srv_cli_p cli, const uint8_t **delimiter) {
 	/* Sending data. */
 	error = http_srv_snd(cli);
 	if (EINPROGRESS == error) /* Send sheduled. */
-		return (IO_TASK_CB_NONE);
+		return (TP_TASK_CB_NONE);
 	/* Data sended. */
 	/* Is connection close? */
 	if (0 != (HTTP_SRV_CLI_F_HALF_CLOSED & cli->flags) ||
 	    0 != (HTTP_SRV_RD_F_CONN_CLOSE & cli->req.flags) ||
 	    0 != (HTTP_SRV_RESP_P_F_CONN_CLOSE & cli->resp.p_flags)) {
 		http_srv_cli_free(cli); /* Force destroy. */
-		return (IO_TASK_CB_NONE);
+		return (TP_TASK_CB_NONE);
 	}
 	/* If sended without error and connection keep-alive, try handle next request. */
 	if (0 == error) {
@@ -1521,11 +1521,11 @@ http_srv_send_responce(http_srv_cli_p cli, const uint8_t **delimiter) {
 			if (NULL != delimiter) {
 				(*delimiter) = ptm;
 			}
-			return (IO_TASK_CB_CONTINUE);
+			return (TP_TASK_CB_CONTINUE);
 		}
 		/* Need receive more data. */
 		IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
-		error = io_task_restart(cli->iotask);
+		error = tp_task_restart(cli->tptask);
 	}
 	if (0 != error) { /* Error. */
 		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
@@ -1533,7 +1533,7 @@ http_srv_send_responce(http_srv_cli_p cli, const uint8_t **delimiter) {
 		cli->bnd->srv->stat.errors ++;
 		http_srv_cli_free(cli);
 	}
-	return (IO_TASK_CB_NONE);
+	return (TP_TASK_CB_NONE);
 }
 
 int
@@ -1544,15 +1544,15 @@ http_srv_resume_responce(http_srv_cli_p cli) {
 	if (NULL == cli)
 		return (EINVAL);
 	error = http_srv_send_responce(cli, NULL);
-	if (IO_TASK_CB_NONE == error)
+	if (TP_TASK_CB_NONE == error)
 		return (0);
-	error = http_srv_recv_done_cb(cli->iotask, 0, cli->rcv_buf, 0,
+	error = http_srv_recv_done_cb(cli->tptask, 0, cli->rcv_buf, 0,
 	    cli->rcv_buf->used, cli);
-	if (IO_TASK_CB_NONE == error)
+	if (TP_TASK_CB_NONE == error)
 		return (0);
 	/* Need receive more data. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
-	error = io_task_restart(cli->iotask);
+	error = tp_task_restart(cli->tptask);
 	if (0 != error) { /* Error. */
 		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
 		LOG_ERR_FMT(error, "client ip: %s", straddr);
@@ -1573,9 +1573,9 @@ http_srv_resume_next_request(http_srv_cli_p cli) {
 	http_srv_cli_next_req(cli);
 	/* Shedule data receive / Process next. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
-	io_task_flags_add(cli->iotask, IO_TASK_F_CB_AFTER_EVERY_READ);
-	error = io_task_start_ex((0 == cli->rcv_buf->used), cli->iotask,
-	    THRP_EV_READ, 0, cli->bnd->s.skt_opts.rcv_timeout, 0,
+	tp_task_flags_add(cli->tptask, TP_TASK_F_CB_AFTER_EVERY_READ);
+	error = tp_task_start_ex((0 == cli->rcv_buf->used), cli->tptask,
+	    TP_EV_READ, 0, cli->bnd->s.skt_opts.rcv_timeout, 0,
 	    cli->rcv_buf, http_srv_recv_done_cb);
 	if (0 != error) { /* Error. */
 		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
@@ -1589,7 +1589,7 @@ http_srv_resume_next_request(http_srv_cli_p cli) {
 
 /* http answer to cli is sended, work done. */
 static int
-http_srv_snd_done_cb(io_task_p iotask, int error, io_buf_p buf __unused,
+http_srv_snd_done_cb(tp_task_p tptask, int error, io_buf_p buf __unused,
     uint32_t eof, size_t transfered_size __unused, void *arg) {
 	int action;
 	http_srv_cli_p cli = (http_srv_cli_p)arg;
@@ -1597,7 +1597,7 @@ http_srv_snd_done_cb(io_task_p iotask, int error, io_buf_p buf __unused,
 
 	LOGD_EV("...");
 	debugd_break_if(NULL == arg);
-	debugd_break_if(iotask != ((http_srv_cli_p)arg)->iotask);
+	debugd_break_if(tptask != ((http_srv_cli_p)arg)->tptask);
 
 	if (0 != error) { /* Fail! :( */
 		if (0 != LOG_IS_ENABLED()) {
@@ -1614,7 +1614,7 @@ http_srv_snd_done_cb(io_task_p iotask, int error, io_buf_p buf __unused,
 			break;
 		}
 		http_srv_cli_free(cli);
-		return (IO_TASK_CB_NONE);
+		return (TP_TASK_CB_NONE);
 	}
 
 	if (0 != eof) { /* Client call shutdown(, SHUT_WR) and can only receive data. */
@@ -1636,10 +1636,10 @@ http_srv_snd_done_cb(io_task_p iotask, int error, io_buf_p buf __unused,
 	switch (action) {
 	case HTTP_SRV_CB_DESTROY:
 		http_srv_cli_free(cli);
-		return (IO_TASK_CB_NONE);
+		return (TP_TASK_CB_NONE);
 	case HTTP_SRV_CB_NONE:
-		io_task_stop(cli->iotask);
-		return (IO_TASK_CB_NONE);
+		tp_task_stop(cli->tptask);
+		return (TP_TASK_CB_NONE);
 	case HTTP_SRV_CB_CONTINUE:
 		/* OK, continue handling. */
 		break;
@@ -1649,13 +1649,13 @@ http_srv_snd_done_cb(io_task_p iotask, int error, io_buf_p buf __unused,
 	}
 
 	/* Reuse connection. */
-	io_task_stop(cli->iotask);
+	tp_task_stop(cli->tptask);
 
 	/* Move data in buffer and do some prepares. */
 	/* Shedule data receive / Process next. */
 	http_srv_resume_next_request(cli);
 
-	return (IO_TASK_CB_NONE);
+	return (TP_TASK_CB_NONE);
 }
 
 
@@ -1818,7 +1818,7 @@ http_srv_snd(http_srv_cli_p cli) {
 	mhdr.msg_iovlen += 2;
 	//LOGD_EV_FMT("mhdr.msg_iovlen: %zu, data_size: %zu", mhdr.msg_iovlen, data_size);
 	/* Try send (write to socket buf).*/
-	ios = sendmsg((int)io_task_ident_get(cli->iotask), &mhdr,
+	ios = sendmsg((int)tp_task_ident_get(cli->tptask), &mhdr,
 	    (MSG_DONTWAIT | MSG_NOSIGNAL));
 	if (-1 == ios)
 		return (errno);
@@ -1865,7 +1865,7 @@ http_srv_snd(http_srv_cli_p cli) {
 		IO_BUF_TR_SIZE_SET(cli->buf, (cli->buf->used - cli->buf->offset));
 	}
 	/* Shedule send answer to cli. */
-	error = io_task_start(cli->iotask, THRP_EV_WRITE, 0,
+	error = tp_task_start(cli->tptask, TP_EV_WRITE, 0,
 	    cli->bnd->s.skt_opts.snd_timeout, 0, cli->buf, http_srv_snd_done_cb);
 	if (0 == error) /* No Error, but sheduled. */
 		return (EINPROGRESS);

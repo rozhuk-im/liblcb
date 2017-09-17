@@ -27,6 +27,7 @@
  *
  */
 
+
 #include <sys/param.h>
 
 #ifdef __linux__ /* Linux specific code. */
@@ -53,30 +54,30 @@
 
 
 typedef struct thread_pool_thread_msg_queue_s { /* thread pool thread info */
-	thrp_udata_t	udata;
+	tp_udata_t	udata;
 	int		fd[2]; /* Queue specific. */
-} thrpt_msg_queue_t;
+} tpt_msg_queue_t;
 
 
-typedef struct thrpt_msg_pkt_s { /* thread message packet data. */
+typedef struct tpt_msg_pkt_s { /* thread message packet data. */
 	size_t		magic;
-	thrpt_msg_cb	msg_cb;
+	tpt_msg_cb	msg_cb;
 	void		*udata;
 	size_t		chk_sum;
-} thrpt_msg_pkt_t, *thrpt_msg_pkt_p;
+} tpt_msg_pkt_t, *tpt_msg_pkt_p;
 
-#define THRPT_MSG_PKT_MAGIC	0xffddaa00
-#define THRPT_MSG_COUNT_TO_READ	1024 /* Read messages count at one read() call. */
+#define TPT_MSG_PKT_MAGIC	0xffddaa00
+#define TPT_MSG_COUNT_TO_READ	1024 /* Read messages count at one read() call. */
 
-#define THRPT_MSG_PKT_CHK_SUM_SET(__msg_pkt)				\
+#define TPT_MSG_PKT_CHK_SUM_SET(__msg_pkt)				\
     (__msg_pkt)->chk_sum = (((size_t)(__msg_pkt)->msg_cb) ^ ((size_t)(__msg_pkt)->udata))
-#define THRPT_MSG_PKT_IS_VALID(__msg_pkt)					\
-    (THRPT_MSG_PKT_MAGIC == (__msg_pkt)->magic &&				\
+#define TPT_MSG_PKT_IS_VALID(__msg_pkt)					\
+    (TPT_MSG_PKT_MAGIC == (__msg_pkt)->magic &&				\
      (((size_t)(__msg_pkt)->msg_cb) ^ ((size_t)(__msg_pkt)->udata)) == (__msg_pkt)->chk_sum)
 
 
-typedef struct thrpt_msg_data_s { /* thread message sync data. */
-	thrpt_msg_cb	msg_cb;
+typedef struct tpt_msg_data_s { /* thread message sync data. */
+	tpt_msg_cb	msg_cb;
 	void		*udata;
 	MTX_S		lock;	/* For count exclusive access. */
 	volatile size_t	active_thr_count;
@@ -84,41 +85,41 @@ typedef struct thrpt_msg_data_s { /* thread message sync data. */
 	uint32_t	flags;
 	volatile size_t	send_msg_cnt;
 	volatile size_t	error_cnt;
-	thrpt_p		thrpt;	/* Caller context, for done_cb. */
-	thrpt_msg_done_cb done_cb;
-} thrpt_msg_data_t, *thrpt_msg_data_p;
+	tpt_p		tpt;	/* Caller context, for done_cb. */
+	tpt_msg_done_cb done_cb;
+} tpt_msg_data_t, *tpt_msg_data_p;
 
 
-size_t	thrpt_msg_broadcast_send__int(thrp_p thrp, thrpt_p src,
-	    thrpt_msg_data_p msg_data, uint32_t flags, thrpt_msg_cb msg_cb,
+size_t	tpt_msg_broadcast_send__int(tp_p tp, tpt_p src,
+	    tpt_msg_data_p msg_data, uint32_t flags, tpt_msg_cb msg_cb,
 	    void *udata, volatile size_t *send_msg_cnt,
 	    volatile size_t *error_cnt);
-int	thrpt_msg_one_by_one_send_next__int(thrp_p thrp, thrpt_p src,
-	    thrpt_msg_data_p msg_data);
+int	tpt_msg_one_by_one_send_next__int(tp_p tp, tpt_p src,
+	    tpt_msg_data_p msg_data);
 
 
 
 static void
-thrpt_msg_recv_and_process(thrp_event_p ev, thrp_udata_p thrp_udata) {
+tpt_msg_recv_and_process(tp_event_p ev, tp_udata_p tp_udata) {
 	ssize_t rd;
-	size_t magic = THRPT_MSG_PKT_MAGIC, i, cnt, readed;
-	thrpt_msg_pkt_t msg[THRPT_MSG_COUNT_TO_READ], tmsg;
+	size_t magic = TPT_MSG_PKT_MAGIC, i, cnt, readed;
+	tpt_msg_pkt_t msg[TPT_MSG_COUNT_TO_READ], tmsg;
 	uint8_t *ptm, *pend;
 
 	debugd_break_if(NULL == ev);
-	debugd_break_if(THRP_EV_READ != ev->event);
-	debugd_break_if(NULL == thrp_udata);
-	debugd_break_if((uintptr_t)((thrpt_msg_queue_p)thrp_udata)->fd[0] != thrp_udata->ident);
+	debugd_break_if(TP_EV_READ != ev->event);
+	debugd_break_if(NULL == tp_udata);
+	debugd_break_if((uintptr_t)((tpt_msg_queue_p)tp_udata)->fd[0] != tp_udata->ident);
 
 	for (;;) {
-		rd = read((int)thrp_udata->ident, &msg, sizeof(msg));
-		if (((ssize_t)sizeof(thrpt_msg_pkt_t)) > rd)
-			return; /* -1, 0, < sizeof(thrpt_msg_pkt_t) */
+		rd = read((int)tp_udata->ident, &msg, sizeof(msg));
+		if (((ssize_t)sizeof(tpt_msg_pkt_t)) > rd)
+			return; /* -1, 0, < sizeof(tpt_msg_pkt_t) */
 		readed = (size_t)rd;
-		cnt = (readed / sizeof(thrpt_msg_pkt_t));
+		cnt = (readed / sizeof(tpt_msg_pkt_t));
 		for (i = 0; i < cnt; i ++) { /* Process loop. */
-			if (0 == THRPT_MSG_PKT_IS_VALID(&msg[i])) { /* Try recover. */
-				LOG_EV("thrpt_msg_pkt_t damaged!!!");
+			if (0 == TPT_MSG_PKT_IS_VALID(&msg[i])) { /* Try recover. */
+				LOG_EV("tpt_msg_pkt_t damaged!!!");
 				debugd_break();
 				ptm = ((uint8_t*)&msg[i]);
 				pend = (((uint8_t*)&msg) + readed);
@@ -128,16 +129,16 @@ thrpt_msg_recv_and_process(thrp_event_p ev, thrp_udata_p thrp_udata) {
 					if (NULL == ptm)
 						return; /* No more messages. */
 					i = (size_t)(pend - ptm); /* Unprocessed messages size. */
-					if (sizeof(thrpt_msg_pkt_t) > i)
+					if (sizeof(tpt_msg_pkt_t) > i)
 						return; /* Founded to small, no more messages. */
-					memcpy(&tmsg, ptm, sizeof(thrpt_msg_pkt_t)); /* Avoid allign missmatch. */
-					if (0 == THRPT_MSG_PKT_IS_VALID(&tmsg)) { /* Bad msg, try find next. */
+					memcpy(&tmsg, ptm, sizeof(tpt_msg_pkt_t)); /* Avoid allign missmatch. */
+					if (0 == TPT_MSG_PKT_IS_VALID(&tmsg)) { /* Bad msg, try find next. */
 						ptm += sizeof(size_t);
 						continue;
 					}
 					/* Looks OK, fix and restart. */
 					readed = i;
-					cnt = (readed / sizeof(thrpt_msg_pkt_t));
+					cnt = (readed / sizeof(tpt_msg_pkt_t));
 					i = 0;
 					memmove(&msg, ptm, readed);
 					break;
@@ -145,7 +146,7 @@ thrpt_msg_recv_and_process(thrp_event_p ev, thrp_udata_p thrp_udata) {
 			}
 			if (NULL == msg[i].msg_cb)
 				continue;
-			msg[i].msg_cb(thrp_udata->thrpt, msg[i].udata);
+			msg[i].msg_cb(tp_udata->tpt, msg[i].udata);
 		}
 		if (sizeof(msg) > readed) /* All data read. */
 			return; /* OK. */
@@ -154,19 +155,19 @@ thrpt_msg_recv_and_process(thrp_event_p ev, thrp_udata_p thrp_udata) {
 
 
 static void
-thrpt_msg_cb_done_proxy_cb(thrpt_p thrpt, void *udata) {
-	thrpt_msg_data_p msg_data = udata;
+tpt_msg_cb_done_proxy_cb(tpt_p tpt, void *udata) {
+	tpt_msg_data_p msg_data = udata;
 
-	msg_data->done_cb(thrpt, msg_data->send_msg_cnt,
+	msg_data->done_cb(tpt, msg_data->send_msg_cnt,
 	    msg_data->error_cnt, msg_data->udata);
-	if (0 == (THRP_CBMSG_F_ONE_BY_ONE & msg_data->flags)) {
+	if (0 == (TP_CBMSG_F_ONE_BY_ONE & msg_data->flags)) {
 		MTX_DESTROY(&msg_data->lock);
 	}
 	free(msg_data);
 }
 
 static inline size_t
-thrpt_msg_active_thr_count_dec(thrpt_msg_data_p msg_data, thrpt_p src,
+tpt_msg_active_thr_count_dec(tpt_msg_data_p msg_data, tpt_p src,
     size_t dec) {
 	size_t tm;
 
@@ -180,36 +181,36 @@ thrpt_msg_active_thr_count_dec(thrpt_msg_data_p msg_data, thrpt_p src,
 	    NULL == msg_data->done_cb)
 		return (tm); /* There is other alive threads. */
 	/* This was last thread, so we need do call back done handler. */
-	thrpt_msg_send(msg_data->thrpt, src,
-	    (THRP_MSG_F_FAIL_DIRECT | THRP_MSG_F_SELF_DIRECT),
-	    thrpt_msg_cb_done_proxy_cb, msg_data);
+	tpt_msg_send(msg_data->tpt, src,
+	    (TP_MSG_F_FAIL_DIRECT | TP_MSG_F_SELF_DIRECT),
+	    tpt_msg_cb_done_proxy_cb, msg_data);
 	return (tm);
 }
 
 static void
-thrpt_msg_sync_proxy_cb(thrpt_p thrpt, void *udata) {
-	thrpt_msg_data_p msg_data = udata;
+tpt_msg_sync_proxy_cb(tpt_p tpt, void *udata) {
+	tpt_msg_data_p msg_data = udata;
 
-	msg_data->msg_cb(thrpt, msg_data->udata);
-	thrpt_msg_active_thr_count_dec(msg_data, thrpt, 1);
+	msg_data->msg_cb(tpt, msg_data->udata);
+	tpt_msg_active_thr_count_dec(msg_data, tpt, 1);
 }
 
 static void
-thrpt_msg_one_by_one_proxy_cb(thrpt_p thrpt, void *udata) {
-	thrpt_msg_data_p msg_data = udata;
+tpt_msg_one_by_one_proxy_cb(tpt_p tpt, void *udata) {
+	tpt_msg_data_p msg_data = udata;
 
-	msg_data->msg_cb(thrpt, msg_data->udata);
+	msg_data->msg_cb(tpt, msg_data->udata);
 	/* Send to next thread. */
 	msg_data->cur_thr_idx ++;
-	if (0 == thrpt_msg_one_by_one_send_next__int(thrpt_get_thrp(thrpt), thrpt, msg_data))
+	if (0 == tpt_msg_one_by_one_send_next__int(tpt_get_tp(tpt), tpt, msg_data))
 		return;
 	/* All except caller thread done / error. */
-	if (0 == ((THRP_BMSG_F_SELF_SKIP | THRP_MSG_F_SELF_DIRECT) & msg_data->flags) &&
-	    msg_data->thrpt != thrpt) { /* Try shedule caller thread. */
-		msg_data->cur_thr_idx = thrp_thread_count_max_get(thrpt_get_thrp(thrpt));
+	if (0 == ((TP_BMSG_F_SELF_SKIP | TP_MSG_F_SELF_DIRECT) & msg_data->flags) &&
+	    msg_data->tpt != tpt) { /* Try shedule caller thread. */
+		msg_data->cur_thr_idx = tp_thread_count_max_get(tpt_get_tp(tpt));
 		msg_data->send_msg_cnt ++;
-		if (0 == thrpt_msg_send(msg_data->thrpt, thrpt,
-		    msg_data->flags, thrpt_msg_one_by_one_proxy_cb,
+		if (0 == tpt_msg_send(msg_data->tpt, tpt,
+		    msg_data->flags, tpt_msg_one_by_one_proxy_cb,
 		    msg_data))
 			return;
 		/* Error on send. Allso here EHOSTDOWN from not running threads. */
@@ -217,26 +218,26 @@ thrpt_msg_one_by_one_proxy_cb(thrpt_p thrpt, void *udata) {
 		msg_data->error_cnt ++;
 	}
 	/* Error / Done. */
-	thrpt_msg_send(msg_data->thrpt, thrpt,
-	    (THRP_MSG_F_FAIL_DIRECT | THRP_MSG_F_SELF_DIRECT),
-	    thrpt_msg_cb_done_proxy_cb, msg_data);
+	tpt_msg_send(msg_data->tpt, tpt,
+	    (TP_MSG_F_FAIL_DIRECT | TP_MSG_F_SELF_DIRECT),
+	    tpt_msg_cb_done_proxy_cb, msg_data);
 }
 
 
 
-thrpt_msg_queue_p
-thrpt_msg_queue_create(thrpt_p thrpt) { /* Init threads message exchange. */
+tpt_msg_queue_p
+tpt_msg_queue_create(tpt_p tpt) { /* Init threads message exchange. */
 	int error;
-	thrpt_msg_queue_p msg_queue;
+	tpt_msg_queue_p msg_queue;
 
-	msg_queue = zalloc(sizeof(thrpt_msg_queue_t));
+	msg_queue = zalloc(sizeof(tpt_msg_queue_t));
 	if (NULL == msg_queue)
 		return (NULL);
 	if (-1 == pipe2(msg_queue->fd, O_NONBLOCK))
 		goto err_out;
-	msg_queue->udata.cb_func = thrpt_msg_recv_and_process;
+	msg_queue->udata.cb_func = tpt_msg_recv_and_process;
 	msg_queue->udata.ident = (uintptr_t)msg_queue->fd[0];
-	error = thrpt_ev_add(thrpt, THRP_EV_READ, 0, &msg_queue->udata);
+	error = tpt_ev_add(tpt, TP_EV_READ, 0, &msg_queue->udata);
 	if (0 == error)
 		return (msg_queue);
 err_out:
@@ -245,7 +246,7 @@ err_out:
 }
 
 void
-thrpt_msg_queue_destroy(thrpt_msg_queue_p msg_queue) {
+tpt_msg_queue_destroy(tpt_msg_queue_p msg_queue) {
 
 	if (NULL == msg_queue)
 		return;
@@ -255,41 +256,41 @@ thrpt_msg_queue_destroy(thrpt_msg_queue_p msg_queue) {
 
 	
 int
-thrpt_msg_send(thrpt_p dst, thrpt_p src, uint32_t flags,
-    thrpt_msg_cb msg_cb, void *udata) {
-	thrpt_msg_pkt_t msg;
-	thrpt_msg_queue_p msg_queue;
+tpt_msg_send(tpt_p dst, tpt_p src, uint32_t flags,
+    tpt_msg_cb msg_cb, void *udata) {
+	tpt_msg_pkt_t msg;
+	tpt_msg_queue_p msg_queue;
 
 	if (NULL == dst || NULL == msg_cb)
 		return (EINVAL);
-	msg_queue = thrpt_get_msg_queue(dst);
+	msg_queue = tpt_get_msg_queue(dst);
 	if (NULL == msg_queue)
 		return (EINVAL);
-	if (0 != (THRP_MSG_F_SELF_DIRECT & flags)) {
+	if (0 != (TP_MSG_F_SELF_DIRECT & flags)) {
 		if (NULL == src) {
-			src = thrp_thread_get_current();
+			src = tp_thread_get_current();
 		}
 		if (src == dst) { /* Self. */
 			msg_cb(dst, udata);
 			return (0);
 		}
 	}
-	if (0 == thrpt_is_running(dst)) {
-		if (0 == (THRP_MSG_F_FORCE & flags))
+	if (0 == tpt_is_running(dst)) {
+		if (0 == (TP_MSG_F_FORCE & flags))
 			return (EHOSTDOWN);
 		msg_cb(dst, udata);
 		return (0);
 	}
 
-	msg.magic = THRPT_MSG_PKT_MAGIC;
+	msg.magic = TPT_MSG_PKT_MAGIC;
 	msg.msg_cb = msg_cb;
 	msg.udata = udata;
-	THRPT_MSG_PKT_CHK_SUM_SET(&msg);
+	TPT_MSG_PKT_CHK_SUM_SET(&msg);
 	if (sizeof(msg) == write(msg_queue->fd[1], &msg, sizeof(msg)))
 		return (0);
 	/* Error. */
 	debugd_break();
-	if (0 != (THRP_MSG_F_FAIL_DIRECT & flags)) {
+	if (0 != (TP_MSG_F_FAIL_DIRECT & flags)) {
 		msg_cb(dst, udata);
 		return (0);
 	}
@@ -298,34 +299,34 @@ thrpt_msg_send(thrpt_p dst, thrpt_p src, uint32_t flags,
 
 
 size_t
-thrpt_msg_broadcast_send__int(thrp_p thrp, thrpt_p src,
-    thrpt_msg_data_p msg_data, uint32_t flags,
-    thrpt_msg_cb msg_cb, void *udata,
+tpt_msg_broadcast_send__int(tp_p tp, tpt_p src,
+    tpt_msg_data_p msg_data, uint32_t flags,
+    tpt_msg_cb msg_cb, void *udata,
     volatile size_t *send_msg_cnt, volatile size_t *error_cnt) {
 	size_t i, threads_max, err_cnt = 0;
-	thrpt_p thrpt;
+	tpt_p tpt;
 
 	if (NULL != msg_data &&
 	    NULL != src &&
-	    0 != (THRP_BMSG_F_SELF_SKIP & flags)) {
+	    0 != (TP_BMSG_F_SELF_SKIP & flags)) {
 		msg_data->active_thr_count --;
 	}
 	(*send_msg_cnt) = 0;
 	(*error_cnt) = 0;
-	threads_max = thrp_thread_count_max_get(thrp);
+	threads_max = tp_thread_count_max_get(tp);
 	for (i = 0; i < threads_max; i ++) { /* Send message loop. */
-		thrpt = thrp_thread_get(thrp, i);
-		if (thrpt == src && /* Self. */
-		    0 != (THRP_BMSG_F_SELF_SKIP & flags)) {
+		tpt = tp_thread_get(tp, i);
+		if (tpt == src && /* Self. */
+		    0 != (TP_BMSG_F_SELF_SKIP & flags)) {
 			/* No need to "active_thr_count --" here:
 			 * SELF_SKIP allready done,
-			 * msg_cb = thrpt_msg_sync_proxy_cb and handle count for
-			 * thrpt_msg_bsend_ex(THRP_BMSG_F_SYNC) and
-			 * thrpt_msg_cbsend() w/o THRP_CBMSG_F_ONE_BY_ONE. */
+			 * msg_cb = tpt_msg_sync_proxy_cb and handle count for
+			 * tpt_msg_bsend_ex(TP_BMSG_F_SYNC) and
+			 * tpt_msg_cbsend() w/o TP_CBMSG_F_ONE_BY_ONE. */
 			continue;
 		}
 		(*send_msg_cnt) ++;
-		if (0 == thrpt_msg_send(thrpt, src, flags, msg_cb, udata))
+		if (0 == tpt_msg_send(tpt, src, flags, msg_cb, udata))
 			continue;
 		/* Error on send. Allso here EHOSTDOWN from not running threads. */
 		(*send_msg_cnt) --;
@@ -335,39 +336,39 @@ thrpt_msg_broadcast_send__int(thrp_p thrp, thrpt_p src,
 	/* Do not forget for "unlock" and free + done cb:
 	 * if err_cnt = 0 then msg_data may not exist!
 	 * if (0 != err_cnt && NULL != msg_data)
-	 *	thrpt_msg_active_thr_count_dec(msg_data, thrpt, err_cnt);
+	 *	tpt_msg_active_thr_count_dec(msg_data, tpt, err_cnt);
 	 */
 	return (err_cnt);
 }
 
 int
-thrpt_msg_bsend_ex(thrp_p thrp, thrpt_p src, uint32_t flags,
-    thrpt_msg_cb msg_cb, void *udata,
+tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags,
+    tpt_msg_cb msg_cb, void *udata,
     size_t *send_msg_cnt, size_t *error_cnt) {
 	int error = 0;
 	volatile size_t tm_cnt;
 	size_t threads_max;
-	thrpt_msg_data_p msg_data = NULL;
-	thrpt_msg_data_t msg_data_s;
+	tpt_msg_data_p msg_data = NULL;
+	tpt_msg_data_t msg_data_s;
 	struct timespec rqtp;
 
 	msg_data_s.send_msg_cnt = 0;
 	msg_data_s.error_cnt = 0;
-	threads_max = thrp_thread_count_max_get(thrp);
-	if (NULL == thrp || NULL == msg_cb) {
+	threads_max = tp_thread_count_max_get(tp);
+	if (NULL == tp || NULL == msg_cb) {
 		error = EINVAL;
 		goto err_out;
 	}
 	if (NULL == src) {
-		src = thrp_thread_get_current();
+		src = tp_thread_get_current();
 	}
 	/* 1 thread specific. */
 	if (1 == threads_max &&
 	    NULL != src) { /* Only if thread send broadcast to self. */
-		if (0 != (THRP_BMSG_F_SELF_SKIP & flags))
+		if (0 != (TP_BMSG_F_SELF_SKIP & flags))
 			goto err_out; /* Nothink to do. */
-		if (0 == (THRP_BMSG_F_SYNC & flags)) {
-			error = thrpt_msg_send(thrp_thread_get(thrp, 0), src, flags, msg_cb, udata);
+		if (0 == (TP_BMSG_F_SYNC & flags)) {
+			error = tpt_msg_send(tp_thread_get(tp, 0), src, flags, msg_cb, udata);
 			if (0 == error) {
 				msg_data_s.send_msg_cnt ++;
 			}
@@ -377,7 +378,7 @@ thrpt_msg_bsend_ex(thrp_p thrp, thrpt_p src, uint32_t flags,
 		goto err_out; /* Sended / error on send. */
 	}
 	/* Multithread. */
-	if (0 != (THRP_BMSG_F_SYNC & flags)) {
+	if (0 != (TP_BMSG_F_SYNC & flags)) {
 		/* Setup proxy cb. */
 		msg_data = &msg_data_s;
 		msg_data->msg_cb = msg_cb;
@@ -388,23 +389,23 @@ thrpt_msg_bsend_ex(thrp_p thrp, thrpt_p src, uint32_t flags,
 		msg_data->flags = flags;
 		//msg_data->send_msg_cnt = 0;
 		//msg_data->error_cnt = 0;
-		msg_data->thrpt = NULL;
+		msg_data->tpt = NULL;
 		msg_data->done_cb = NULL;
-		msg_cb = thrpt_msg_sync_proxy_cb;
+		msg_cb = tpt_msg_sync_proxy_cb;
 		udata = msg_data;
 	}
 
-	tm_cnt = thrpt_msg_broadcast_send__int(thrp, src, msg_data,
+	tm_cnt = tpt_msg_broadcast_send__int(tp, src, msg_data,
 	    flags, msg_cb, udata, &msg_data_s.send_msg_cnt,
 	    &msg_data_s.error_cnt);
 
-	if (NULL != msg_data) { /* THRP_BMSG_F_SYNC: Wait for all. */
+	if (NULL != msg_data) { /* TP_BMSG_F_SYNC: Wait for all. */
 		/* Update active threads count and store to tm_cnt. */
 		rqtp.tv_sec = 0;
 		rqtp.tv_nsec = 10000000; /* 1 sec = 1000000000 nanoseconds */
-		tm_cnt = thrpt_msg_active_thr_count_dec(msg_data, src, tm_cnt);
+		tm_cnt = tpt_msg_active_thr_count_dec(msg_data, src, tm_cnt);
 		while (0 != tm_cnt) {
-			if (0 == (THRP_BMSG_F_SYNC_USLEEP & flags)) {
+			if (0 == (TP_BMSG_F_SYNC_USLEEP & flags)) {
 				pthread_yield();
 			} else {
 				nanosleep(&rqtp, NULL);
@@ -430,21 +431,21 @@ err_out:
 
 
 int
-thrpt_msg_one_by_one_send_next__int(thrp_p thrp, thrpt_p src,
-    thrpt_msg_data_p msg_data) {
-	thrpt_p thrpt;
+tpt_msg_one_by_one_send_next__int(tp_p tp, tpt_p src,
+    tpt_msg_data_p msg_data) {
+	tpt_p tpt;
 	size_t threads_max;
 
-	threads_max = thrp_thread_count_max_get(thrp);
+	threads_max = tp_thread_count_max_get(tp);
 	if (msg_data->cur_thr_idx >= threads_max)
 		return (EINVAL);
 	for (; msg_data->cur_thr_idx < threads_max; msg_data->cur_thr_idx ++) {
-		thrpt = thrp_thread_get(thrp, msg_data->cur_thr_idx);
-		if (thrpt == msg_data->thrpt) /* Self. */
+		tpt = tp_thread_get(tp, msg_data->cur_thr_idx);
+		if (tpt == msg_data->tpt) /* Self. */
 			continue;
 		msg_data->send_msg_cnt ++;
-		if (0 == thrpt_msg_send(thrpt, src, msg_data->flags,
-		    thrpt_msg_one_by_one_proxy_cb, msg_data))
+		if (0 == tpt_msg_send(tpt, src, msg_data->flags,
+		    tpt_msg_one_by_one_proxy_cb, msg_data))
 			return (0);
 		/* Error on send. Also here EHOSTDOWN from not running threads. */
 		msg_data->send_msg_cnt --;
@@ -454,25 +455,25 @@ thrpt_msg_one_by_one_send_next__int(thrp_p thrp, thrpt_p src,
 }
 
 int
-thrpt_msg_cbsend(thrp_p thrp, thrpt_p src, uint32_t flags,
-    thrpt_msg_cb msg_cb, void *udata, thrpt_msg_done_cb done_cb) {
+tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
+    tpt_msg_cb msg_cb, void *udata, tpt_msg_done_cb done_cb) {
 	size_t tm_cnt, send_msg_cnt, threads_max;
-	thrpt_msg_data_p msg_data;
+	tpt_msg_data_p msg_data;
 
 
-	if (NULL == thrp || NULL == msg_cb || NULL == done_cb ||
-	    0 != ((THRP_BMSG_F_SYNC | THRP_BMSG_F_SYNC_USLEEP) & flags))
+	if (NULL == tp || NULL == msg_cb || NULL == done_cb ||
+	    0 != ((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP) & flags))
 		return (EINVAL);
 	if (NULL == src) {
-		src = thrp_thread_get_current();
+		src = tp_thread_get_current();
 	}
 	if (NULL == src) /* Cant do final callback. */
 		return (EINVAL);
-	threads_max = thrp_thread_count_max_get(thrp);
+	threads_max = tp_thread_count_max_get(tp);
 	/* 1 thread specific. */
 	if (1 == threads_max &&
 	    NULL != src) { /* Only if thread send broadcast to self. */
-		if (0 != (THRP_BMSG_F_SELF_SKIP & flags)) {
+		if (0 != (TP_BMSG_F_SELF_SKIP & flags)) {
 			done_cb(src, 0, 0, udata); /* Nothink to do. */
 		} else { /* Cant async call from self. */
 			msg_cb(src, udata);
@@ -480,7 +481,7 @@ thrpt_msg_cbsend(thrp_p thrp, thrpt_p src, uint32_t flags,
 		}
 		return (0); /* Sended / error on send. */
 	}
-	msg_data = malloc(sizeof(thrpt_msg_data_t));
+	msg_data = malloc(sizeof(tpt_msg_data_t));
 	if (NULL == msg_data)
 		return (ENOMEM);
 	msg_data->msg_cb = msg_cb;
@@ -490,17 +491,17 @@ thrpt_msg_cbsend(thrp_p thrp, thrpt_p src, uint32_t flags,
 	msg_data->flags = flags;
 	msg_data->send_msg_cnt = 0;
 	msg_data->error_cnt = 0;
-	msg_data->thrpt = src;
+	msg_data->tpt = src;
 	msg_data->done_cb = done_cb;
 
-	if (0 != (THRP_CBMSG_F_ONE_BY_ONE & flags)) {
-		if (THRP_MSG_F_SELF_DIRECT == ((THRP_BMSG_F_SELF_SKIP | THRP_MSG_F_SELF_DIRECT) & flags)) {
+	if (0 != (TP_CBMSG_F_ONE_BY_ONE & flags)) {
+		if (TP_MSG_F_SELF_DIRECT == ((TP_BMSG_F_SELF_SKIP | TP_MSG_F_SELF_DIRECT) & flags)) {
 			msg_data->send_msg_cnt ++;
 			msg_cb(src, udata);
 		}
-		if (0 == thrpt_msg_one_by_one_send_next__int(thrp, src, msg_data))
+		if (0 == tpt_msg_one_by_one_send_next__int(tp, src, msg_data))
 			return (0); /* OK, sheduled. */
-		if (THRP_MSG_F_SELF_DIRECT == ((THRP_BMSG_F_SELF_SKIP | THRP_MSG_F_SELF_DIRECT) & flags)) {
+		if (TP_MSG_F_SELF_DIRECT == ((TP_BMSG_F_SELF_SKIP | TP_MSG_F_SELF_DIRECT) & flags)) {
 			done_cb(src, msg_data->send_msg_cnt,
 			    msg_data->error_cnt, udata);
 			return (0);
@@ -510,14 +511,14 @@ thrpt_msg_cbsend(thrp_p thrp, thrpt_p src, uint32_t flags,
 	/* Like SYNC but with cb. */
 	MTX_INIT(&msg_data->lock);
 
-	tm_cnt = thrpt_msg_broadcast_send__int(thrp, src, msg_data, flags,
-	    thrpt_msg_sync_proxy_cb, msg_data, &msg_data->send_msg_cnt,
+	tm_cnt = tpt_msg_broadcast_send__int(tp, src, msg_data, flags,
+	    tpt_msg_sync_proxy_cb, msg_data, &msg_data->send_msg_cnt,
 	    &msg_data->error_cnt);
 	if (0 == tm_cnt)
 		return (0); /* OK, sheduled. */
 	/* Errors. Update active threads count and store to tm_cnt. */
 	send_msg_cnt = msg_data->send_msg_cnt; /* Remember before release. */
-	tm_cnt = thrpt_msg_active_thr_count_dec(msg_data, src, tm_cnt);
+	tm_cnt = tpt_msg_active_thr_count_dec(msg_data, src, tm_cnt);
 	if (0 == send_msg_cnt)
 		return (ESPIPE);
 	return (0);

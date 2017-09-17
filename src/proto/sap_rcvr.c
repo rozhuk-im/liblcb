@@ -58,8 +58,8 @@
 
 
 typedef struct sap_rcvr_s {
-	io_task_p	io_pkt_rcvr4;	/* Packer receiver IPv4 skt. */
-	//io_task_p	io_pkt_rcvr6;	/* Packer receiver IPv4 skt. */
+	tp_task_p	io_pkt_rcvr4;	/* Packer receiver IPv4 skt. */
+	//tp_task_p	io_pkt_rcvr6;	/* Packer receiver IPv4 skt. */
 	data_cache_p	dcache;		/* Cache received records. */
 	uint32_t	cache_time;	/* Cache time for item. */
 	uintptr_t	sktv4;		/* IPv4 UDP socket. */
@@ -93,7 +93,7 @@ typedef struct sap_rcvr_cache_dump_s {
 sdp_lite_p	sdp_lite_alloc(const uint8_t *id, uint16_t id_size, uint16_t name_size);
 void		sdp_lite_free(sdp_lite_p sdpl);
 int		data_cache_enum_cb_fn(void *udata, data_cache_item_p dc_item);
-static int 	sap_receiver_recv_cb(io_task_p iotask, int error, int eof,
+static int 	sap_receiver_recv_cb(tp_task_p tptask, int error, int eof,
 		    size_t data2transfer_size, void *arg);
 
 
@@ -172,7 +172,7 @@ sdp_lite_free(sdp_lite_p sdpl) {
 
 
 int
-sap_receiver_create(thrp_p thp, uint32_t skt_recv_buf_size,
+sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
     uint32_t cache_time, uint32_t cache_clean_interval, sap_rcvr_p *sap_rcvr_ret) {
 	sap_rcvr_p srcvr;
 	int error;
@@ -207,8 +207,8 @@ sap_receiver_create(thrp_p thp, uint32_t skt_recv_buf_size,
 	    sap_data_cache_free_data, sap_data_cache_hash, sap_data_cache_cmp_data,
 	    (cache_clean_interval * 1000));
 
-	error = io_task_notify_create(thrp_thread_get_rr(thp), srcvr->sktv4,
-	    IO_TASK_F_CLOSE_ON_DESTROY, THRP_EV_READ, 0, sap_receiver_recv_cb,
+	error = tp_task_notify_create(tp_thread_get_rr(thp), srcvr->sktv4,
+	    TP_TASK_F_CLOSE_ON_DESTROY, TP_EV_READ, 0, sap_receiver_recv_cb,
 	    srcvr, &srcvr->io_pkt_rcvr4);
 	if (0 != error)
 		goto err_out;
@@ -228,8 +228,8 @@ sap_receiver_destroy(sap_rcvr_p srcvr) {
 	if (NULL == srcvr)
 		return;
 
-	io_task_destroy(srcvr->io_pkt_rcvr4);
-	//io_task_destroy(srcvr->io_pkt_rcvr6);
+	tp_task_destroy(srcvr->io_pkt_rcvr4);
+	//tp_task_destroy(srcvr->io_pkt_rcvr6);
 	data_cache_destroy(srcvr->dcache);
 	free(srcvr);
 }
@@ -254,7 +254,7 @@ sap_receiver_listener_add4(sap_rcvr_p srcvr, const char *ifname, size_t ifname_s
 
 
 static int
-sap_receiver_recv_cb(io_task_p iotask, int error, int eof __unused,
+sap_receiver_recv_cb(tp_task_p tptask, int error, int eof __unused,
     size_t data2transfer_size __unused, void *arg) {
 	sap_rcvr_p srcvr = arg;
 	uint32_t if_index = 0xffffffff;
@@ -277,7 +277,7 @@ sap_receiver_recv_cb(io_task_p iotask, int error, int eof __unused,
 		goto rcv_next;
 	}
 
-	transfered_size = io_net_recvfrom(io_task_ident_get(iotask),
+	transfered_size = io_net_recvfrom(tp_task_ident_get(tptask),
 	    buf, sizeof(buf), MSG_DONTWAIT, NULL, &if_index);
 	if ((size_t)-1 == transfered_size) {
 		error = errno;
@@ -404,5 +404,5 @@ sap_receiver_recv_cb(io_task_p iotask, int error, int eof __unused,
 	data_cache_clean(srcvr->dcache);
 
 rcv_next:
-	return (IO_TASK_CB_CONTINUE);
+	return (TP_TASK_CB_CONTINUE);
 }
