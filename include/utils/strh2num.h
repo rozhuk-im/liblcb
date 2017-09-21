@@ -23,6 +23,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * Author: Rozhuk Ivan <rozhuk.im@gmail.com>
+ *
  */
 
 
@@ -30,6 +32,7 @@
 #define __STRH2NUM_H__
 
 #ifdef _WINDOWS
+	#define int8_t		char
 	#define uint8_t		unsigned char
 	#define uint16_t	WORD
 	#define int32_t		LONG

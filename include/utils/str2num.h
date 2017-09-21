@@ -32,6 +32,7 @@
 #define __STR2NUM_H__
 
 #ifdef _WINDOWS
+	#define int8_t		char
 	#define uint8_t		unsigned char
 	#define uint16_t	WORD
 	#define int32_t		LONG
