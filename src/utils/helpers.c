@@ -73,7 +73,6 @@
 #endif
 
 
-
 int
 cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 	unsigned char *pCur;
@@ -190,6 +189,7 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 		//data->verbose = 0;
 		make_daemon();
 	}
+
 	return (0);
 }
 
@@ -258,6 +258,7 @@ write_pid(const char *file_name) {
 
 	if (NULL == file_name)
 		return (EINVAL);
+
 	fd = open(file_name, (O_WRONLY | O_CREAT | O_TRUNC), 0644);
 	if (-1 == fd)
 		return (errno);
@@ -277,6 +278,7 @@ set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
 
 	if (0 == pw_uid || 0 == pw_gid)
 		return (EINVAL);
+
 	error = getpwuid_r(pw_uid, &pwd_buf, buffer, sizeof(buffer), &pwd);
 	if (0 != error) {
 		error = errno;
@@ -320,6 +322,7 @@ read_file(const char *file_name, size_t file_name_size, size_t max_size,
 	if (NULL == file_name || (sizeof(filename) - 1) < file_name_size ||
 	    NULL == buf || NULL == buf_size)
 		return (EINVAL);
+
 	if (0 == file_name_size) {
 		file_name_size = strnlen(file_name, (sizeof(filename) - 1));
 	}
@@ -355,10 +358,12 @@ read_file(const char *file_name, size_t file_name_size, size_t max_size,
 		return (error);
 	}
 	(*buf)[sb.st_size] = 0;
+
 	return (0);
 
 err_out:
 	close(fd);
+
 	return (error);
 }
 
@@ -372,6 +377,7 @@ read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 	if (NULL == file_name || (sizeof(filename) - 1) < file_name_size ||
 	    NULL == buf || 0 == buf_size)
 		return (EINVAL);
+
 	if (0 == file_name_size) {
 		file_name_size = strnlen(file_name, (sizeof(filename) - 1));
 	}
@@ -392,6 +398,7 @@ read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = rd;
 	}
+
 	return (0);
 }
 
@@ -403,6 +410,7 @@ get_cpu_count(void) {
 	if (-1 == ret) {
 		ret = 1;
 	}
+
 	return (ret);
 }
 
@@ -413,9 +421,11 @@ bind_thread_to_cpu(int cpu_id) {
 
 	if (-1 == cpu_id)
 		return (EINVAL);
+
 	/* Bind this thread to a single cpu. */
 	CPU_ZERO(&cs);
 	CPU_SET(cpu_id, &cs);
+
 	return (pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cs));
 }
 
@@ -426,6 +436,7 @@ fd_set_nonblocking(uintptr_t fd, int nonblocked) {
 
 	if ((uintptr_t)-1 == fd)
 		return (EINVAL);
+
 	opts = fcntl((int)fd, F_GETFL); /* Read current options. */
 	if (-1 == opts)
 		return (errno);
@@ -440,6 +451,7 @@ fd_set_nonblocking(uintptr_t fd, int nonblocked) {
 	}
 	if (-1 == fcntl((int)fd, F_SETFL, opts)) /* Update options. */
 		return (errno);
+
 	return (0);
 }
 
@@ -480,6 +492,7 @@ calc_sptab_count(const char *buf, size_t buf_size) {
 	buf_end = (buf + buf_size);
 	for (cur = buf; cur < buf_end && ((*cur) == ' ' || (*cur) == '\t'); cur ++)
 		;
+
 	return ((size_t)(cur - buf));
 }
 
@@ -492,6 +505,7 @@ calc_sptab_count_r(const char *buf, size_t buf_size) {
 	buf_end = (buf + (buf_size - 1));
 	for (cur = buf_end; cur > buf && ((*cur) == ' ' || (*cur) == '\t'); cur --)
 		;
+
 	return ((size_t)(buf_end - cur));
 }
 
@@ -505,6 +519,7 @@ calc_non_sptab_count(const char *buf, size_t buf_size) {
 	buf_end = (buf + buf_size);
 	for (cur = buf; cur < buf_end && ((*cur) != ' ' && (*cur) != '\t'); cur ++)
 		;
+
 	return ((size_t)(cur - buf));
 }
 
@@ -518,6 +533,7 @@ calc_non_sptab_count_r(const char *buf, size_t buf_size) {
 	buf_end = (buf + (buf_size - 1));
 	for (cur = buf_end; cur > buf && ((*cur) != ' ' && (*cur) != '\t'); cur --)
 		;
+
 	return ((size_t)(buf_end - cur));
 }
 
@@ -567,6 +583,7 @@ buf2args(char *buf, size_t buf_size, size_t max_args, char **args, size_t *args_
 		cur_size -= data_size;
 		cur_pos += data_size;
 	}
+
 	return (ret);
 }
 
@@ -598,9 +615,11 @@ data_xor8(void *dst, size_t size) {
 
 	if (NULL == dst || 0 == size)
 		return (0);
+
 	for (i = 0; i < size; i ++) {
 		ret ^= pt[i];
 	}
+
 	return (ret);
 }
 
@@ -611,6 +630,7 @@ memxor(void *dst, uint8_t byte, size_t size) {
 
 	if (NULL == dst || 0 == size)
 		return;
+
 	for (i = 0; i < size; i ++) {
 		pt[i] ^= byte;
 	}
@@ -623,6 +643,7 @@ memxorbuf(void *dst, size_t dsize, void *src, size_t ssize) {
 
 	if (NULL == dst || 0 == dsize || NULL == src || 0 == ssize)
 		return;
+
 	for (i = 0, j = 0; i < dsize; i ++, j ++) {
 		if (j == ssize) {
 			j = 0;
@@ -643,6 +664,7 @@ cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
 
 	if (NULL == hex || 0 == hex_size || NULL == bin || 0 == bin_size)
 		return (EINVAL);
+
 	if (bin_size < (hex_size / 2))
 		return (EOVERFLOW);
 	hex_max = (hex + hex_size);
@@ -676,6 +698,7 @@ cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
 	if (NULL != bin_size_ret) {
 		(*bin_size_ret) = (size_t)(bin_size - (size_t)(bin_max - bin));
 	}
+
 	return (0);
 }
 /* Convert BIN to HEX. */
@@ -689,6 +712,7 @@ cvt_bin2hex(const uint8_t *bin, size_t bin_size, int auto_out_size,
 
 	if (NULL == bin || NULL == hex || 2 > hex_size)
 		return (EINVAL);
+
 	hex_max = (hex + hex_size);
 	if (0 == bin_size) { /* is a = 0? */
 		if (0 != auto_out_size) {
@@ -725,6 +749,7 @@ ok_exit:
 	if (NULL != hex_size_ret) {
 		(*hex_size_ret) = (size_t)(hex_size - (size_t)(hex_max - hex));
 	}
+
 	return (0);
 }
 
@@ -735,6 +760,7 @@ yn_set_flag32(const uint8_t *buf, size_t buf_size, uint32_t flag_bit,
 
 	if (NULL == flags)
 		return (EINVAL);
+
 	if (NULL == buf ||
 	    0 == buf_size) {
 		(*flags) &= ~flag_bit; /* Unset. */
@@ -756,6 +782,7 @@ yn_set_flag32(const uint8_t *buf, size_t buf_size, uint32_t flag_bit,
 		(*flags) |= flag_bit; /* Set. */
 		return (0);
 	}
+
 	return (EINVAL);
 }
 
@@ -772,6 +799,7 @@ sys_res_limits_load_xml_apply(const uint8_t *buf, size_t buf_size) {
 	/* System resource limits. */
 	if (NULL == buf || 0 == buf_size)
 		return;
+
 	if (0 == xml_get_val_int64_args(buf, buf_size, NULL,
 	    &itm64, (const uint8_t*)"maxOpenFiles", NULL)) {
 		rlp.rlim_cur = itm64;

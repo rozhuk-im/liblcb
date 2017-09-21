@@ -363,8 +363,8 @@ sa_addr_from_str(struct sockaddr_storage *addr,
 	if (NULL == addr || NULL == buf || 0 == buf_size)
 		return (EINVAL);
 
-	ptm = (const char*)buf;
-	ptm_end = (const char*)(buf + buf_size);
+	ptm = buf;
+	ptm_end = (buf + buf_size);
 	/* Skip spaces, tabs and [ before address. */
 	while (ptm < ptm_end && (' ' == (*ptm) || '\t' == (*ptm) || '[' == (*ptm))) {
 		ptm ++;
@@ -424,9 +424,9 @@ sa_addr_port_from_str(struct sockaddr_storage *addr,
 		}/* else - IPv6 and no port. */
 	}
 	if (NULL == ptm_end) {
-		ptm_end = (const char*)(buf + buf_size);
+		ptm_end = (buf + buf_size);
 	}
-	ptm = (const char*)buf;
+	ptm = buf;
 	/* Skip spaces, tabs and [ before address. */
 	while (ptm < ptm_end && (' ' == (*ptm) || '\t' == (*ptm) || '[' == (*ptm))) {
 		ptm ++;

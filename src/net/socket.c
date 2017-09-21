@@ -777,6 +777,7 @@ skt_enable_recv_ifindex(uintptr_t skt, int enable) {
 	addrlen = sizeof(ssaddr);
 	if (0 != getsockname((int)skt, (struct sockaddr*)&ssaddr, &addrlen))
 		return (errno);
+
 	switch (ssaddr.ss_family) {
 	case AF_INET:
 		if (

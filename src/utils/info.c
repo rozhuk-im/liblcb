@@ -54,7 +54,6 @@
 #include "utils/info.h"
 
 
-
 int
 sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_size,
     uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
@@ -62,6 +61,7 @@ sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_si
 
 	if (descr_size >= buf_size)
 		return (EINVAL);
+
 	tm = (buf_size - descr_size);
 	if (0 != sysctl(mib, mib_cnt, (buf + descr_size), &tm, NULL, 0)) {
 #ifdef BSD /* BSD specific code. */
@@ -120,6 +120,7 @@ sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_si
 	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = tm;
 	}
+
 	return (0);
 }
 
@@ -151,6 +152,7 @@ info_get_os_ver(const char *separator, size_t separator_size,
 	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = buf_used;
 	}
+
 	return (0);
 }
 
@@ -391,6 +393,7 @@ info_sysres(info_sysres_p sysres, uint8_t *buf, size_t buf_size,
 
 	if (NULL == sysres)
 		return (EINVAL);
+
 	if (0 != getrusage(RUSAGE_SELF, &rusage) ||
 	    0 != clock_gettime(CLOCK_MONOTONIC, &ts))
 		return (errno);
@@ -448,5 +451,6 @@ upd_int_data: /* Update internal data. */
 	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = tm;
 	}
+
 	return (0);
 }
