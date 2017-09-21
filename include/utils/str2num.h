@@ -45,42 +45,42 @@
 #endif
 
 
-#define STR2NUM_SIGN(str, str_len, cur_sign)				\
-	for (; 0 != str_len; str_len --, str ++) {			\
-		register uint8_t cur_char = (uint8_t)(*str);		\
-		if ('-' == cur_char) {					\
-			cur_sign = -1;					\
-		} else if ('+' == cur_char) {				\
-			cur_sign = 1;					\
+#define STR2NUM_SIGN(__str, __len, __sign)				\
+	for (size_t __i = 0; __i < (__len); __i ++) {			\
+		uint8_t __cval = ((const uint8_t*)(__str))[__i];	\
+		if ('-' == __cval) {					\
+			(__sign) = -1;					\
+		} else if ('+' == __cval) {				\
+			(__sign) = 1;					\
 		} else {						\
 			break;						\
 		}							\
 	}
 
-#define STR2NUM(str, str_len, ret_num)					\
-	for (; 0 != str_len; str_len --, str ++) {			\
-		register uint8_t cur_char = (((uint8_t)(*str)) - '0');	\
-		if (9 < cur_char)					\
+#define STR2NUM(__str, __len, __res)					\
+	for (size_t __i = 0; __i < (__len); __i ++) {			\
+		uint8_t __cval = (((const uint8_t*)(__str))[__i] - '0'); \
+		if (9 < __cval)						\
 			continue;					\
-		ret_num *= 10;						\
-		ret_num += cur_char;					\
+		(__res) *= 10;						\
+		(__res) += __cval;					\
 	}
 
-#define STR2UNUM(str, str_len, type)					\
-	type ret_num = 0;						\
-	if (NULL == str || 0 == str_len)				\
+#define STR2UNUM(__str, __len, __type)					\
+	__type __res = 0;						\
+	if (NULL == (__str) || 0 == (__len))				\
 		return (0);						\
-	STR2NUM(str, str_len, ret_num);					\
-	return (ret_num);
+	STR2NUM((__str), (__len), __res);				\
+	return (__res);
 
-#define STR2SNUM(str, str_len, type)					\
-	type ret_num = 0, cur_sign = 1;					\
-	if (NULL == str || 0 == str_len)				\
+#define STR2SNUM(__str, __len, __type)					\
+	__type __res = 0, __sign = 1;					\
+	if (NULL == (__str) || 0 == (__len))				\
 		return (0);						\
-	STR2NUM_SIGN(str, str_len, cur_sign);				\
-	STR2NUM(str, str_len, ret_num);					\
-	ret_num *= cur_sign;						\
-	return (ret_num);
+	STR2NUM_SIGN((__str), (__len), __sign);				\
+	STR2NUM((__str), (__len), __res);				\
+	__res *= __sign;						\
+	return (__res);
 
 
 static inline size_t
@@ -93,6 +93,30 @@ static inline size_t
 ustr2usize(const uint8_t *str, size_t str_len) {
 
 	STR2UNUM(str, str_len, size_t);
+}
+
+static inline uint8_t
+str2u8(const char *str, size_t str_len) {
+
+	STR2UNUM(str, str_len, uint8_t);
+}
+
+static inline uint8_t
+ustr2u8(const uint8_t *str, size_t str_len) {
+
+	STR2UNUM(str, str_len, uint8_t);
+}
+
+static inline uint16_t
+str2u16(const char *str, size_t str_len) {
+
+	STR2UNUM(str, str_len, uint16_t);
+}
+
+static inline uint16_t
+ustr2u16(const uint8_t *str, size_t str_len) {
+
+	STR2UNUM(str, str_len, uint16_t);
 }
 
 static inline uint32_t
@@ -132,6 +156,30 @@ static inline ssize_t
 ustr2ssize(const uint8_t *str, size_t str_len) {
 
 	STR2SNUM(str, str_len, ssize_t);
+}
+
+static inline int8_t
+str2s8(const char *str, size_t str_len) {
+
+	STR2SNUM(str, str_len, int8_t);
+}
+
+static inline int8_t
+ustr2s8(const uint8_t *str, size_t str_len) {
+
+	STR2SNUM(str, str_len, int8_t);
+}
+
+static inline int16_t
+str2s16(const char *str, size_t str_len) {
+
+	STR2SNUM(str, str_len, int16_t);
+}
+
+static inline int16_t
+ustr2s16(const uint8_t *str, size_t str_len) {
+
+	STR2SNUM(str, str_len, int16_t);
 }
 
 static inline int32_t

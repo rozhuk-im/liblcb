@@ -83,7 +83,7 @@ str_net_to_ss(const char *buf, size_t buf_size, struct sockaddr_storage *addr,
 	ptm = mem_rchr(buf, buf_size, '/'); /* net-preflen delimiter. */
 	if (NULL != ptm) {
 		ptm ++;
-		preflen = (uint16_t)str2u32(ptm, (size_t)(buf_size - (size_t)(ptm - buf)));
+		preflen = str2u16(ptm, (size_t)(buf_size - (size_t)(ptm - buf)));
 		ptm --;
 	} else {
 		ptm = (const char*)(buf + buf_size);
