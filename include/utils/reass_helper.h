@@ -102,7 +102,7 @@ reass_hlp_reset(reass_hlp_p reass_hlp) {
 	reass_hlp->first_seq_no = 0;
 	reass_hlp->last_seq_no = 0;
 	if (NULL != reass_hlp->bitmap) { /* Init bitmap. */
-		memset(reass_hlp->bitmap, 0, reass_hlp->bitmap_size);
+		memset(reass_hlp->bitmap, 0x00, reass_hlp->bitmap_size);
 	}
 }
 

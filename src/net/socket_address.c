@@ -85,7 +85,7 @@ sa_init(struct sockaddr_storage *addr, const sa_family_t family,
 
 	switch (family) {
 	case AF_INET:
-		memset(addr, 0, sizeof(struct sockaddr_in));
+		mem_bzero(addr, sizeof(struct sockaddr_in));
 #ifdef BSD /* BSD specific code. */
 		((struct sockaddr_in*)addr)->sin_len = sizeof(struct sockaddr_in);
 #endif /* BSD specific code. */
@@ -94,7 +94,7 @@ sa_init(struct sockaddr_storage *addr, const sa_family_t family,
 		//addr->sin_addr.s_addr = 0;
 		break;
 	case AF_INET6:
-		memset(addr, 0, sizeof(struct sockaddr_in6));
+		mem_bzero(addr, sizeof(struct sockaddr_in6));
 #ifdef BSD /* BSD specific code. */
 		((struct sockaddr_in6*)addr)->sin6_len = sizeof(struct sockaddr_in6);
 #endif /* BSD specific code. */

@@ -559,7 +559,7 @@ gost28147_final(gost28147_context_p ctx, uint8_t *mac, size_t mac_size) {
 			memcpy(mac, ctx->mac, mac_size);
 		} else {
 			memcpy(mac, ctx->mac, GOST28147_BLK_SIZE);
-			memset((mac + GOST28147_BLK_SIZE), 0,
+			memset((mac + GOST28147_BLK_SIZE), 0x00,
 			    (mac_size - GOST28147_BLK_SIZE));
 		}
 	}
@@ -577,7 +577,7 @@ gost28147_final_be(gost28147_context_p ctx, uint8_t *mac, size_t mac_size) {
 			memcpy(mac, ctx->mac, mac_size);
 		} else {
 			memcpy(mac, ctx->mac, GOST28147_BLK_SIZE);
-			memset((mac + GOST28147_BLK_SIZE), 0,
+			memset((mac + GOST28147_BLK_SIZE), 0x00,
 			    (mac_size - GOST28147_BLK_SIZE));
 		}
 	}
@@ -1067,7 +1067,8 @@ gost28147_import_le_hex(uint8_t *a, size_t count, uint8_t *buf, size_t buf_size)
 		byte = 0;
 		cnt = 0;
 	}
-	memset(w_pos, 0, (size_t)(w_pos_max - w_pos));
+	memset(w_pos, 0x00, (size_t)(w_pos_max - w_pos));
+
 	return (0);
 }
 
@@ -1117,7 +1118,7 @@ gost28147_self_test(void) {
 
 	/* Test 1: encrypt + decrypt. */
 	for (i = 0; 0 != gost28147_tst1v[i].key_size; i ++) {
-		memset(&tst1v, 0, sizeof(tst1v));
+		memset(&tst1v, 0x00, sizeof(tst1v));
 
 		if (0 != gost28147_import_le_hex(key, sizeof(key), gost28147_tst1v[i].key, gost28147_tst1v[i].key_size)) {
 			gost28147_print("test 1: gost28147_import_le_hex(gost28147_tst1v[%zu].key) fail!\n",
@@ -1186,7 +1187,7 @@ gost28147_self_test(void) {
 		}
 	}
 	for (i = 0; 0 != gost28147_tst1v_be[i].key_size; i ++) {
-		memset(&tst1v, 0, sizeof(tst1v));
+		memset(&tst1v, 0x00, sizeof(tst1v));
 
 		if (0 != gost28147_import_le_hex(key, sizeof(key), gost28147_tst1v_be[i].key, gost28147_tst1v_be[i].key_size)) {
 			gost28147_print("test 1: gost28147_import_le_hex(gost28147_tst1v_be[%zu].key) fail!\n",
@@ -1257,7 +1258,7 @@ gost28147_self_test(void) {
 
 	/* Test 2: mac calc. */
 	for (i = 0; 0 != gost28147_tst2v[i].key_size; i ++) {
-		memset(&tst2v, 0, sizeof(tst2v));
+		memset(&tst2v, 0x00, sizeof(tst2v));
 
 		if (0 != gost28147_import_le_hex(key, sizeof(key), gost28147_tst2v[i].key, gost28147_tst2v[i].key_size)) {
 			gost28147_print("test 2: gost28147_import_le_hex(gost28147_tst2v[%zu].key) fail!\n",
@@ -1310,7 +1311,7 @@ gost28147_self_test(void) {
 		}
 	}
 	for (i = 0; 0 != gost28147_tst2v_be[i].key_size; i ++) {
-		memset(&tst2v, 0, sizeof(tst2v));
+		memset(&tst2v, 0x00, sizeof(tst2v));
 
 		if (0 != gost28147_import_le_hex(key, sizeof(key), gost28147_tst2v_be[i].key, gost28147_tst2v_be[i].key_size)) {
 			gost28147_print("test 2: gost28147_import_le_hex(gost28147_tst2v_be[%zu].key) fail!\n",

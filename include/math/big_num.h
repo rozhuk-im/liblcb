@@ -991,15 +991,16 @@ bn_digits_import_be_bin(bn_digit_t *a, size_t count,
 		(*w_pos) = (*r_pos);
 	}
 	if (NULL == count_ret) {
-		memset(w_pos, 0, ((count * BN_DIGIT_SIZE) - buf_size));
+		memset(w_pos, 0x00, ((count * BN_DIGIT_SIZE) - buf_size));
 	} else {
 		count = (buf_size / BN_DIGIT_SIZE);
 		if (0 != (buf_size % BN_DIGIT_SIZE)) {
-			memset(w_pos, 0, (BN_DIGIT_SIZE - (buf_size % BN_DIGIT_SIZE)));
+			memset(w_pos, 0x00, (BN_DIGIT_SIZE - (buf_size % BN_DIGIT_SIZE)));
 			count ++;
 		}
 		(*count_ret) = count;
 	}
+
 	return (0);
 }
 /* Export to big-endian bin num. */
@@ -1019,7 +1020,7 @@ bn_digits_export_be_bin(bn_digit_t *a, size_t count, uint32_t flags,
 		if (0 != (flags & BN_EXPORT_F_AUTO_SIZE)) {
 			buf_size = 1;
 		}
-		memset(w_pos, 0, buf_size);
+		memset(w_pos, 0x00, buf_size);
 		if (NULL != buf_size_ret)
 			(*buf_size_ret) = buf_size;
 		return (0);
@@ -1041,7 +1042,7 @@ bn_digits_export_be_bin(bn_digit_t *a, size_t count, uint32_t flags,
 			(*buf_size_ret) = buf_size;
 		if (tm > buf_size) /* Not enouth space in buf. */
 			return (EOVERFLOW);
-		memset(w_pos, 0, (buf_size - tm));
+		memset(w_pos, 0x00, (buf_size - tm));
 		w_pos += (buf_size - tm);
 	}
 	for (; r_pos >= r_pos_min && w_pos_max > w_pos; r_pos --, w_pos ++) {
@@ -1063,12 +1064,12 @@ bn_digits_import_le_bin(bn_digit_t *a, size_t count,
 		return (EOVERFLOW);
 	memcpy(a, buf, buf_size);
 	if (NULL == count_ret) {
-		memset((((uint8_t*)a) + buf_size), 0,
+		memset((((uint8_t*)a) + buf_size), 0x00,
 		    ((count * BN_DIGIT_SIZE) - buf_size));
 	} else {
 		count = (buf_size / BN_DIGIT_SIZE);
 		if (0 != (buf_size % BN_DIGIT_SIZE)) {
-			memset((((uint8_t*)a) + buf_size), 0,
+			memset((((uint8_t*)a) + buf_size), 0x00,
 			    (BN_DIGIT_SIZE - (buf_size % BN_DIGIT_SIZE)));
 			count ++;
 		}
@@ -1107,7 +1108,7 @@ bn_digits_export_le_bin(bn_digit_t *a, size_t count, uint32_t flags,
 	memcpy(buf, a, bn_size);
 	if (bn_size < buf_size &&
 	    0 == (flags & BN_EXPORT_F_AUTO_SIZE)) { /* Zeroize end. */
-		memset((buf + bn_size), 0, (buf_size - bn_size));
+		memset((buf + bn_size), 0x00, (buf_size - bn_size));
 	}
 	return (0);
 }
@@ -1153,7 +1154,8 @@ bn_digits_import_le_hex(bn_digit_t *a, size_t count,
 		byte = 0;
 		cnt = 0;
 	}
-	memset(w_pos, 0, (size_t)(w_pos_max - w_pos));
+	memset(w_pos, 0x00, (size_t)(w_pos_max - w_pos));
+
 	return (0);
 }
 /* Export to little-endian hex string (L->H). */
@@ -1249,7 +1251,8 @@ bn_digits_import_be_hex(bn_digit_t *a, size_t count,
 		byte = 0;
 		cnt = 0;
 	}
-	memset(w_pos, 0, (size_t)(w_pos_max - w_pos));
+	memset(w_pos, 0x00, (size_t)(w_pos_max - w_pos));
+
 	return (0);
 }
 /* Export to big-endian hex string (H->L). */
@@ -1316,8 +1319,7 @@ bn_digits_assign_zero(bn_digit_t *a, size_t count) {
 
 	if (NULL == a || 0 == count)
 		return;
-	memset(a, 0, (count * BN_DIGIT_SIZE));
-	return;
+	memset(a, 0x00, (count * BN_DIGIT_SIZE));
 }
 
 
@@ -1341,7 +1343,7 @@ bn_digits_l_shift(bn_digit_t *a, size_t count, size_t bits) {
 	if (0 == crr_bits_cnt || BN_DIGIT_BITS < bits) { /* memmove() optimization. */
 		i = (bits / 8);
 		memmove((((uint8_t*)a) + i), (uint8_t*)a, ((count * BN_DIGIT_SIZE) - i));
-		memset((uint8_t*)a, 0, i);
+		memset((uint8_t*)a, 0x00, i);
 		if (0 == crr_bits_cnt)
 			return;
 		bits -= (i * 8);
@@ -1372,7 +1374,7 @@ bn_digits_r_shift(bn_digit_t *a, size_t count, size_t bits) {
 	if (0 == crr_bits_cnt || BN_DIGIT_BITS < bits) { /* memmove() optimization. */
 		i = (bits / 8);
 		memmove(((uint8_t*)a), (((uint8_t*)a) + i), ((count * BN_DIGIT_SIZE) - i));
-		memset((((uint8_t*)a) + ((count * BN_DIGIT_SIZE) - i)), 0, i);
+		memset((((uint8_t*)a) + ((count * BN_DIGIT_SIZE) - i)), 0x00, i);
 		if (0 == crr_bits_cnt)
 			return;
 		bits -= (i * 8);
@@ -2924,10 +2926,12 @@ bn_calc_naf(bn_p bn, size_t wnd_bits, size_t naf_arr_size, int8_t *naf_arr,
 		bn_r_shift(&tm, 1); // >> 1
 		i ++;
 	}
-	memset(&naf_arr[i], 0, (naf_arr_size - i));
+	memset(&naf_arr[i], 0x00, (naf_arr_size - i));
 
-	if (NULL != naf_arr_items_cnt_ret)
+	if (NULL != naf_arr_items_cnt_ret) {
 		(*naf_arr_items_cnt_ret) = i;
+	}
+
 	return (0);
 }
 
@@ -2992,10 +2996,10 @@ bn_mod(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
 #else
 	q.digits = (bn->digits - (m->digits - 1));
 	memcpy(q.num, &bn->num[(m->digits - 1)], (q.digits * BN_DIGIT_SIZE));
-	//memset(&q.num[q.digits], 0, ((q.count - q.digits) * BN_DIGIT_SIZE));
+	//memset(&q.num[q.digits], 0x00, ((q.count - q.digits) * BN_DIGIT_SIZE));
 	r.digits = (m->digits + 1);
 	memcpy(r.num, bn->num, (r.digits * BN_DIGIT_SIZE));
-	//memset(&r.num[r.digits], 0, ((bn->digits - r.digits+1) * BN_DIGIT_SIZE));
+	//memset(&r.num[r.digits], 0x00, ((bn->digits - r.digits+1) * BN_DIGIT_SIZE));
 #endif
 	/* q = q * mu */
 	BN_RET_ON_ERR(bn_mult(&q, &mod_rd_data->Barrett));
@@ -3003,9 +3007,9 @@ bn_mod(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
 	bn_r_shift(&q, (BN_DIGIT_BITS * (m->digits + 1)));
 	BN_RET_ON_ERR(bn_mult(&q, m));
 	q.digits = (m->digits + 1);
-	//memset(&q.num[q.digits], 0, ((q.count - q.digits) * BN_DIGIT_SIZE));
+	//memset(&q.num[q.digits], 0x00, ((q.count - q.digits) * BN_DIGIT_SIZE));
 	r.digits = q.digits;
-	//memset(&r.num[r.digits], 0, ((r.count - r.digits) * BN_DIGIT_SIZE));
+	//memset(&r.num[r.digits], 0x00, ((r.count - r.digits) * BN_DIGIT_SIZE));
 	if (bn_cmp(&r, &q) < 0) {
 		r.num[r.digits] = 1;
 		r.digits ++;
@@ -3024,20 +3028,20 @@ bn_mod(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
     NN_DIGIT q2[2*MAX_NN_DIGITS+6], q1[MAX_NN_DIGITS+4], r2[2*MAX_NN_DIGITS+8], r1[MAX_NN_DIGITS+4], tm[MAX_NN_DIGITS+4];
     //int i; //for debug
     //trace(DBG_USR1, "enter into barrett mod\n\r");
-    memset(q2, 0, (2*MAX_NN_DIGITS+6)*NN_DIGIT_LEN);
+    memset(q2, 0x00, (2*MAX_NN_DIGITS+6)*NN_DIGIT_LEN);
     memcpy(q1, b + m->digits - 1, (bn->digits - m->digits + 1)*NN_DIGIT_LEN);
-    memset(q1 + bn->digits-m->digits + 1, 0, MAX_NN_DIGITS+4-bn->digits+m->digits-1);
+    memset(q1 + bn->digits-m->digits + 1, 0x00, MAX_NN_DIGITS+4-bn->digits+m->digits-1);
     memcpy(r1, b, (m->digits+1)*NN_DIGIT_LEN);
-    memset(r1 + m->digits + 1, 0, (MAX_NN_DIGITS + 4 - m->digits - 1)*NN_DIGIT_LEN);
+    memset(r1 + m->digits + 1, 0x00, (MAX_NN_DIGITS + 4 - m->digits - 1)*NN_DIGIT_LEN);
     memcpy(tm, m->num, m->digits*NN_DIGIT_LEN);
-    memset(tm + m->digits, 0, MAX_NN_DIGITS + 4 - m->digits);
+    memset(tm + m->digits, 0x00, MAX_NN_DIGITS + 4 - m->digits);
 
     //NN_Mult (a, b, c, digits)       Computes a = b * c.
     //q_2=q_1*mu
     NN_Mult(q2, q1, mod_rd_data->Barrett.num, mod_rd_data->Barrett.digits);
     //q_3*tm
     NN_Mult(r2, q2+m->digits+1, tm, mod_rd_data->Barrett->digits);
-    memset(r2+m->digits+1, 0, (2*MAX_NN_DIGITS+8-m->digits-1)*NN_DIGIT_LEN);
+    memset(r2+m->digits+1, 0x00, (2*MAX_NN_DIGITS+8-m->digits-1)*NN_DIGIT_LEN);
     if (NN_Cmp(r1, r2, m->digits+1) < 0)
       r1[m->digits+1] = 1;
     NN_Sub(r1, r1, r2, m->digits+2);

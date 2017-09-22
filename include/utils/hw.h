@@ -190,7 +190,7 @@ scsi_get_serial(int fd, void *buf, size_t buf_len) {
 	struct sg_io_hdr io_hdr;
 	    int result;
 
-	memset(&io_hdr, 0, sizeof(io_hdr));
+	memset(&io_hdr, 0x00, sizeof(io_hdr));
 	io_hdr.interface_id = 'S';
 	io_hdr.cmdp = inq_cmd;
 	io_hdr.cmd_len = sizeof(inq_cmd);
@@ -274,7 +274,7 @@ cam_xxxxx_open_device(const char *path, int flags) {
 		printf("open(path, flags) FAIL, errno=%d, %s\n", errno, strerror(errno));
 		goto crod_bailout;
 	}
-	memset(&ccb, 0, sizeof(ccb));
+	memset(&ccb, 0x00, sizeof(ccb));
 
 	/*
 	 * Unlike the transport layer version of the GETPASSTHRU ioctl,
@@ -409,7 +409,7 @@ crod_bailout:
 	fd = open(drive, (O_RDONLY | O_NONBLOCK));
 	if (0 > fd)
 		return (errno);
-	memset(scsi_serial, 0, sizeof(scsi_serial));
+	memset(scsi_serial, 0x00, sizeof(scsi_serial));
 	error = scsi_get_serial(fd, scsi_serial, (sizeof(scsi_serial) - 1));
 	// scsi_serial[3] is the length of the serial number
 	// scsi_serial[4] is serial number (raw, NOT null terminated)

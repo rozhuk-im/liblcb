@@ -765,7 +765,7 @@ ecdsa_curve_from_str(ec_curve_str_p curve_str, ec_curve_p curve) {
 
 	if (NULL == curve_str || NULL == curve)
 		return (EINVAL);
-	memset(curve, 0, sizeof(ec_curve_t));
+	memset(curve, 0x00, sizeof(ec_curve_t));
 	n_len = strlen((const char*)curve_str->n);
 
 	/* Normal size + 1 digit in special cases. */

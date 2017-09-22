@@ -657,7 +657,7 @@ chacha_str_data_crypt(chacha_context_str_p ctx, const uint8_t *src, size_t bytes
 		dst = (uint8_t*)ctx->ks;
 		if (NULL != src) {
 			memcpy(dst, src, bytes);
-			memset((dst + bytes), 0, ctx->ks_len);
+			memset((dst + bytes), 0x00, ctx->ks_len);
 			src = dst;
 		}
 		/* Transform block. */
@@ -1018,7 +1018,8 @@ chacha_import_le_hex(uint8_t *a, size_t count, uint8_t *buf, size_t buf_size) {
 		byte = 0;
 		cnt = 0;
 	}
-	memset(w_pos, 0, (w_pos_max - w_pos));
+	memset(w_pos, 0x00, (w_pos_max - w_pos));
+
 	return (0);
 }
 /* Import from big-endian hex string (H->L). */
@@ -1055,7 +1056,8 @@ chacha_import_be_hex(uint8_t *a, size_t count, uint8_t *buf, size_t buf_size) {
 		byte = 0;
 		cnt = 0;
 	}
-	memset(w_pos, 0, (w_pos_max - w_pos));
+	memset(w_pos, 0x00, (w_pos_max - w_pos));
+
 	return (0);
 }
 
@@ -1088,7 +1090,7 @@ chacha_self_test(void) {
 	chacha_context_str_t ctx;
 
 	for (i = 0; 0 != chacha_tst1v[i].rounds; i ++) {
-		memset(&tst1v, 0, sizeof(tst1v));
+		memset(&tst1v, 0x00, sizeof(tst1v));
 
 		tst1v.rounds = chacha_tst1v[i].rounds;
 

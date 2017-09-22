@@ -184,7 +184,7 @@ hbucket_create(int multi_thread, uint32_t hashsize, void *udata,
 	hbskt = HB_ALLOC(i);
 	if (NULL == hbskt)
 		return (ENOMEM);
-	memset(hbskt, 0, i);
+	memset(hbskt, 0x00, i);
 	hbskt->zones = (hbucket_zone_p)(hbskt + 1);
 	hbskt->hashsize = hashsize;
 	hbskt->hashmask = (hashsize - 1);

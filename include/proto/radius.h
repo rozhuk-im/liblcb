@@ -788,7 +788,7 @@ radius_pkt_attr_password_encode(uint8_t *authenticator,
 		return (EINVAL);
 	/* Copy and pad with zero. */
 	memcpy(buf, password, password_len);
-	memset((buf + password_len), 0, (password_len_aligned - password_len));
+	memset((buf + password_len), 0x00, (password_len_aligned - password_len));
 	/* Init md5 context. */
 	md5_init(&ctx);
 	md5_update(&ctx, key, key_len); /* key */
@@ -878,7 +878,7 @@ radius_pkt_attr_msg_authenticator_calc(rad_pkt_hdr_p pkt, rad_pkt_attr_p attr,
 		return (EBADMSG);
 
 	msg_authr_data = RADIUS_PKT_ATTR_DATA(attr);
-	memset(msg_authenticator, 0, MD5_HASH_SIZE); /* Need for authenticator and msg authenticator. */
+	memset(msg_authenticator, 0x00, MD5_HASH_SIZE); /* Need for authenticator and msg authenticator. */
 	hmac_md5_init(key, key_len, &hctx);
 	hmac_md5_update(&hctx, (uint8_t*)pkt, 4); /* code + id + len */
 
@@ -1092,7 +1092,7 @@ radius_pkt_attr_add(rad_pkt_hdr_p pkt, size_t pkt_buf_size, size_t *pkt_size_ret
 			return (error);
 		/* Encode password to attribute data - late, on pkt sign. */
 		memcpy(RADIUS_PKT_ATTR_DATA(attr), data, len);
-		memset((RADIUS_PKT_ATTR_DATA(attr) + len), 0, (tm - len));
+		memset((RADIUS_PKT_ATTR_DATA(attr) + len), 0x00, (tm - len));
 		return (0);
 	case RADIUS_ATTR_TYPE_MSG_AUTHENTIC:
 		//return (ECANCELED); /* Allow or not allow to add this attribute, - thats is the question! */
@@ -1108,7 +1108,7 @@ radius_pkt_attr_add(rad_pkt_hdr_p pkt, size_t pkt_buf_size, size_t *pkt_size_ret
 		    type, MD5_HASH_SIZE, &attr, offset_ret);
 		if (0 != error)
 			return (error);
-		memset(RADIUS_PKT_ATTR_DATA(attr), 0, MD5_HASH_SIZE);
+		memset(RADIUS_PKT_ATTR_DATA(attr), 0x00, MD5_HASH_SIZE);
 		return (0);
 	}
 
@@ -1414,7 +1414,7 @@ radius_pkt_authenticator_calc(rad_pkt_hdr_p pkt, uint8_t *key, size_t key_len,
 	case RADIUS_PKT_TYPE_ACCOUNTING_REQUEST:
 	case RADIUS_PKT_TYPE_DISCONNECT_REQUEST:
 	case RADIUS_PKT_TYPE_COA_REQUEST:
-		memset(authenticator, 0, MD5_HASH_SIZE);
+		memset(authenticator, 0x00, MD5_HASH_SIZE);
 		/* MD5(packet + secret); */
 		md5_init(&ctx);
 		md5_update(&ctx, (uint8_t*)pkt, 4); /* code + id + len */
@@ -1518,7 +1518,7 @@ radius_pkt_init(rad_pkt_hdr_p pkt, size_t pkt_buf_size, size_t *pkt_size_ret,
 	case RADIUS_PKT_TYPE_DISCONNECT_REQUEST:
 	case RADIUS_PKT_TYPE_COA_REQUEST:
 		/* The authenticator is zero. */
-		memset(pkt->authenticator, 0, MD5_HASH_SIZE);
+		memset(pkt->authenticator, 0x00, MD5_HASH_SIZE);
 		break;
 	case RADIUS_PKT_TYPE_ACCESS_REQUEST:
 	case RADIUS_PKT_TYPE_STATUS_SERVER:
