@@ -74,7 +74,7 @@ typedef struct sdp_lite_s {
 	uint16_t	media_proto;	/* udp/rtp/srtp */
 	uint16_t	flags;		/* non zero if initialized. */
 	uint32_t	if_index;	/* Interface index, were first time received. */
-	struct sockaddr_storage addr;	/* connection addr type (IPv4/IPv6), addr, port. */
+	sockaddr_storage_t addr;	/* connection addr type (IPv4/IPv6), addr, port. */
 } sdp_lite_t, *sdp_lite_p;
 
 
@@ -242,7 +242,7 @@ int
 sap_receiver_listener_add4(sap_rcvr_p srcvr, const char *ifname, size_t ifname_size,
     const char *mcaddr, size_t mcaddr_size) {
 	char mcaddrstr[INET_ADDRSTRLEN];
-	struct sockaddr_storage mc_addr;
+	sockaddr_storage_t mc_addr;
 	in_addr_t sin_addr;
 
 	if (NULL == srcvr || NULL == mcaddr || (sizeof(mcaddrstr) - 1) < mcaddr_size)
@@ -345,7 +345,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 		data_cache_item_unlock(dc_item);
 		goto rcv_next;
 	}
-	port = (uint16_t)ustr2u32(feilds[1], feilds_sizes[1]);
+	port = ustr2u16(feilds[1], feilds_sizes[1]);
 	if (3 == feilds_sizes[2] &&
 	    0 == memcmp("udp", feilds[2], feilds_sizes[2])) {
 		media_proto = 1;

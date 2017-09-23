@@ -156,7 +156,7 @@ static int	radius_client_send_new(tpt_p tpt,
 static int	radius_client_send(radius_cli_query_p query);
 static void	radius_client_query_timeout_cb(tp_event_p ev, tp_udata_p tp_udata);
 static int	radius_client_recv_cb(tp_task_p ioquery, int error,
-		    struct sockaddr_storage *addr, io_buf_p buf,
+		    sockaddr_storage_p addr, io_buf_p buf,
 		    size_t transfered_size, void *arg);
 
 
@@ -502,7 +502,7 @@ radius_client_server_remove(radius_cli_p rad_cli, radius_cli_srv_p srv) {
 }
 void
 radius_client_server_remove_by_addr(radius_cli_p rad_cli,
-    struct sockaddr_storage *addr) {
+    sockaddr_storage_p addr) {
 	size_t i;
 
 	if (NULL == rad_cli || NULL == addr)
@@ -938,7 +938,7 @@ radius_client_send(radius_cli_query_p query) {
 		return (error);
 	if ((ssize_t)query->buf->used != sendto((int)query->skt->ident,
 	    query->buf->data, query->buf->used, (MSG_DONTWAIT | MSG_NOSIGNAL),
-	    (struct sockaddr*)&srv->s.addr, sa_size(&srv->s.addr))) {
+	    (sockaddr_p)&srv->s.addr, sa_size(&srv->s.addr))) {
 		tpt_ev_enable(0, TP_EV_TIMER,
 		    &query->skt->queries_tmr[query->query_id]);
 		return (errno);
@@ -1007,7 +1007,7 @@ err_out:
 
 static int
 radius_client_recv_cb(tp_task_p tptask __unused, int error,
-    struct sockaddr_storage *addr, io_buf_p buf, size_t transfered_size __unused,
+    sockaddr_storage_p addr, io_buf_p buf, size_t transfered_size __unused,
     void *arg) {
 	radius_cli_skt_p skt = arg;
 	radius_cli_srv_p srv;

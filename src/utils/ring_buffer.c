@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2012 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2012 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,13 +58,6 @@
 #include "utils/ring_buffer.h"
 
 
-size_t		iovec_aggregate_ex(iovec_p iov, size_t iov_cnt, size_t data_size,
-		    size_t off, iovec_p ret, size_t ret_cnt,
-		    size_t *reminder_data_size_ret);
-int		r_buf_rpos_check(r_buf_p r_buf, r_buf_rpos_p rpos, size_t *drop_size);
-
-
-
 static inline size_t
 r_buf_iovec_calc_size(iovec_p iov, size_t iov_cnt) {
 	register size_t i, ret = 0;
@@ -72,6 +65,7 @@ r_buf_iovec_calc_size(iovec_p iov, size_t iov_cnt) {
 	for (i = 0; i < iov_cnt; i ++) {
 		ret += iov[i].iov_len;
 	}
+
 	return (ret);
 }
 
@@ -90,11 +84,11 @@ r_buf_rpos_index_inc(r_buf_p r_buf, r_buf_rpos_p rpos) {
 		rpos->iov_index = 0;
 		rpos->round_num = r_buf->round_num;
 	}
+
 	return (1);
 }
 
-
-size_t
+static size_t
 iovec_aggregate_ex(iovec_p iov, size_t iov_cnt, size_t data_size, size_t off,
     iovec_p ret, size_t ret_cnt, size_t *reminder_data_size_ret) {
 	register size_t i, j = 0;
@@ -125,6 +119,7 @@ iovec_aggregate_ex(iovec_p iov, size_t iov_cnt, size_t data_size, size_t off,
 	if (NULL != reminder_data_size_ret) {
 		(*reminder_data_size_ret) = data_size;
 	}
+
 	return ((j + 1));
 }
 
@@ -153,6 +148,7 @@ r_buf_rpos_cmp(r_buf_rpos_p rpos1, r_buf_rpos_p rpos2) {
 	}
 	if (rpos1->round_num > rpos2->round_num)
 		return (1);
+
 	return (-1); /* rpos1->round_num < rpos2->round_num */
 }
 
@@ -215,6 +211,7 @@ r_buf_rpos_init(r_buf_p r_buf, r_buf_rpos_p rpos, size_t data_size) {
 
 	if (NULL == r_buf || NULL == rpos)
 		return (EINVAL);
+
 	rpos->iov_off = 0;
 	rpos->iov_index = (r_buf->iov_index + 1);
 	rpos->round_num = r_buf->round_num;
@@ -297,7 +294,8 @@ r_buf_rpos_check_fast(r_buf_p r_buf, r_buf_rpos_p rpos) {
 	/* Some data lost for this receiver. */
 	return (0);
 }
-int
+
+static int
 r_buf_rpos_check(r_buf_p r_buf, r_buf_rpos_p rpos, size_t *drop_size_ret) {
 	size_t drop_size;
 
@@ -357,6 +355,7 @@ r_buf_rpos_check(r_buf_p r_buf, r_buf_rpos_p rpos, size_t *drop_size_ret) {
 	if (NULL != drop_size_ret) {
 		(*drop_size_ret) = drop_size;
 	}
+
 	return (0);
 }
 
@@ -368,6 +367,7 @@ r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
 
 	if (0 == size || 0 == min_block_size) /* Prevent division by zero. */
 		return (NULL);
+
 	r_buf = zalloc(sizeof(r_buf_t));
 	if (NULL == r_buf)
 		return (NULL);
@@ -392,11 +392,13 @@ r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
 	//r_buf->iov_index = ~0; /* r_buf_wbuf_get() increment this, set to: -1. */
 	r_buf->buf_max = (r_buf->buf + r_buf->size);
 	r_buf->min_block_size = min_block_size;
+
 	return (r_buf);
 
 err_out:
 	/* Error. */
 	r_buf_free(r_buf);
+
 	return (NULL);
 }
 
@@ -405,6 +407,7 @@ r_buf_free(r_buf_p r_buf) {
 
 	if (NULL == r_buf)
 		return;
+
 	if (NULL != r_buf->buf) {
 		mapfree(r_buf->buf, r_buf->size);
 	}
@@ -422,6 +425,7 @@ r_buf_wbuf_pos_inc(r_buf_p r_buf) {
 
 	if (NULL == r_buf)
 		return (EINVAL);
+
 	buf_size = (r_buf->size - r_buf->wpos);
 	if (0 != r_buf->iov[r_buf->iov_index].iov_len) {
 		r_buf->iov_index ++;
@@ -440,6 +444,7 @@ r_buf_wbuf_pos_inc(r_buf_p r_buf) {
 	}
 	r_buf->iov[r_buf->iov_index].iov_base = (r_buf->buf + r_buf->wpos);
 	(*buf) = r_buf->iov[r_buf->iov_index].iov_base;
+
 	return (buf_size);
 }
 #endif
@@ -453,6 +458,7 @@ r_buf_wbuf_get(r_buf_p r_buf, size_t min_buf_size, uint8_t **buf) {
 		return (0);
 	if (r_buf->size < min_buf_size) /* Paranoid check. */
 		return (0); /* Not enough space. */
+
 	buf_size = (r_buf->size - r_buf->wpos);
 	if (0 != r_buf->iov[r_buf->iov_index].iov_len) {
 		r_buf->iov_index ++;
@@ -471,6 +477,7 @@ r_buf_wbuf_get(r_buf_p r_buf, size_t min_buf_size, uint8_t **buf) {
 	}
 	r_buf->iov[r_buf->iov_index].iov_base = (r_buf->buf + r_buf->wpos);
 	(*buf) = r_buf->iov[r_buf->iov_index].iov_base;
+
 	return (buf_size);
 }
 
@@ -481,6 +488,7 @@ r_buf_wbuf_set(r_buf_p r_buf, size_t offset, size_t buf_size) {
 
 	if (NULL == r_buf)
 		return (EINVAL);
+
 	/* Paranoid checks. */
 	if (offset >= buf_size)
 		return (EINVAL);
@@ -495,6 +503,7 @@ r_buf_wbuf_set(r_buf_p r_buf, size_t offset, size_t buf_size) {
 	}
 	r_buf->wpos += buf_size;
 	r_buf->iov_index_max = max(r_buf->iov_index_max, r_buf->iov_index);
+
 	return (0);
 }
 
@@ -504,6 +513,7 @@ r_buf_wbuf_set2(r_buf_p r_buf, uint8_t *buf, size_t buf_size, r_buf_rpos_p rpos)
 
 	if (NULL == r_buf || NULL == buf)
 		return (EINVAL);
+
 	/* Paranoid check. */
 	if (buf_size < r_buf->min_block_size || /* Data to small. */
 	    buf < r_buf->iov[r_buf->iov_index].iov_base) /* Invalid buf pointer. */
@@ -528,6 +538,7 @@ r_buf_wbuf_set2(r_buf_p r_buf, uint8_t *buf, size_t buf_size, r_buf_rpos_p rpos)
 	r_buf->iov_index ++;
 	r_buf->iov[r_buf->iov_index].iov_base = buf_end;
 	r_buf->iov[r_buf->iov_index].iov_len = 0;
+
 	return (0);
 }
 
@@ -556,6 +567,7 @@ r_buf_wbuf_set_ex(r_buf_p r_buf, iovec_p iov, size_t iov_cnt) {
 	r_buf->iov_index ++;
 	r_buf->iov[r_buf->iov_index].iov_base = buf_end;
 	r_buf->iov[r_buf->iov_index].iov_len = 0;
+
 	return (0);
 }
 #endif
@@ -568,6 +580,7 @@ r_buf_data_avail_size(r_buf_p r_buf, r_buf_rpos_p rpos, size_t *drop_size_ret) {
 		return (0);
 	if (0 == r_buf_rpos_check(r_buf, rpos, drop_size_ret))
 		return (0);
+
 	if (rpos->round_num == r_buf->round_num) {
 		if (rpos->iov_index == (r_buf->iov_index + 1)) { /* Optimized size calculation. */
 			ret = 0;
@@ -597,6 +610,7 @@ return_ok:
 	if (NULL != drop_size_ret) {
 		(*drop_size_ret) = 0;
 	}
+
 	return (ret);
 }
 
@@ -608,10 +622,12 @@ r_buf_data_get(r_buf_p r_buf, r_buf_rpos_p rpos, size_t data_size,
 	if (NULL == r_buf || NULL == rpos || 0 == data_size ||
 	    NULL == iov || 0 == iov_cnt ||
 	    0 == r_buf_rpos_check(r_buf, rpos, drop_size_ret)) {
-		if (NULL != data_size_ret)
+		if (NULL != data_size_ret) {
 			(*data_size_ret) = 0;
+		}
 		return (ret);
 	}
+
 	if (rpos->round_num == r_buf->round_num) {
 		/* Optimized size calculation. */
 		if (rpos->iov_index == (r_buf->iov_index + 1)) {
@@ -635,6 +651,7 @@ return_ok:
 	if (NULL != data_size_ret) {
 		(*data_size_ret) = (data_size - tm);
 	}
+
 	return (ret);
 }
 
@@ -659,6 +676,7 @@ r_buf_rpos_inc(r_buf_p r_buf, r_buf_rpos_p rpos, size_t data_size) {
 
 	if (NULL == r_buf || NULL == rpos || 0 == data_size)
 		return;
+
 	/* Process iov offset. */
 	if (0 != rpos->iov_off) {
 		if (data_size >= (r_buf->iov[rpos->iov_index].iov_len - rpos->iov_off)) {
@@ -678,7 +696,9 @@ r_buf_rpos_inc(r_buf_p r_buf, r_buf_rpos_p rpos, size_t data_size) {
 			return;
 		}
 		data_size -= r_buf->iov[rpos->iov_index].iov_len;
-		if (0 == r_buf_rpos_index_inc(r_buf, rpos))
+		if (0 == r_buf_rpos_index_inc(r_buf, rpos)) {
+			debug_break();
 			return; /* XXX this situation is BUG and must newer happen. */
+		}
 	}
 }

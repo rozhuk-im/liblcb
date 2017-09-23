@@ -85,10 +85,10 @@ static const char *ssdp_v4_addr = UPNP_SSDP_V4_ADDR;
 static const char *ssdp_v6_addr_link_local = "["UPNP_SSDP_V6_ADDR_LINK_LOCAL"]";
 static const char *ssdp_v6_addr_site_local = "["UPNP_SSDP_V6_ADDR_SITE_LOCAL"]";
 
-static struct sockaddr_storage ssdp_v4_mc_addr;
-static struct sockaddr_storage ssdp_v6_mc_addr_link_local;
-static struct sockaddr_storage ssdp_v6_mc_addr_site_local;
-static struct sockaddr_storage ssdp_v6_mc_addr_event;
+static sockaddr_storage_t ssdp_v4_mc_addr;
+static sockaddr_storage_t ssdp_v6_mc_addr_link_local;
+static sockaddr_storage_t ssdp_v6_mc_addr_site_local;
+static sockaddr_storage_t ssdp_v6_mc_addr_event;
 static int ssdp_static_initialized = 0;
 
 
@@ -185,14 +185,14 @@ void	upnp_ssdp_timer_cb(tp_event_p ev, tp_udata_p tp_udata);
 int	upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof,
 	    size_t data2transfer_size, void *arg);
 int	upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
-	    struct sockaddr_storage *addr, int action,
+	    sockaddr_storage_p addr, int action,
 	    const uint8_t *search_target, size_t search_target_size);
 int	upnp_ssdp_dev_notify_sendto_mc(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	    int action);
 int	upnp_ssdp_dev_notify_sendto(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
-	    struct sockaddr_storage *addr, int action);
+	    sockaddr_storage_p addr, int action);
 int	upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
-	    struct sockaddr_storage *addr, int action,
+	    sockaddr_storage_p addr, int action,
 	    upnp_ssdp_dev_if_p dev_if, const uint8_t *nt, size_t nt_size);
 #define UPNP_SSDP_S_A_BYEBYE	0
 #define UPNP_SSDP_S_A_ALIVE	1
@@ -305,7 +305,7 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	/* IPv4 */
 	if (0 == (UPNP_SSDP_S_F_IPV4 & s->flags))
 		goto skeep_ipv4;
-	//error = skt_bind((struct sockaddr*)&ssdp_v4_mc_addr, SOCK_DGRAM, IPPROTO_UDP, (SO_F_NONBLOCK), &skt);
+	//error = skt_bind((sockaddr_p)&ssdp_v4_mc_addr, SOCK_DGRAM, IPPROTO_UDP, (SO_F_NONBLOCK), &skt);
 	//if (0 != error) /* Bind to mc addr fail, try bind inaddr_any. */
 	error = skt_bind_ap(AF_INET, NULL, UPNP_SSDP_PORT,
 	    SOCK_DGRAM, IPPROTO_UDP,
@@ -879,7 +879,7 @@ upnp_ssdp_timer_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	/* Individual unicast clients. */
 	//for (size_t i = 0; i < ...; i ++) {
 	//	upnp_ssdp_dev_notify_sendto(dev->ssdp, dev,
-	//	    struct sockaddr_storage *addr, UPNP_SSDP_S_A_SRESPONSE);
+	//	    sockaddr_storage_p addr, UPNP_SSDP_S_A_SRESPONSE);
 	//}
 }
 
@@ -892,7 +892,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	ssize_t ios;
 	upnp_ssdp_if_p s_if;
 	char straddr[STR_ADDR_LEN];
-	struct sockaddr_storage caddr, *addr = &caddr;
+	sockaddr_storage_t caddr, *addr = &caddr;
 	const uint8_t *ptm;
 	uint8_t *req_hdr, buf[4096];
 	size_t tm, req_hdr_len;
@@ -928,7 +928,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 		}
 #if DEBUG
 		buf[ios] = 0;
-		sa_addr_port_to_str((struct sockaddr_storage*)addr,
+		sa_addr_port_to_str((sockaddr_storage_t*)addr,
 		    straddr, sizeof(straddr), NULL);
 		LOG_EV_FMT("recvfrom ip: %s (%i) - %zu bytes\r\n%s",
 		    straddr, if_index, ios, buf);
@@ -997,7 +997,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 
 int
 upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
-    struct sockaddr_storage *addr, int action,
+    sockaddr_storage_p addr, int action,
     const uint8_t *search_target, size_t search_target_size) {
 	const uint8_t *st;
 	size_t st_size;
@@ -1158,7 +1158,7 @@ upnp_ssdp_dev_notify_sendto_mc(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev, int action
 
 int
 upnp_ssdp_dev_notify_sendto(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
-    struct sockaddr_storage *addr, int action) {
+    sockaddr_storage_p addr, int action) {
 	uint32_t i, j;
 	upnp_ssdp_dev_if_p dev_if;
 	upnp_ssdp_if_p s_if;
@@ -1219,7 +1219,7 @@ upnp_ssdp_dev_notify_sendto(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 }
 
 int
-upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *addr, int action,
+upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, int action,
     upnp_ssdp_dev_if_p dev_if, const uint8_t *nt, size_t nt_size) {
 	int error;
 	const char *dhost_addr, *usn_pre_nt, *usn_nt;
@@ -1230,7 +1230,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *a
 	uintptr_t skt;
 	size_t url_size;
 	struct ip_mreqn ipmrn; 
-	struct sockaddr_storage v6_mc_addr;
+	sockaddr_storage_t v6_mc_addr;
 	char straddr[STR_ADDR_LEN];
 	uint8_t buf_data[4096];
 
@@ -1281,10 +1281,10 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *a
 		/* Make copy of addr, update ptr and edit. */
 		memcpy(&v6_mc_addr, addr, sizeof(v6_mc_addr));
 		addr = &v6_mc_addr;
-		if (IN6_IS_ADDR_MC_LINKLOCAL(&((struct sockaddr_in6*)addr)->sin6_addr)) {
+		if (IN6_IS_ADDR_MC_LINKLOCAL(&((sockaddr_in6_p)addr)->sin6_addr)) {
 			dhost_addr = ssdp_v6_addr_link_local;
 			if (NULL != s_if) {
-				((struct sockaddr_in6*)addr)->sin6_scope_id = s_if->if_index;
+				((sockaddr_in6_p)addr)->sin6_scope_id = s_if->if_index;
 			}
 		} else {
 			dhost_addr = ssdp_v6_addr_site_local;
@@ -1385,7 +1385,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, struct sockaddr_storage *a
 	}
 
 	if (-1 == sendto((int)skt, buf.data, buf.used, (MSG_DONTWAIT | MSG_NOSIGNAL),
-	    (struct sockaddr*)addr, sa_size(addr))) {
+	    (sockaddr_p)addr, sa_size(addr))) {
 		error = errno;
 		sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
 		LOG_ERR_FMT(error, "sendto: %s, size = %zu", straddr, buf.used);

@@ -46,32 +46,39 @@
 
 #define STR_ADDR_LEN		(56) /* 46(INET6_ADDRSTRLEN) + 2('[]') + 1(':') + 5(port num) + zero */
 
+typedef struct in_addr		in__addr_t, *in_addr_p;
+typedef struct in6_addr		in6_addr_t, *in6_addr_p;
+typedef struct sockaddr		sockaddr_t, *sockaddr_p;
+typedef struct sockaddr_in	sockaddr_in_t, *sockaddr_in_p;
+typedef struct sockaddr_in6	sockaddr_in6_t, *sockaddr_in6_p;
+typedef struct sockaddr_storage	sockaddr_storage_t, *sockaddr_storage_p;
+
 
 void	sa_copy(const void *src, void *dst);
-int	sa_init(struct sockaddr_storage *addr, const sa_family_t family,
+int	sa_init(sockaddr_storage_p addr, const sa_family_t family,
 	    const void *sin_addr, const uint16_t port);
-sa_family_t sa_family(const struct sockaddr_storage *addr);
-socklen_t sa_size(const struct sockaddr_storage *addr);
-uint16_t sa_port_get(const struct sockaddr_storage *addr);
-int	sa_port_set(struct sockaddr_storage *addr, const uint16_t port);
-void 	*sa_addr_get(struct sockaddr_storage *addr);
-int	sa_addr_set(struct sockaddr_storage *addr, const void *sin_addr);
-int	sa_addr_is_specified(const struct sockaddr_storage *addr);
-int	sa_addr_is_loopback(const struct sockaddr_storage *addr);
-int	sa_addr_is_multicast(const struct sockaddr_storage *addr);
-int	sa_addr_is_broadcast(const struct sockaddr_storage *addr);
-int	sa_addr_port_is_eq(const struct sockaddr_storage *addr1,
-	    const struct sockaddr_storage *addr2);
-int	sa_addr_is_eq(const struct sockaddr_storage *addr1,
-	    const struct sockaddr_storage *addr2);
+sa_family_t sa_family(const sockaddr_storage_t *addr);
+socklen_t sa_size(const sockaddr_storage_t *addr);
+uint16_t sa_port_get(const sockaddr_storage_t *addr);
+int	sa_port_set(sockaddr_storage_p addr, const uint16_t port);
+void 	*sa_addr_get(sockaddr_storage_p addr);
+int	sa_addr_set(sockaddr_storage_p addr, const void *sin_addr);
+int	sa_addr_is_specified(const sockaddr_storage_t *addr);
+int	sa_addr_is_loopback(const sockaddr_storage_t *addr);
+int	sa_addr_is_multicast(const sockaddr_storage_t *addr);
+int	sa_addr_is_broadcast(const sockaddr_storage_t *addr);
+int	sa_addr_port_is_eq(const sockaddr_storage_t *addr1,
+	    const sockaddr_storage_t *addr2);
+int	sa_addr_is_eq(const sockaddr_storage_t *addr1,
+	    const sockaddr_storage_t *addr2);
 
-int	sa_addr_from_str(struct sockaddr_storage *addr,
+int	sa_addr_from_str(sockaddr_storage_p addr,
 	    const char *buf, size_t buf_size);
-int	sa_addr_port_from_str(struct sockaddr_storage *addr,
+int	sa_addr_port_from_str(sockaddr_storage_p addr,
 	    const char *buf, size_t buf_size);
-int	sa_addr_to_str(const struct sockaddr_storage *addr,
+int	sa_addr_to_str(const sockaddr_storage_t *addr,
 	    char *buf, size_t buf_size, size_t *buf_size_ret);
-int	sa_addr_port_to_str(const struct sockaddr_storage *addr,
+int	sa_addr_port_to_str(const sockaddr_storage_t *addr,
 	     char *buf, size_t buf_size, size_t *buf_size_ret);
 
 

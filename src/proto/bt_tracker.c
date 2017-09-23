@@ -36,7 +36,6 @@
 #include "utils/mem_utils.h"
 #include "utils/macro.h"
 #include "net/socket_address.h"
-#include "net/utils.h"
 #include "utils/bt_encode.h"
 #include "proto/bt_tracker.h"
 
@@ -54,8 +53,10 @@ bt_tr_ann_ans_free(bt_tr_ann_ans_p tr_ans) {
 
 	if (NULL == tr_ans)
 		return;
-	if (NULL != tr_ans->peers)
+
+	if (NULL != tr_ans->peers) {
 		free(tr_ans->peers);
+	}
 	free(tr_ans);
 }
 
@@ -145,7 +146,7 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 		switch (val->raw_size) {
 		case 4: /* IPv4 */
 		case 16: /* IPv6 */
-			sa_init((struct sockaddr_storage*)&tr_ans->ext_ip.sa,
+			sa_init((sockaddr_storage_t*)&tr_ans->ext_ip.sa,
 			    ((4 == val->raw_size) ? AF_INET : AF_INET6),
 			    val->val.s, 0);
 			break;
@@ -176,7 +177,7 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 			peer4 = (bt_tr_peer_caddr4_p)val->val.s;
 			for (i = 0; i < tm; i ++) {
 				peers[(i + off)].flags = 0;
-				sa_init((struct sockaddr_storage*)&peers[(i + off)].addr.sa,
+				sa_init((sockaddr_storage_t*)&peers[(i + off)].addr.sa,
 				    AF_INET, &peer4[i].addr,
 				    htons(peer4[i].port));
 				peers[(i + off)].uflags = 0;
@@ -209,7 +210,7 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 			peer6 = (bt_tr_peer_caddr6_p)val->val.s;
 			for (i = 0; i < tm; i ++) {
 				peers[(i + off)].flags = 0;
-				sa_init((struct sockaddr_storage*)&peers[(i + off)].addr.sa,
+				sa_init((sockaddr_storage_t*)&peers[(i + off)].addr.sa,
 				    AF_INET6, &peer6[i].addr,
 				    htons(peer6[i].port));
 				peers[(i + off)].uflags = 0;
@@ -233,10 +234,12 @@ bt_tr_req_ev_get(uint8_t *buf, size_t buf_size) {
 
 	if (NULL == buf || 0 == buf_size)
 		return (BT_TR_REQ_EV_NONE);
+
 	for (i = BT_TR_REQ_EV_STARTED; i < BT_TR_REQ_EV_UNKNOWN; i ++) {
 		if (0 == mem_cmpin(buf, buf_size, bt_tr_req_event[i],
 		    bt_tr_req_event_size[i]))
 			return (i);
 	}
+
 	return (BT_TR_REQ_EV_UNKNOWN);
 }

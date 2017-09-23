@@ -730,7 +730,7 @@ skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
 
 int
 skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
-    const struct sockaddr_storage *mc_addr) {
+    const sockaddr_storage_t *mc_addr) {
 	struct group_req mc_group;
 
 	if (NULL == mc_addr)
@@ -751,7 +751,7 @@ skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
 
 int
 skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
-    size_t ifname_size, const struct sockaddr_storage *mc_addr) {
+    size_t ifname_size, const sockaddr_storage_t *mc_addr) {
 	struct ifreq ifr;
 
 	if (NULL == ifname || 0 == ifname_size || IFNAMSIZ < ifname_size)
@@ -769,12 +769,12 @@ skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 int
 skt_enable_recv_ifindex(uintptr_t skt, int enable) {
 	socklen_t addrlen;
-	struct sockaddr_storage ssaddr;
+	sockaddr_storage_t ssaddr;
 
 	/* First, we detect socket address family: ipv4 or ipv6. */
 	ssaddr.ss_family = 0;
 	addrlen = sizeof(ssaddr);
-	if (0 != getsockname((int)skt, (struct sockaddr*)&ssaddr, &addrlen))
+	if (0 != getsockname((int)skt, (sockaddr_p)&ssaddr, &addrlen))
 		return (errno);
 
 	switch (ssaddr.ss_family) {
@@ -870,7 +870,7 @@ err_out:
 }
 
 int
-skt_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
+skt_accept(uintptr_t skt, sockaddr_storage_t *addr, socklen_t *addrlen,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t s;
 
@@ -878,7 +878,7 @@ skt_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
 		return (EINVAL);
 
 #ifndef SOCK_NONBLOCK /* Standart / BSD */
-	s = accept((int)skt, (struct sockaddr*)addr, addrlen);
+	s = accept((int)skt, (sockaddr_p)addr, addrlen);
 	if ((uintptr_t)-1 == s)
 		return (errno);
 	int error = fd_set_nonblocking(s, (0 != (SO_F_NONBLOCK & flags)));
@@ -892,7 +892,7 @@ skt_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
 	 * inherit file status flags such as O_NONBLOCK and O_ASYNC
 	 * from the listening socket.
 	 */
-	s = (uintptr_t)accept4((int)skt, (struct sockaddr*)addr, addrlen,
+	s = (uintptr_t)accept4((int)skt, (sockaddr_p)addr, addrlen,
 	    (0 != (SO_F_NONBLOCK & flags)) ? SOCK_NONBLOCK : 0);
 	if ((uintptr_t)-1 == s)
 		return (errno);
@@ -907,7 +907,7 @@ skt_accept(uintptr_t skt, struct sockaddr_storage *addr, socklen_t *addrlen,
 }
 
 int
-skt_bind(const struct sockaddr_storage *addr, int type, int protocol,
+skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t skt = (uintptr_t)-1;
 	int error, on = 1;
@@ -928,7 +928,7 @@ skt_bind(const struct sockaddr_storage *addr, int type, int protocol,
 		setsockopt((int)skt, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(int));
 	}
 #endif
-	if (-1 == bind((int)skt, (const struct sockaddr*)addr, sa_size(addr))) { /* Error. */
+	if (-1 == bind((int)skt, (const sockaddr_t*)addr, sa_size(addr))) { /* Error. */
 		error = errno;
 		close((int)skt);
 		return (error);
@@ -943,7 +943,7 @@ int
 skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
     int type, int protocol, uint32_t flags, uintptr_t *skt_ret) {
 	int error;
-	struct sockaddr_storage sa;
+	sockaddr_storage_t sa;
 
 	error = sa_init(&sa, family, addr, port);
 	if (0 != error)
@@ -954,7 +954,7 @@ skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
 
 ssize_t
 skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
-    struct sockaddr_storage *from, uint32_t *if_index) {
+    sockaddr_storage_t *from, uint32_t *if_index) {
 	ssize_t transfered_size;
 	struct msghdr mhdr;
 	struct iovec rcviov[4];
@@ -977,7 +977,7 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 	rcviov[0].iov_base = buf;
 	rcviov[0].iov_len = buf_size;
 	mhdr.msg_name = from; /* dst addr. */
-	mhdr.msg_namelen = ((NULL == from) ? 0 : sizeof(struct sockaddr_storage));
+	mhdr.msg_namelen = ((NULL == from) ? 0 : sizeof(sockaddr_storage_t));
 	mhdr.msg_iov = rcviov;
 	mhdr.msg_iovlen = 1;
 	mhdr.msg_control = rcvcmsgbuf;
@@ -1072,7 +1072,7 @@ skt_listen(uintptr_t skt, int backlog) {
 }
 
 int
-skt_connect(const struct sockaddr_storage *addr, int type, int protocol,
+skt_connect(const sockaddr_storage_t *addr, int type, int protocol,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t skt;
 	int error;
@@ -1083,7 +1083,7 @@ skt_connect(const struct sockaddr_storage *addr, int type, int protocol,
 	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
 		return (error);
-	if (-1 == connect((int)skt, (const struct sockaddr*)addr, sa_size(addr))) {
+	if (-1 == connect((int)skt, (const sockaddr_t*)addr, sa_size(addr))) {
 		error = errno;
 		if (EINPROGRESS != error && EINTR != error) { /* Error. */
 			close((int)skt);
@@ -1125,7 +1125,7 @@ skt_is_connect_error(int error) {
  */
 int
 skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
-    struct sockaddr_storage *addrs, size_t addrs_count, size_t *addrs_count_ret) {
+    sockaddr_storage_t *addrs, size_t addrs_count, size_t *addrs_count_ret) {
 	int error;
 	size_t i;
 	struct addrinfo hints, *res, *res0;

@@ -63,21 +63,21 @@ sa_copy(const void *src, void *dst) {
 	if (NULL == src || NULL == dst || src == dst)
 		return;
 
-	switch (((const struct sockaddr*)src)->sa_family) {
+	switch (((const sockaddr_t*)src)->sa_family) {
 	case AF_INET:
-		memcpy(dst, src, sizeof(struct sockaddr_in));
+		memcpy(dst, src, sizeof(sockaddr_in_t));
 		break;
 	case AF_INET6:
-		memcpy(dst, src, sizeof(struct sockaddr_in6));
+		memcpy(dst, src, sizeof(sockaddr_in6_t));
 		break;
 	default:
-		memcpy(dst, src, sizeof(struct sockaddr_storage));
+		memcpy(dst, src, sizeof(sockaddr_storage_t));
 		break;
 	}
 }
 
 int
-sa_init(struct sockaddr_storage *addr, const sa_family_t family,
+sa_init(sockaddr_storage_p addr, const sa_family_t family,
     const void *sin_addr, const uint16_t port) {
 
 	if (NULL == addr)
@@ -85,24 +85,24 @@ sa_init(struct sockaddr_storage *addr, const sa_family_t family,
 
 	switch (family) {
 	case AF_INET:
-		mem_bzero(addr, sizeof(struct sockaddr_in));
+		mem_bzero(addr, sizeof(sockaddr_in_t));
 #ifdef BSD /* BSD specific code. */
-		((struct sockaddr_in*)addr)->sin_len = sizeof(struct sockaddr_in);
+		((sockaddr_in_p)addr)->sin_len = sizeof(sockaddr_in_t);
 #endif /* BSD specific code. */
-		((struct sockaddr_in*)addr)->sin_family = AF_INET;
+		((sockaddr_in_p)addr)->sin_family = AF_INET;
 		//addr->sin_port = 0;
 		//addr->sin_addr.s_addr = 0;
 		break;
 	case AF_INET6:
-		mem_bzero(addr, sizeof(struct sockaddr_in6));
+		mem_bzero(addr, sizeof(sockaddr_in6_t));
 #ifdef BSD /* BSD specific code. */
-		((struct sockaddr_in6*)addr)->sin6_len = sizeof(struct sockaddr_in6);
+		((sockaddr_in6_p)addr)->sin6_len = sizeof(sockaddr_in6_t);
 #endif /* BSD specific code. */
-		((struct sockaddr_in6*)addr)->sin6_family = AF_INET6;
-		//((struct sockaddr_in6*)addr)->sin6_port = 0;
-		//((struct sockaddr_in6*)addr)->sin6_flowinfo = 0;
-		//((struct sockaddr_in6*)addr)->sin6_addr
-		//((struct sockaddr_in6*)addr)->sin6_scope_id = 0;
+		((sockaddr_in6_p)addr)->sin6_family = AF_INET6;
+		//((sockaddr_in6_p)addr)->sin6_port = 0;
+		//((sockaddr_in6_p)addr)->sin6_flowinfo = 0;
+		//((sockaddr_in6_p)addr)->sin6_addr
+		//((sockaddr_in6_p)addr)->sin6_scope_id = 0;
 		break;
 	default:
 		return (EINVAL);
@@ -116,7 +116,7 @@ sa_init(struct sockaddr_storage *addr, const sa_family_t family,
 }
 
 sa_family_t
-sa_family(const struct sockaddr_storage *addr) {
+sa_family(const sockaddr_storage_t *addr) {
 
 	if (NULL == addr)
 		return (0);
@@ -131,49 +131,49 @@ sa_family(const struct sockaddr_storage *addr) {
 }
 
 socklen_t
-sa_size(const struct sockaddr_storage *addr) {
+sa_size(const sockaddr_storage_t *addr) {
 
 	if (NULL == addr)
 		return (0);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		return (sizeof(struct sockaddr_in));
+		return (sizeof(sockaddr_in_t));
 	case AF_INET6:
-		return (sizeof(struct sockaddr_in6));
+		return (sizeof(sockaddr_in6_t));
 	}
 
-	return (sizeof(struct sockaddr_storage));
+	return (sizeof(sockaddr_storage_t));
 }
 
 uint16_t
-sa_port_get(const struct sockaddr_storage *addr) {
+sa_port_get(const sockaddr_storage_t *addr) {
 
 	if (NULL == addr)
 		return (0);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		return (ntohs(((const struct sockaddr_in*)addr)->sin_port));
+		return (ntohs(((const sockaddr_in_t*)addr)->sin_port));
 	case AF_INET6:
-		return (ntohs(((const struct sockaddr_in6*)addr)->sin6_port));
+		return (ntohs(((const sockaddr_in6_t*)addr)->sin6_port));
 	}
 
 	return (0);
 }
 
 int
-sa_port_set(struct sockaddr_storage *addr, const uint16_t port) {
+sa_port_set(sockaddr_storage_p addr, const uint16_t port) {
 
 	if (NULL == addr)
 		return (EINVAL);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		((struct sockaddr_in*)addr)->sin_port = htons(port);
+		((sockaddr_in_p)addr)->sin_port = htons(port);
 		break;
 	case AF_INET6:
-		((struct sockaddr_in6*)addr)->sin6_port = htons(port);
+		((sockaddr_in6_p)addr)->sin6_port = htons(port);
 		break;
 	default:
 		return (EINVAL);
@@ -183,35 +183,35 @@ sa_port_set(struct sockaddr_storage *addr, const uint16_t port) {
 }
 
 void *
-sa_addr_get(struct sockaddr_storage *addr) {
+sa_addr_get(sockaddr_storage_p addr) {
 
 	if (NULL == addr)
 		return (NULL);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		return (&((struct sockaddr_in*)addr)->sin_addr);
+		return (&((sockaddr_in_p)addr)->sin_addr);
 	case AF_INET6:
-		return (&((struct sockaddr_in6*)addr)->sin6_addr);
+		return (&((sockaddr_in6_p)addr)->sin6_addr);
 	}
 
 	return (NULL);
 }
 
 int
-sa_addr_set(struct sockaddr_storage *addr, const void *sin_addr) {
+sa_addr_set(sockaddr_storage_p addr, const void *sin_addr) {
 
 	if (NULL == addr || NULL == sin_addr)
 		return (EINVAL);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		memcpy(&((struct sockaddr_in*)addr)->sin_addr, sin_addr,
-		    sizeof(struct in_addr));
+		memcpy(&((sockaddr_in_p)addr)->sin_addr, sin_addr,
+		    sizeof(in__addr_t));
 		break;
 	case AF_INET6:
-		memcpy(&((struct sockaddr_in6*)addr)->sin6_addr, sin_addr,
-		    sizeof(struct in6_addr));
+		memcpy(&((sockaddr_in6_p)addr)->sin6_addr, sin_addr,
+		    sizeof(in6_addr_t));
 		break;
 	default:
 		return (EINVAL);
@@ -221,62 +221,62 @@ sa_addr_set(struct sockaddr_storage *addr, const void *sin_addr) {
 }
 
 int
-sa_addr_is_specified(const struct sockaddr_storage *addr) {
+sa_addr_is_specified(const sockaddr_storage_t *addr) {
 
 	if (NULL == addr)
 		return (0);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		return ((((const struct sockaddr_in*)addr)->sin_addr.s_addr != INADDR_ANY));
+		return ((((const sockaddr_in_t*)addr)->sin_addr.s_addr != INADDR_ANY));
 	case AF_INET6:
-		return (0 == IN6_IS_ADDR_UNSPECIFIED(&((const struct sockaddr_in6*)addr)->sin6_addr));
+		return (0 == IN6_IS_ADDR_UNSPECIFIED(&((const sockaddr_in6_t*)addr)->sin6_addr));
 	}
 
 	return (0);
 }
 
 int
-sa_addr_is_loopback(const struct sockaddr_storage *addr) {
+sa_addr_is_loopback(const sockaddr_storage_t *addr) {
 
 	if (NULL == addr)
 		return (0);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		return (IN_LOOPBACK(ntohl(((const struct sockaddr_in*)addr)->sin_addr.s_addr)));
+		return (IN_LOOPBACK(ntohl(((const sockaddr_in_t*)addr)->sin_addr.s_addr)));
 	case AF_INET6:
-		return (IN6_IS_ADDR_LOOPBACK(&((const struct sockaddr_in6*)addr)->sin6_addr));
+		return (IN6_IS_ADDR_LOOPBACK(&((const sockaddr_in6_t*)addr)->sin6_addr));
 	}
 
 	return (0);
 }
 
 int
-sa_addr_is_multicast(const struct sockaddr_storage *addr) {
+sa_addr_is_multicast(const sockaddr_storage_t *addr) {
 
 	if (NULL == addr)
 		return (0);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		return (IN_MULTICAST(ntohl(((const struct sockaddr_in*)addr)->sin_addr.s_addr)));
+		return (IN_MULTICAST(ntohl(((const sockaddr_in_t*)addr)->sin_addr.s_addr)));
 	case AF_INET6:
-		return (IN6_IS_ADDR_MULTICAST(&((const struct sockaddr_in6*)addr)->sin6_addr));
+		return (IN6_IS_ADDR_MULTICAST(&((const sockaddr_in6_t*)addr)->sin6_addr));
 	}
 
 	return (0);
 }
 
 int
-sa_addr_is_broadcast(const struct sockaddr_storage *addr) {
+sa_addr_is_broadcast(const sockaddr_storage_t *addr) {
 
 	if (NULL == addr)
 		return (0);
 
 	switch (addr->ss_family) {
 	case AF_INET:
-		return (IN_BROADCAST(((const struct sockaddr_in*)addr)->sin_addr.s_addr));
+		return (IN_BROADCAST(((const sockaddr_in_t*)addr)->sin_addr.s_addr));
 	case AF_INET6:
 		return (0); /* IPv6 does not have broadcast. */
 	}
@@ -287,8 +287,8 @@ sa_addr_is_broadcast(const struct sockaddr_storage *addr) {
 
 // compares two sockaddr_storage struct, address and port fields
 int
-sa_addr_port_is_eq(const struct sockaddr_storage *addr1,
-    const struct sockaddr_storage *addr2) {
+sa_addr_port_is_eq(const sockaddr_storage_t *addr1,
+    const sockaddr_storage_t *addr2) {
 
 	if (NULL == addr1 || NULL == addr2)
 		return (0);
@@ -298,19 +298,19 @@ sa_addr_port_is_eq(const struct sockaddr_storage *addr1,
 		return (0);
 	switch (addr1->ss_family) {
 	case AF_INET:
-		if (((const struct sockaddr_in*)addr1)->sin_port ==
-		    ((const struct sockaddr_in*)addr2)->sin_port &&
-		    ((const struct sockaddr_in*)addr1)->sin_addr.s_addr ==
-		    ((const struct sockaddr_in*)addr2)->sin_addr.s_addr)
+		if (((const sockaddr_in_t*)addr1)->sin_port ==
+		    ((const sockaddr_in_t*)addr2)->sin_port &&
+		    ((const sockaddr_in_t*)addr1)->sin_addr.s_addr ==
+		    ((const sockaddr_in_t*)addr2)->sin_addr.s_addr)
 			return (1);
 		break;
 	case AF_INET6:
-		if (((const struct sockaddr_in6*)addr1)->sin6_port ==
-		    ((const struct sockaddr_in6*)addr2)->sin6_port &&
+		if (((const sockaddr_in6_t*)addr1)->sin6_port ==
+		    ((const sockaddr_in6_t*)addr2)->sin6_port &&
 		    0 == memcmp(
-		    &((const struct sockaddr_in6*)addr1)->sin6_addr,
-		    &((const struct sockaddr_in6*)addr2)->sin6_addr,
-		    sizeof(struct in6_addr)))
+		    &((const sockaddr_in6_t*)addr1)->sin6_addr,
+		    &((const sockaddr_in6_t*)addr2)->sin6_addr,
+		    sizeof(in6_addr_t)))
 			return (1);
 		break;
 	}
@@ -319,8 +319,8 @@ sa_addr_port_is_eq(const struct sockaddr_storage *addr1,
 
 // compares two sockaddr_storage struct, ONLY address fields
 int
-sa_addr_is_eq(const struct sockaddr_storage *addr1,
-    const struct sockaddr_storage *addr2) {
+sa_addr_is_eq(const sockaddr_storage_t *addr1,
+    const sockaddr_storage_t *addr2) {
 
 	if (NULL == addr1 || NULL == addr2)
 		return (0);
@@ -331,16 +331,16 @@ sa_addr_is_eq(const struct sockaddr_storage *addr1,
 	switch (addr1->ss_family) {
 	case AF_INET:
 		if (0 == memcmp(
-		    &((const struct sockaddr_in*)addr1)->sin_addr,
-		    &((const struct sockaddr_in*)addr2)->sin_addr,
-		    sizeof(struct in_addr)))
+		    &((const sockaddr_in_t*)addr1)->sin_addr,
+		    &((const sockaddr_in_t*)addr2)->sin_addr,
+		    sizeof(in__addr_t)))
 			return (1);
 		break;
 	case AF_INET6:
 		if (0 == memcmp(
-		    &((const struct sockaddr_in6*)addr1)->sin6_addr,
-		    &((const struct sockaddr_in6*)addr2)->sin6_addr,
-		    sizeof(struct in6_addr)))
+		    &((const sockaddr_in6_t*)addr1)->sin6_addr,
+		    &((const sockaddr_in6_t*)addr2)->sin6_addr,
+		    sizeof(in6_addr_t)))
 			return (1);
 		break;
 	}
@@ -354,7 +354,7 @@ sa_addr_is_eq(const struct sockaddr_storage *addr1,
  * 2001:4f8:fff6::28
  */
 int
-sa_addr_from_str(struct sockaddr_storage *addr,
+sa_addr_from_str(sockaddr_storage_p addr,
     const char *buf, size_t buf_size) {
 	size_t addr_size, i;
 	char straddr[(STR_ADDR_LEN + 1)];
@@ -400,7 +400,7 @@ sa_addr_from_str(struct sockaddr_storage *addr,
  * 2001:4f8:fff6::28:1234 - wrong, but work.
  */
 int
-sa_addr_port_from_str(struct sockaddr_storage *addr,
+sa_addr_port_from_str(sockaddr_storage_p addr,
     const char *buf, size_t buf_size) {
 	size_t addr_size, i;
 	uint16_t port = 0;
@@ -457,7 +457,7 @@ sa_addr_port_from_str(struct sockaddr_storage *addr,
 }
 
 int
-sa_addr_to_str(const struct sockaddr_storage *addr, char *buf,
+sa_addr_to_str(const sockaddr_storage_t *addr, char *buf,
     size_t buf_size, size_t *buf_size_ret) {
 	int error = 0;
 
@@ -468,7 +468,7 @@ sa_addr_to_str(const struct sockaddr_storage *addr, char *buf,
 	switch (addr->ss_family) {
 	case AF_INET:
 		if (NULL == inet_ntop(AF_INET,
-		    &((const struct sockaddr_in*)addr)->sin_addr,
+		    &((const sockaddr_in_t*)addr)->sin_addr,
 		    buf, buf_size)) {
 			buf[0] = 0;
 			error = errno;
@@ -476,7 +476,7 @@ sa_addr_to_str(const struct sockaddr_storage *addr, char *buf,
 		break;
 	case AF_INET6:
 		if (NULL == inet_ntop(AF_INET6,
-		    &((const struct sockaddr_in6*)addr)->sin6_addr,
+		    &((const sockaddr_in6_t*)addr)->sin6_addr,
 		    buf, buf_size)) {
 			buf[0] = 0;
 			error = errno;
@@ -495,7 +495,7 @@ sa_addr_to_str(const struct sockaddr_storage *addr, char *buf,
 }
 
 int
-sa_addr_port_to_str(const struct sockaddr_storage *addr, char *buf,
+sa_addr_port_to_str(const sockaddr_storage_t *addr, char *buf,
     size_t buf_size, size_t *buf_size_ret) {
 	int error = 0;
 	size_t size_ret = 0;
@@ -507,22 +507,22 @@ sa_addr_port_to_str(const struct sockaddr_storage *addr, char *buf,
 	switch (addr->ss_family) {
 	case AF_INET:
 		if (NULL == inet_ntop(AF_INET,
-		    &((const struct sockaddr_in*)addr)->sin_addr,
+		    &((const sockaddr_in_t*)addr)->sin_addr,
 		    buf, buf_size)) {
 			buf[0] = 0;
 			error = errno;
 			break;
 		}
 		size_ret = strnlen(buf, buf_size);
-		if (0 != ((const struct sockaddr_in*)addr)->sin_port) {
+		if (0 != ((const sockaddr_in_t*)addr)->sin_port) {
 			size_ret += (size_t)snprintf((buf + size_ret),
 			    (size_t)(buf_size - size_ret), ":%hu",
-			    ntohs(((const struct sockaddr_in*)addr)->sin_port));
+			    ntohs(((const sockaddr_in_t*)addr)->sin_port));
 		}
 		break;
 	case AF_INET6:
 		if (NULL == inet_ntop(AF_INET6,
-		    &((const struct sockaddr_in6*)addr)->sin6_addr,
+		    &((const sockaddr_in6_t*)addr)->sin6_addr,
 		    (buf + 1), (buf_size - 1))) {
 			buf[0] = 0;
 			error = errno;
@@ -530,10 +530,10 @@ sa_addr_port_to_str(const struct sockaddr_storage *addr, char *buf,
 		}
 		buf[0] = '[';
 		size_ret = strnlen(buf, buf_size);
-		if (0 != ((const struct sockaddr_in6*)addr)->sin6_port) {
+		if (0 != ((const sockaddr_in6_t*)addr)->sin6_port) {
 			size_ret += (size_t)snprintf((buf + size_ret),
 			    (size_t)(buf_size - size_ret), "]:%hu",
-			    ntohs(((const struct sockaddr_in6*)addr)->sin6_port));
+			    ntohs(((const sockaddr_in6_t*)addr)->sin6_port));
 		} else {
 			buf[size_ret] = ']';
 			buf[(size_ret + 1)] = 0;

@@ -111,7 +111,7 @@ typedef struct http_srv_cli_s {
 	void			*udata;	/* Client associated data. */
 	uint32_t		flags;	/* Flags: HTTP_SRV_CLI_F_*. */
 	uint32_t		flags_int; /* Flags: HTTP_SRV_CLI_FI_*. */
-	struct sockaddr_storage addr;	/* Client address. */
+	sockaddr_storage_t addr;	/* Client address. */
 } http_srv_cli_t;
 
 #define HTTP_SRV_CLI_FI_NEXT_BYTE_MASK	((uint32_t)0x000000ff)
@@ -123,7 +123,7 @@ http_srv_cli_p	http_srv_cli_alloc(http_srv_bind_p bnd, tpt_p tpt,
 void		http_srv_cli_free(http_srv_cli_p cli);
 
 static int	http_srv_new_conn_cb(tp_task_p tptask, int error, uintptr_t skt,
-		    struct sockaddr_storage *addr, void *arg);
+		    sockaddr_storage_p addr, void *arg);
 static int	http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
 		    uint32_t eof, size_t transfered_size, void *arg);
 static int	http_srv_send_responce(http_srv_cli_p cli, const uint8_t **delimiter);
@@ -741,7 +741,7 @@ http_srv_bind_set_udata(http_srv_bind_p bnd, void *udata) {
 }
 
 int
-http_srv_bind_get_addr(http_srv_bind_p bnd, struct sockaddr_storage *addr) {
+http_srv_bind_get_addr(http_srv_bind_p bnd, sockaddr_storage_p addr) {
 
 	if (NULL == bnd || NULL == addr)
 		return (EINVAL);
@@ -1025,7 +1025,7 @@ http_srv_cli_get_flags(http_srv_cli_p cli) {
 }
 
 int
-http_srv_cli_get_addr(http_srv_cli_p cli, struct sockaddr_storage *addr) {
+http_srv_cli_get_addr(http_srv_cli_p cli, sockaddr_storage_p addr) {
 
 	if (NULL == cli || NULL == addr)
 		return (EINVAL);
@@ -1039,7 +1039,7 @@ http_srv_cli_get_addr(http_srv_cli_p cli, struct sockaddr_storage *addr) {
 /* New connection received. */
 static int
 http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
-    struct sockaddr_storage *addr, void *arg) {
+    sockaddr_storage_p addr, void *arg) {
 	http_srv_cli_p cli;
 	http_srv_bind_p bnd;
 	http_srv_p srv;
@@ -1138,7 +1138,7 @@ http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
 	uint16_t host_port;
 	size_t i, tm;
 	int action;
-	struct sockaddr_storage addr;
+	sockaddr_storage_t addr;
 
 	LOGD_EV("...");
 	debugd_break_if(NULL == arg);
@@ -1404,7 +1404,7 @@ conn_from_net_to_loopback:
 			ptm ++;
 			tm = (size_t)(ptm - cli->req.host);
 			if (cli->req.host_size > tm) {
-				host_port = (uint16_t)ustr2u32(ptm,
+				host_port = ustr2u16(ptm,
 				    (cli->req.host_size - tm));
 			}
 			tm --;

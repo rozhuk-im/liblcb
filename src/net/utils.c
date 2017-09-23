@@ -71,7 +71,7 @@ static const uint32_t pref_to_mask[33] = {				/* bits set */
  * 2001:4f8:fff6::28/32
  */
 int
-str_net_to_ss(const char *buf, size_t buf_size, struct sockaddr_storage *addr,
+str_net_to_ss(const char *buf, size_t buf_size, sockaddr_storage_p addr,
     uint16_t *preflen_ret) {
 	int error;
 	const char *ptm;
@@ -118,7 +118,7 @@ str_net_to_ss(const char *buf, size_t buf_size, struct sockaddr_storage *addr,
  * prefix: e.g. an input prefix 203.97.2.226/24 would be truncated to 203.97.2.0/24.
  */
 void
-net_addr_truncate_preflen(struct sockaddr_storage *net_addr, uint16_t preflen) {
+net_addr_truncate_preflen(sockaddr_storage_p net_addr, uint16_t preflen) {
 	uint32_t *net, mask[4];
 	size_t i, addr_len;
 
@@ -127,15 +127,15 @@ net_addr_truncate_preflen(struct sockaddr_storage *net_addr, uint16_t preflen) {
 
 	switch (net_addr->ss_family) {
 	case AF_INET:
-		if (0 != inet_len2mask(preflen, (struct in_addr*)&mask))
+		if (0 != inet_len2mask(preflen, (in_addr_p)&mask))
 			return;
-		net = (uint32_t*)&((struct sockaddr_in*)net_addr)->sin_addr;
+		net = (uint32_t*)&((sockaddr_in_p)net_addr)->sin_addr;
 		addr_len = 1;
 		break;
 	case AF_INET6:
-		if (0 != inet6_len2mask(preflen, (struct in6_addr*)&mask))
+		if (0 != inet6_len2mask(preflen, (in6_addr_p)&mask))
 			return;
-		net = (uint32_t*)&((struct sockaddr_in6*)net_addr)->sin6_addr;
+		net = (uint32_t*)&((sockaddr_in6_p)net_addr)->sin6_addr;
 		addr_len = 4;
 		break;
 	default:
@@ -201,7 +201,7 @@ is_addr_in_net(sa_family_t family, const uint32_t *net, const uint32_t *mask,
 
 /* in_len2mask */
 int
-inet_len2mask(size_t len, struct in_addr *mask) {
+inet_len2mask(size_t len, in_addr_p mask) {
 
 	if (32 < len || NULL == mask)
 		return (EINVAL);
@@ -213,7 +213,7 @@ inet_len2mask(size_t len, struct in_addr *mask) {
 
 /* in_mask2len */
 int
-inet_mask2len(const struct in_addr *mask) {
+inet_mask2len(const in__addr_t *mask) {
 	int i;
 
 	for (i = 32; -1 != i && mask->s_addr < pref_to_mask[i]; i --)
@@ -225,7 +225,7 @@ inet_mask2len(const struct in_addr *mask) {
 }
 
 int
-inet6_len2mask(size_t len, struct in6_addr *mask) {
+inet6_len2mask(size_t len, in6_addr_p mask) {
 	size_t i, cnt;
 
 	if (128 < len || NULL == mask)
@@ -247,7 +247,7 @@ inet6_len2mask(size_t len, struct in6_addr *mask) {
 
 /* in6_mask2len */
 int
-inet6_mask2len(const struct in6_addr *mask) {
+inet6_mask2len(const in6_addr_t *mask) {
 	int i, j;
 
 	if (NULL == mask)
@@ -272,7 +272,7 @@ inet6_mask2len(const struct in6_addr *mask) {
 
 int
 get_if_addr_by_name(const char *if_name, size_t if_name_size,
-    sa_family_t family, struct sockaddr_storage *addr) {
+    sa_family_t family, sockaddr_storage_p addr) {
 	struct ifaddrs *ifap, *ifaptm;
 
 	if (NULL == if_name || IFNAMSIZ < if_name_size || NULL == addr)
@@ -296,7 +296,7 @@ get_if_addr_by_name(const char *if_name, size_t if_name_size,
 
 int
 get_if_addr_by_idx(uint32_t if_index, sa_family_t family,
-    struct sockaddr_storage *addr) {
+    sockaddr_storage_p addr) {
 	char if_name[(IFNAMSIZ + 1)];
 
 	if (NULL == addr)
@@ -310,9 +310,9 @@ get_if_addr_by_idx(uint32_t if_index, sa_family_t family,
 }
 
 int
-is_host_addr(const struct sockaddr_storage *addr) {
+is_host_addr(const sockaddr_storage_t *addr) {
 	struct ifaddrs *ifap, *ifaptm;
-	struct sockaddr_storage addrtm;
+	sockaddr_storage_t addrtm;
 
 	if (NULL == addr)
 		return (EINVAL);
@@ -335,9 +335,9 @@ is_host_addr(const struct sockaddr_storage *addr) {
 
 /* data - cache getifaddrs() result to improve perfomance. */
 int
-is_host_addr_ex(const struct sockaddr_storage *addr, void **data) {
+is_host_addr_ex(const sockaddr_storage_t *addr, void **data) {
 	struct ifaddrs *ifap = NULL, *ifaptm;
-	struct sockaddr_storage addrtm;
+	sockaddr_storage_t addrtm;
 
 	if (NULL == addr)
 		return (EINVAL);

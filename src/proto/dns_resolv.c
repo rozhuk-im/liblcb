@@ -111,7 +111,7 @@ typedef struct dns_rslvr_s {
 	io_buf_t	buf;		/* Buffer for recv reply. */
 	uintptr_t	timeout;	/* Timeout for request to NS server. */
 	uint32_t	neg_cache;	/* Time for negative cache. */
-	struct sockaddr_storage	*dns_addrs; /* Upstream DNS servers. */
+	sockaddr_storage_p dns_addrs; /* Upstream DNS servers. */
 	uint16_t	dns_addrs_count;
 	uint16_t	retry_count;	/* Num of timeout retry req to NS server. */
 	uint16_t	tasks_count;	/* Now resolving for ... hosts. */
@@ -126,8 +126,8 @@ typedef struct dns_rslvr_cache_addr_s { // 8 + 4 + 16 = 28 bytes
 	time_t		valid_untill;
 	sa_family_t	family;		/* Addr family. */
 	union {
-		struct in_addr	addr4;	// IPv4 address 4 bytes
-		struct in6_addr	addr6;	// IPv6 address 16 bytes
+		in__addr_t	addr4;	// IPv4 address 4 bytes
+		in6_addr_t	addr6;	// IPv6 address 16 bytes
 	};
 } __attribute__((__packed__)) dns_rslvr_cache_addr_t, *dns_rslvr_cache_addr_p;
 
@@ -136,7 +136,7 @@ typedef struct dns_rslvr_cache_entry_s {
 	hbucket_entry_t entry;		/* For store in cache. */
 	uint8_t		*name;		/* Hostname. */
 	size_t		name_size;	/* Host name size. */
-	size_t		data_count;	/* Num of used struct sockaddr_storage / alias len. */
+	size_t		data_count;	/* Num of used sockaddr_storage_t / alias len. */
 	size_t		data_allocated;	/* Avaible size to store data. */
 	uint16_t	flags;		/* Flags + DNS_R_F_*. */
 	time_t		last_upd;
@@ -176,7 +176,7 @@ static void	dns_resolver_task_done(dns_rslvr_task_p task, int error,
 static int	dns_resolver_send(dns_rslvr_task_p task);
 static void	dns_resolver_task_timeout_cb(tp_event_p ev, tp_udata_p tp_udata);
 static int	dns_resolver_recv_cb(tp_task_p tptask, int error,
-		    struct sockaddr_storage *addr, io_buf_p buf,
+		    sockaddr_storage_p addr, io_buf_p buf,
 		    size_t transfered_size, void *arg);
 
 
@@ -212,9 +212,9 @@ dns_rslvr_cache_addr_cmp(dns_rslvr_cache_addr_p a1, dns_rslvr_cache_addr_p a2) {
 
 	switch (a1->family) {
 	case AF_INET:
-		return (memcmp(&a1->addr4, &a2->addr4, sizeof(struct in_addr)));
+		return (memcmp(&a1->addr4, &a2->addr4, sizeof(in__addr_t)));
 	case AF_INET6:
-		return (memcmp(&a1->addr6, &a2->addr6, sizeof(struct in6_addr)));
+		return (memcmp(&a1->addr6, &a2->addr6, sizeof(in6_addr_t)));
 	}
 
 	return (1);
@@ -222,7 +222,7 @@ dns_rslvr_cache_addr_cmp(dns_rslvr_cache_addr_p a1, dns_rslvr_cache_addr_p a2) {
 
 static inline int
 dns_rslvr_cache_addr_cp(dns_rslvr_cache_addr_p caddrs, size_t addrs_count,
-    struct sockaddr_storage *addrs) {
+    sockaddr_storage_p addrs) {
 	size_t i;
 
 	for (i = 0; i < addrs_count; i ++) {
@@ -547,7 +547,7 @@ dns_rslvr_task_notify_chain(dns_rslvr_task_p task, uint8_t *name, size_t name_si
 }
 
 int
-dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs, 
+dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
     uint16_t dns_addrs_count, uintptr_t timeout, uint16_t retry_count,
     uint32_t neg_cache, dns_rslvr_p *dns_rslvr_ret) {
 	dns_rslvr_p rslvr;
@@ -564,7 +564,7 @@ dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs,
 	rslvr = zalloc(sizeof(dns_rslvr_t));
 	if (NULL == rslvr)
 		return (ENOMEM);
-	rslvr->dns_addrs = zalloc((sizeof(struct sockaddr_storage) * dns_addrs_count));
+	rslvr->dns_addrs = zalloc((sizeof(sockaddr_storage_t) * dns_addrs_count));
 	if (NULL == rslvr->dns_addrs) {
 		error = ENOMEM;
 		goto err_out;
@@ -592,7 +592,7 @@ dns_resolver_create(tp_p tp, const struct sockaddr_storage *dns_addrs,
 		goto err_out;
 
 	mem_bzero(rslvr->dns_addrs,
-	    (sizeof(struct sockaddr_storage) * dns_addrs_count));
+	    (sizeof(sockaddr_storage_t) * dns_addrs_count));
 	rslvr->dns_addrs_count = dns_addrs_count;
 	for (i = 0; i < dns_addrs_count; i ++)
 		sa_copy(&dns_addrs[i], &rslvr->dns_addrs[i]);
@@ -725,7 +725,7 @@ dns_resolv_hostaddr_int(dns_rslvr_p rslvr, int send_request,
 	size_t addrs_count;
 	uint16_t loop_count = 0;
 	int error, cache_entry_updating = 0;
-	struct sockaddr_storage ssaddrs[DNS_RESOLVER_MAX_ADDRS];
+	sockaddr_storage_t ssaddrs[DNS_RESOLVER_MAX_ADDRS];
 
 	if (NULL != task_ret && NULL != (*task_ret)) {
 		task = (*task_ret);
@@ -855,7 +855,7 @@ static void
 dns_resolver_task_done(dns_rslvr_task_p task, int error, 
     dns_rslvr_cache_addr_p addrs, size_t addrs_count, time_t valid_untill) {
 	//dns_rslvr_p rslvr = task->rslvr;
-	struct sockaddr_storage ssaddrs[DNS_RESOLVER_MAX_ADDRS];
+	sockaddr_storage_t ssaddrs[DNS_RESOLVER_MAX_ADDRS];
 
 	/* Udpate cache data. */
 	dns_rslvr_cache_entry_data_add(task->cache_entry, addrs,
@@ -908,7 +908,7 @@ dns_resolver_send(dns_rslvr_task_p task) {
 
 	if ((ssize_t)msg_size != sendto((int)task->rslvr->sktv4, dns_hdr,
 	    msg_size, (MSG_DONTWAIT | MSG_NOSIGNAL),
-	    (struct sockaddr*)&task->rslvr->dns_addrs[task->cur_srv_idx],
+	    (sockaddr_p)&task->rslvr->dns_addrs[task->cur_srv_idx],
 	    sa_size(&task->rslvr->dns_addrs[task->cur_srv_idx])))
 		return (errno);
 	tpt_ev_enable_ex(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
@@ -946,7 +946,7 @@ dns_resolver_task_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 }
 
 static int
-dns_resolver_recv_cb(tp_task_p tptask __unused, int error, struct sockaddr_storage *addr,
+dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p addr,
     io_buf_p buf, size_t transfered_size, void *arg) {
 	dns_rslvr_p rslvr = arg;
 	dns_rslvr_task_p task;

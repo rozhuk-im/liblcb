@@ -53,12 +53,12 @@
 
 
 typedef struct host_addr_s {
-	struct sockaddr_storage *addrs;	/* proto:addr:port */
+	sockaddr_storage_p addrs;	/* proto:addr:port */
 	uint8_t		*name;		/* Hostname. */
 	size_t		name_size;	/* Host name size. */
 	uint16_t	port;		/* Port. */
-	size_t		allocated;	/* Num of avaible struct sockaddr_storage. */
-	size_t		count;		/* Num of used struct sockaddr_storage. */
+	size_t		allocated;	/* Num of avaible sockaddr_storage_t. */
+	size_t		count;		/* Num of used sockaddr_storage_t. */
 } host_addr_t, *host_addr_p;
 
 
@@ -96,7 +96,7 @@ host_addr_clone(host_addr_p src) {
 	if (NULL == src)
 		return (NULL);
 
-	haddr = zalloc((sizeof(struct sockaddr_storage) * src->allocated));
+	haddr = zalloc((sizeof(sockaddr_storage_t) * src->allocated));
 	if (NULL == haddr)
 		return (haddr);
 	haddr->addrs = zalloc((sizeof(host_addr_t) + src->name_size + sizeof(void*)));
@@ -105,7 +105,7 @@ host_addr_clone(host_addr_p src) {
 		return (NULL);
 	}
 	memcpy(haddr->addrs, src->addrs,
-	    (sizeof(struct sockaddr_storage) * src->count));
+	    (sizeof(sockaddr_storage_t) * src->count));
 	haddr->name = (uint8_t*)(haddr + 1);
 	memcpy(haddr->name, src->name, src->name_size);
 	haddr->name_size = src->name_size;
@@ -130,7 +130,7 @@ host_addr_free(host_addr_p haddr) {
 }
 
 static inline int
-host_addr_is_host_soaddr(host_addr_p haddr, const struct sockaddr_storage *addr) {
+host_addr_is_host_soaddr(host_addr_p haddr, const sockaddr_storage_p addr) {
 	size_t i;
 
 	if (NULL == haddr || NULL == addr)
@@ -145,7 +145,7 @@ host_addr_is_host_soaddr(host_addr_p haddr, const struct sockaddr_storage *addr)
 }
 
 static inline int
-host_addr_is_host_addr(host_addr_p haddr, const struct sockaddr_storage *addr) {
+host_addr_is_host_addr(host_addr_p haddr, const sockaddr_storage_p addr) {
 	size_t i;
 
 	if (NULL == haddr || NULL == addr)
@@ -163,9 +163,9 @@ host_addr_is_host_addr(host_addr_p haddr, const struct sockaddr_storage *addr) {
  * Add ip address to host
  */
 static inline int
-host_addr_add_addr(host_addr_p haddr, const struct sockaddr_storage *addr) {
+host_addr_add_addr(host_addr_p haddr, const sockaddr_storage_p addr) {
 	int error;
-	struct sockaddr_storage *addr_new;
+	sockaddr_storage_p addr_new;
 
 	if (NULL == haddr)
 		return (EINVAL);
@@ -176,7 +176,7 @@ host_addr_add_addr(host_addr_p haddr, const struct sockaddr_storage *addr) {
 
 	// need more space?
 	error = realloc_items((void**)&haddr->addrs,
-	    sizeof(struct sockaddr_storage), &haddr->allocated,
+	    sizeof(sockaddr_storage_t), &haddr->allocated,
 	    HOST_ADDR_PREALLOC, haddr->count);
 	if (0 != error)
 		return (error);
