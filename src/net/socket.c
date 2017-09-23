@@ -728,7 +728,6 @@ skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
 }
 
 
-
 int
 skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
     const struct sockaddr_storage *mc_addr) {
@@ -1193,6 +1192,167 @@ skt_sync_resolv_connect(const char *hname, uint16_t port,
 	if ((uintptr_t)-1 == skt)
 		return (error);
 	(*skt_ret) = skt;
+
+	return (0);
+}
+
+
+int
+skt_tcp_stat_text(uintptr_t skt, const char *tabs,
+    char *buf, size_t buf_size, size_t *buf_size_ret) {
+	socklen_t optlen;
+	struct tcp_info info;
+	char topts[128];
+	size_t topts_used = 0;
+
+	if (NULL == buf || NULL == buf_size_ret)
+		return (EINVAL);
+
+	optlen = sizeof(info);
+	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_INFO, &info, &optlen))
+		return (errno);
+	if (10 < info.tcpi_state) {
+		info.tcpi_state = 11; /* UNKNOWN */
+	}
+
+	if (0 != (info.tcpi_options & TCPI_OPT_TIMESTAMPS)) {
+		topts_used += (size_t)snprintf((topts + topts_used),
+		    (sizeof(topts) - topts_used), "TIMESTAMPS ");
+	}
+	if (0 != (info.tcpi_options & TCPI_OPT_SACK)) {
+		topts_used += (size_t)snprintf((topts + topts_used),
+		    (sizeof(topts) - topts_used), "SACK ");
+	}
+	if (0 != (info.tcpi_options & TCPI_OPT_WSCALE)) {
+		topts_used += (size_t)snprintf((topts + topts_used),
+		    (sizeof(topts) - topts_used), "WSCALE ");
+	}
+	if (0 != (info.tcpi_options & TCPI_OPT_ECN)) {
+		topts_used += (size_t)snprintf((topts + topts_used),
+		    (sizeof(topts) - topts_used), "ECN ");
+	}
+#ifdef BSD /* BSD specific code. */
+	if (0 != (info.tcpi_options & TCPI_OPT_TOE)) {
+		topts_used += (size_t)snprintf((topts + topts_used),
+		    (sizeof(topts) - topts_used), "TOE ");
+	}
+
+	const char *tcpi_state[] = {
+		"CLOSED",
+		"LISTEN",
+		"SYN_SENT",
+		"SYN_RECEIVED",
+		"ESTABLISHED",
+		"CLOSE_WAIT",
+		"FIN_WAIT_1",
+		"CLOSING",
+		"LAST_ACK",
+		"FIN_WAIT_2",
+		"TIME_WAIT",
+		"UNKNOWN"
+	};
+
+	(*buf_size_ret) = (size_t)snprintf(buf, buf_size,
+	    "%sTCP FSM state: %s\r\n"
+	    "%sOptions enabled on conn: %s\r\n"
+	    "%sRFC1323 send shift value: %"PRIu8"\r\n"
+	    "%sRFC1323 recv shift value: %"PRIu8"\r\n"
+	    "%sRetransmission timeout (usec): %"PRIu32"\r\n"
+	    "%sMax segment size for send: %"PRIu32"\r\n"
+	    "%sMax segment size for receive: %"PRIu32"\r\n"
+	    "%sTime since last recv data (usec): %"PRIu32"\r\n"
+	    "%sSmoothed RTT in usecs: %"PRIu32"\r\n"
+	    "%sRTT variance in usecs: %"PRIu32"\r\n"
+	    "%sSlow start threshold: %"PRIu32"\r\n"
+	    "%sSend congestion window: %"PRIu32"\r\n"
+	    "%sAdvertised recv window: %"PRIu32"\r\n"
+	    "%sAdvertised send window: %"PRIu32"\r\n"
+	    "%sNext egress seqno: %"PRIu32"\r\n"
+	    "%sNext ingress seqno: %"PRIu32"\r\n"
+	    "%sHWTID for TOE endpoints: %"PRIu32"\r\n"
+	    "%sRetransmitted packets: %"PRIu32"\r\n"
+	    "%sOut-of-order packets: %"PRIu32"\r\n"
+	    "%sZero-sized windows sent: %"PRIu32"\r\n",
+	    tabs, tcpi_state[info.tcpi_state], tabs, topts,
+	    tabs, info.tcpi_snd_wscale, tabs, info.tcpi_rcv_wscale,
+	    tabs, info.tcpi_rto, tabs, info.tcpi_snd_mss, tabs, info.tcpi_rcv_mss,
+	    tabs, info.tcpi_last_data_recv,
+	    tabs, info.tcpi_rtt, tabs, info.tcpi_rttvar,
+	    tabs, info.tcpi_snd_ssthresh, tabs, info.tcpi_snd_cwnd, 
+	    tabs, info.tcpi_rcv_space,
+	    tabs, info.tcpi_snd_wnd,
+	    tabs, info.tcpi_snd_nxt, tabs, info.tcpi_rcv_nxt,
+	    tabs, info.tcpi_toe_tid, tabs, info.tcpi_snd_rexmitpack,
+	    tabs, info.tcpi_rcv_ooopack, tabs, info.tcpi_snd_zerowin);
+#endif /* BSD specific code. */
+#ifdef __linux__ /* Linux specific code. */
+	const char *tcpi_state[] = {
+		"ESTABLISHED",
+		"SYN_SENT",
+		"SYN_RECEIVED",
+		"FIN_WAIT_1",
+		"FIN_WAIT_2",
+		"TIME_WAIT",
+		"CLOSED",
+		"CLOSE_WAIT",
+		"LAST_ACK",
+		"LISTEN",
+		"CLOSING",
+		"UNKNOWN"
+	};
+
+	(*buf_size_ret) = (size_t)snprintf(buf, buf_size,
+	    "%sTCP FSM state: %s\r\n"
+	    "%sca_state: %"PRIu8"\r\n"
+	    "%sretransmits: %"PRIu8"\r\n"
+	    "%sprobes: %"PRIu8"\r\n"
+	    "%sbackoff: %"PRIu8"\r\n"
+	    "%sOptions enabled on conn: %s\r\n"
+	    "%sRFC1323 send shift value: %"PRIu8"\r\n"
+	    "%sRFC1323 recv shift value: %"PRIu8"\r\n"
+	    "%sRetransmission timeout (usec): %"PRIu32"\r\n"
+	    "%sato (usec): %"PRIu32"\r\n"
+	    "%sMax segment size for send: %"PRIu32"\r\n"
+	    "%sMax segment size for receive: %"PRIu32"\r\n"
+	    "%sunacked: %"PRIu32"\r\n"
+	    "%ssacked: %"PRIu32"\r\n"
+	    "%slost: %"PRIu32"\r\n"
+	    "%sretrans: %"PRIu32"\r\n"
+	    "%sfackets: %"PRIu32"\r\n"
+	    "%slast_data_sent: %"PRIu32"\r\n"
+	    "%slast_ack_sent: %"PRIu32"\r\n"
+	    "%sTime since last recv data (usec): %"PRIu32"\r\n"
+	    "%slast_ack_recv: %"PRIu32"\r\n"
+	    "%spmtu: %"PRIu32"\r\n"
+	    "%srcv_ssthresh: %"PRIu32"\r\n"
+	    "%srtt: %"PRIu32"\r\n"
+	    "%srttvar: %"PRIu32"\r\n"
+	    "%ssnd_ssthresh: %"PRIu32"\r\n"
+	    "%ssnd_cwnd: %"PRIu32"\r\n"
+	    "%sadvmss: %"PRIu32"\r\n"
+	    "%sreordering: %"PRIu32"\r\n"
+	    "%srcv_rtt: %"PRIu32"\r\n"
+	    "%srcv_space: %"PRIu32"\r\n"
+	    "%stotal_retrans: %"PRIu32"\r\n",
+	    tabs, tcpi_state[info.tcpi_state], tabs, info.tcpi_ca_state,
+	    tabs, info.tcpi_retransmits, tabs, info.tcpi_probes,
+	    tabs, info.tcpi_backoff, tabs, topts,
+	    tabs, info.tcpi_snd_wscale, tabs, info.tcpi_rcv_wscale,
+	    tabs, info.tcpi_rto, tabs, info.tcpi_ato,
+	    tabs, info.tcpi_snd_mss, tabs, info.tcpi_rcv_mss,
+	    tabs, info.tcpi_unacked, tabs, info.tcpi_sacked,
+	    tabs, info.tcpi_lost, tabs, info.tcpi_retrans,
+	    tabs, info.tcpi_fackets, tabs, info.tcpi_last_data_sent,
+	    tabs, info.tcpi_last_ack_sent, tabs, info.tcpi_last_data_recv,
+	    tabs, info.tcpi_last_ack_recv, tabs, info.tcpi_pmtu,
+	    tabs, info.tcpi_rcv_ssthresh,
+	    tabs, info.tcpi_rtt, tabs, info.tcpi_rttvar,
+	    tabs, info.tcpi_snd_ssthresh, tabs, info.tcpi_snd_cwnd,
+	    tabs, info.tcpi_advmss,
+	    tabs, info.tcpi_reordering, tabs, info.tcpi_rcv_rtt,
+	    tabs, info.tcpi_rcv_space, tabs, info.tcpi_total_retrans
+	    );
+#endif /* Linux specific code. */
 
 	return (0);
 }
