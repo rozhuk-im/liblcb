@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2012 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,15 +23,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * Author: Rozhuk Ivan <rozhuk.im@gmail.com>
+ *
  */
 
 
-
-#ifndef __NUMTOSTR_H__
-#define __NUMTOSTR_H__
-
+#ifndef __NUM2STR_H__
+#define __NUM2STR_H__
 
 #ifdef _WINDOWS
+	#define int8_t		char
 	#define uint8_t		unsigned char
 	#define uint16_t	WORD
 	#define int32_t		LONG
@@ -44,112 +45,198 @@
 #	include <inttypes.h>
 #endif
 
-static const size_t Num2Len[] = {
-	0,
-	10,
-	100,
-	1000,
-	10000,
-	100000,
-	1000000,
-	10000000,
-	100000000,
-	1000000000,
-	10000000000,
-	100000000000,
-	1000000000000,
-	10000000000000
+
+#define POW10LST_COUNT		19
+static const uint64_t pow10lst[POW10LST_COUNT] = {
+	10ull,
+	100ull,
+	1000ull,
+	10000ull,
+	100000ull,
+	1000000ull,
+	10000000ull,
+	100000000ull,
+	1000000000ull,
+	10000000000ull,
+	100000000000ull,
+	1000000000000ull,
+	10000000000000ull,
+	100000000000000ull,
+	1000000000000000ull,
+	10000000000000000ull,
+	100000000000000000ull,
+	1000000000000000000ull,
+	10000000000000000000ull
 };
 
 
+#define UNUM2STR(__num, __type, __buf, __size)				\
+	size_t __len;							\
+	if (NULL == (__buf) || 0 == (__size))				\
+		return (0);						\
+	for (__len = 0;							\
+	     __len < POW10LST_COUNT && ((uint64_t)(__num)) > pow10lst[__len]; \
+	     __len ++)							\
+		;							\
+	if ((__len + 1) >= (__size))					\
+		return ((__len + 2));					\
+	(__buf) += __len;						\
+	(__buf)[1] = 0;							\
+	do {								\
+		(*(__buf) --) = (__type)('0' + ((__num) % 10));		\
+		(__num) /= 10;						\
+	} while ((__num));						\
+	return (__len);
+
+#define SNUM2STR(__num, __type, __buf, __size)				\
+	size_t __len, __neg = 0;					\
+	if (NULL == (__buf) || 0 == (__size))				\
+		return (0);						\
+	if (0 > (__num)) {						\
+		(__num) = - (__num);					\
+		__neg = 1;						\
+	}								\
+	for (__len = 0;							\
+	     __len < POW10LST_COUNT && ((uint64_t)(__num)) > pow10lst[__len]; \
+	     __len ++)							\
+		;							\
+	__len += __neg;							\
+	if ((__len + 1) >= (__size))					\
+		return ((__len + 2));					\
+	if (__neg) {							\
+		(*(__buf)) = '-';					\
+	}								\
+	(__buf) += __len;						\
+	(__buf)[1] = 0;							\
+	do {								\
+		(*(__buf) --) = (__type)('0' + ((__num) % 10));		\
+		(__num) /= 10;						\
+	} while ((__num));						\
+	return (__len);
+
+
 static inline size_t
-UNumToStr(size_t dwNum, LPSTR pString, size_t dwStringLen) {
-	size_t dwRet = 0;
-	size_t dwNumtm = 1;
+usize2str(size_t num, char *buf, size_t buf_size) {
 
-	do
-	{
-		pString ++;// перемещаем указатель на следующую позицию
-		dwStringLen --;// уменьшаем длинну
-		dwNumtm *= 10;
-	} while (dwNum > dwNumtm && dwStringLen);
-	(*pString --) = 0;
+	UNUM2STR(num, char, buf, buf_size);
+}
 
+static inline size_t
+usize2ustr(size_t num, uint8_t *buf, size_t buf_size) {
 
-	if (dwStringLen)
-	{
-		do
-		{
-			dwNumtm = dwNum;
-			dwNum /= 10;
+	UNUM2STR(num, uint8_t, buf, buf_size);
+}
 
-			(*pString) = (unsigned char)(48 + (dwNumtm - (dwNum * 10)));
-			pString --;// перемещаем указатель на следующую позицию
-		} while (dwNum);
-	}
+static inline size_t
+u82str(uint8_t num, char *buf, size_t buf_size) {
 
-	return (dwRet);
+	UNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+u82ustr(uint8_t num, uint8_t *buf, size_t buf_size) {
+
+	UNUM2STR(num, uint8_t, buf, buf_size);
+}
+
+static inline size_t
+u162str(uint16_t num, char *buf, size_t buf_size) {
+
+	UNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+u162ustr(uint16_t num, uint8_t *buf, size_t buf_size) {
+
+	UNUM2STR(num, uint8_t, buf, buf_size);
+}
+
+static inline size_t
+u322str(uint32_t num, char *buf, size_t buf_size) {
+
+	UNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+u322ustr(uint32_t num, uint8_t *buf, size_t buf_size) {
+
+	UNUM2STR(num, uint8_t, buf, buf_size);
+}
+
+static inline size_t
+u642str(uint64_t num, char *buf, size_t buf_size) {
+
+	UNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+u642ustr(uint64_t num, uint8_t *buf, size_t buf_size) {
+
+	UNUM2STR(num, uint8_t, buf, buf_size);
 }
 
 
-static inline uint32_t
-UNumToStr32(uint32_t dwNum, LPSTR pString, size_t dwStringLen) {
-	uint32_t dwRet = 0;
-	uint32_t dwNumtm = 1;
+/* Signed. */
 
-	do
-	{
-		pString ++;// перемещаем указатель на следующую позицию
-		dwStringLen --;// уменьшаем длинну
-		dwNumtm *= 10;
-	} while (dwNum > dwNumtm && dwStringLen);
-	(*pString --) = 0;
+static inline ssize_t
+ssize2str(ssize_t num, char *buf, size_t buf_size) {
 
+	SNUM2STR(num, char, buf, buf_size);
+}
 
-	if (dwStringLen)
-	{
-		do
-		{
-			dwNumtm = dwNum;
-			dwNum /= 10;
+static inline ssize_t
+ssize2ustr(ssize_t num, uint8_t *buf, size_t buf_size) {
 
-			(*pString) = (unsigned char)(48 + (dwNumtm - (dwNum * 10)));
-			pString --;// перемещаем указатель на следующую позицию
-		} while (dwNum);
-	}	
+	SNUM2STR(num, uint8_t, buf, buf_size);
+}
 
-	return (dwRet);
+static inline size_t
+s82str(int8_t num, char *buf, size_t buf_size) {
+
+	SNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+s82ustr(int8_t num, uint8_t *buf, size_t buf_size) {
+
+	SNUM2STR(num, uint8_t, buf, buf_size);
+}
+
+static inline size_t
+s162str(int16_t num, char *buf, size_t buf_size) {
+
+	SNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+s162ustr(int16_t num, uint8_t *buf, size_t buf_size) {
+
+	SNUM2STR(num, uint8_t, buf, buf_size);
+}
+
+static inline size_t
+s322str(int32_t num, char *buf, size_t buf_size) {
+
+	SNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+s322ustr(int32_t num, uint8_t *buf, size_t buf_size) {
+
+	SNUM2STR(num, uint8_t, buf, buf_size);
+}
+
+static inline size_t
+s642str(int64_t num, char *buf, size_t buf_size) {
+
+	SNUM2STR(num, char, buf, buf_size);
+}
+
+static inline size_t
+s642ustr(int64_t num, uint8_t *buf, size_t buf_size) {
+
+	SNUM2STR(num, uint8_t, buf, buf_size);
 }
 
 
-static inline DWORD
-UNumToStr64(uint64_t dwNum, LPSTR pString, size_t dwStringLen) {
-	DWORD dwRet = 0;
-	uint64_t dwNumtm = 1;
-
-	do
-	{
-		pString ++;// перемещаем указатель на следующую позицию
-		dwStringLen --;// уменьшаем длинну
-		dwNumtm *= 10;
-	} while (dwNum > dwNumtm && dwStringLen);
-	(*pString --) = 0;
-
-
-	if (dwStringLen)
-	{
-		do
-		{
-			dwNumtm = dwNum;
-			dwNum /= 10;
-
-			(*pString) = (unsigned char)(48 + (dwNumtm - (dwNum * 10)));
-			pString --;// перемещаем указатель на следующую позицию
-		} while (dwNum);
-	}
-
-	return (dwRet);
-}
-
-
-#endif // __NUMTOSTR_H__
+#endif /* __NUM2STR_H__ */
