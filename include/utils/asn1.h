@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,66 +43,65 @@
 #endif
 
 
-
 /* Identifier */
 /* Bit: 7:8 - Class */
-#define ASN_ID_F_CLASS_MASK	((uint8_t)0xc0)
-#define ASN_ID_F_CLASS_UNIVERSAL ((uint8_t)0x00)
-#define ASN_ID_F_CLASS_APP	((uint8_t)0x40)
-#define ASN_ID_F_CLASS_CONTEXT	((uint8_t)0x80)
-#define ASN_ID_F_CLASS_PRIVATE	((uint8_t)0xc0)
+#define ASN_ID_F_CLASS_MASK		((uint8_t)0xc0)
+#define ASN_ID_F_CLASS_UNIVERSAL	((uint8_t)0x00)
+#define ASN_ID_F_CLASS_APP		((uint8_t)0x40)
+#define ASN_ID_F_CLASS_CONTEXT		((uint8_t)0x80)
+#define ASN_ID_F_CLASS_PRIVATE		((uint8_t)0xc0)
 
-#define ASN_ID_CLASS_UNIVERSAL	(ASN_ID_F_CLASS_UNIVERSAL >> 6)
-#define ASN_ID_CLASS_APP	(ASN_ID_F_CLASS_APP >> 6)
-#define ASN_ID_CLASS_CONTEXT	(ASN_ID_F_CLASS_CONTEXT >> 6)
-#define ASN_ID_CLASS_PRIVATE	(ASN_ID_F_CLASS_PRIVATE >> 6)
+#define ASN_ID_CLASS_UNIVERSAL		(ASN_ID_F_CLASS_UNIVERSAL >> 6)
+#define ASN_ID_CLASS_APP		(ASN_ID_F_CLASS_APP >> 6)
+#define ASN_ID_CLASS_CONTEXT		(ASN_ID_F_CLASS_CONTEXT >> 6)
+#define ASN_ID_CLASS_PRIVATE		(ASN_ID_F_CLASS_PRIVATE >> 6)
 
-#define ASN_ID_CLASS_GET(byte)	((byte) >> 6)
+#define ASN_ID_CLASS_GET(__byte)	((__byte) >> 6)
 
 /* Bit: 6 - P/C */
-#define ASN_ID_F_PRIMITIVE	((uint8_t)0x00)
-#define ASN_ID_F_CONSTRUCTED	((uint8_t)0x20)
-#define ASN_IS_ID_CONSTRUCTED(byte) ((byte) & ASN_ID_F_CONSTRUCTED)
+#define ASN_ID_F_PRIMITIVE		((uint8_t)0x00)
+#define ASN_ID_F_CONSTRUCTED		((uint8_t)0x20)
+#define ASN_IS_ID_CONSTRUCTED(__byte)	((__byte) & ASN_ID_F_CONSTRUCTED)
 
 /* Bit: 1:5 - Class Tag */
 /* Tags for ASN_CLASS_UNIVERSAL */
-#define ASN_ID_CU_TAG_MASK	((uint8_t)0x1f)
-#define ASN_ID_CU_TAG_EOC	((uint8_t)0x00) /* End-of-Content */
-#define ASN_ID_CU_TAG_BOOLEAN	((uint8_t)0x01)
-#define ASN_ID_CU_TAG_INTEGER	((uint8_t)0x02)
-#define ASN_ID_CU_TAG_BIT_STR	((uint8_t)0x03)
-#define ASN_ID_CU_TAG_OCTET_STR ((uint8_t)0x04)
-#define ASN_ID_CU_TAG_NULL	((uint8_t)0x05)
-#define ASN_ID_CU_TAG_OBJ_ID	((uint8_t)0x06)
-#define ASN_ID_CU_TAG_OBJ_DESCR	((uint8_t)0x07)
-#define ASN_ID_CU_TAG_EXTERNAL	((uint8_t)0x08)
-#define ASN_ID_CU_TAG_REAL	((uint8_t)0x09)
-#define ASN_ID_CU_TAG_ENUMERATED ((uint8_t)0x0a)
-#define ASN_ID_CU_TAG_EMBEDDED_PDV ((uint8_t)0x0b)
-#define ASN_ID_CU_TAG_UTF8_STR	((uint8_t)0x0c)
-#define ASN_ID_CU_TAG_RELATIVE_OID ((uint8_t)0x0d)
+#define ASN_ID_CU_TAG_MASK		((uint8_t)0x1f)
+#define ASN_ID_CU_TAG_EOC		((uint8_t)0x00) /* End-of-Content */
+#define ASN_ID_CU_TAG_BOOLEAN		((uint8_t)0x01)
+#define ASN_ID_CU_TAG_INTEGER		((uint8_t)0x02)
+#define ASN_ID_CU_TAG_BIT_STR		((uint8_t)0x03)
+#define ASN_ID_CU_TAG_OCTET_STR		((uint8_t)0x04)
+#define ASN_ID_CU_TAG_NULL		((uint8_t)0x05)
+#define ASN_ID_CU_TAG_OBJ_ID		((uint8_t)0x06)
+#define ASN_ID_CU_TAG_OBJ_DESCR		((uint8_t)0x07)
+#define ASN_ID_CU_TAG_EXTERNAL		((uint8_t)0x08)
+#define ASN_ID_CU_TAG_REAL		((uint8_t)0x09)
+#define ASN_ID_CU_TAG_ENUMERATED	((uint8_t)0x0a)
+#define ASN_ID_CU_TAG_EMBEDDED_PDV	((uint8_t)0x0b)
+#define ASN_ID_CU_TAG_UTF8_STR		((uint8_t)0x0c)
+#define ASN_ID_CU_TAG_RELATIVE_OID	((uint8_t)0x0d)
 /* e - reserved */
 /* f - reserved */
-#define ASN_ID_CU_TAG_SEQUENCE	((uint8_t)0x10)
-#define ASN_ID_CU_TAG_SET	((uint8_t)0x11)
-#define ASN_ID_CU_TAG_NUM_STR	((uint8_t)0x12)
-#define ASN_ID_CU_TAG_PRINT_STR	((uint8_t)0x13) /* PrintableString */
-#define ASN_ID_CU_TAG_T61_STR	((uint8_t)0x14)
-#define ASN_ID_CU_TAG_VIDEOTEX_STR ((uint8_t)0x15)
-#define ASN_ID_CU_TAG_IA5_STR	((uint8_t)0x16)
-#define ASN_ID_CU_TAG_UTC_TIME	((uint8_t)0x17)
-#define ASN_ID_CU_TAG_GEN_TIME	((uint8_t)0x18) /* GeneralizedTime */
-#define ASN_ID_CU_TAG_GRAPH_STR ((uint8_t)0x19) /* GraphicString */
-#define ASN_ID_CU_TAG_VIS_STR	((uint8_t)0x1a) /* VisibleString */
-#define ASN_ID_CU_TAG_GEN_STR	((uint8_t)0x1b) /* GeneralString */
-#define ASN_ID_CU_TAG_UNI_STR	((uint8_t)0x1c) /* UniversalString */
-#define ASN_ID_CU_TAG_CHAR_STR	((uint8_t)0x1d) /* CHARACTER STRING */
-#define ASN_ID_CU_TAG_BMP_STR	((uint8_t)0x1e)
-#define ASN_ID_CU_TAG_LONG_FORM	((uint8_t)0x1f) /* long-form identifier */
+#define ASN_ID_CU_TAG_SEQUENCE		((uint8_t)0x10)
+#define ASN_ID_CU_TAG_SET		((uint8_t)0x11)
+#define ASN_ID_CU_TAG_NUM_STR		((uint8_t)0x12)
+#define ASN_ID_CU_TAG_PRINT_STR		((uint8_t)0x13) /* PrintableString */
+#define ASN_ID_CU_TAG_T61_STR		((uint8_t)0x14)
+#define ASN_ID_CU_TAG_VIDEOTEX_STR	((uint8_t)0x15)
+#define ASN_ID_CU_TAG_IA5_STR		((uint8_t)0x16)
+#define ASN_ID_CU_TAG_UTC_TIME		((uint8_t)0x17)
+#define ASN_ID_CU_TAG_GEN_TIME		((uint8_t)0x18) /* GeneralizedTime */
+#define ASN_ID_CU_TAG_GRAPH_STR		((uint8_t)0x19) /* GraphicString */
+#define ASN_ID_CU_TAG_VIS_STR		((uint8_t)0x1a) /* VisibleString */
+#define ASN_ID_CU_TAG_GEN_STR		((uint8_t)0x1b) /* GeneralString */
+#define ASN_ID_CU_TAG_UNI_STR		((uint8_t)0x1c) /* UniversalString */
+#define ASN_ID_CU_TAG_CHAR_STR		((uint8_t)0x1d) /* CHARACTER STRING */
+#define ASN_ID_CU_TAG_BMP_STR		((uint8_t)0x1e)
+#define ASN_ID_CU_TAG_LONG_FORM		((uint8_t)0x1f) /* long-form identifier */
 
-#define ASN_ID_CLASS_TAG_GET(byte) ((byte) & ASN_ID_CU_TAG_MASK)
+#define ASN_ID_CLASS_TAG_GET(__byte)	((__byte) & ASN_ID_CU_TAG_MASK)
 
-#define ASN_ID_F_PC		((uint8_t)0xff) /* Valid only in this array. */
+#define ASN_ID_F_PC			((uint8_t)0xff) /* Valid only in this array. */
 /* ps flags for ASN_ID_CLASS_UNIVERSAL */
 static const uint8_t asn_class_uni_ps[] = {
 	ASN_ID_F_PRIMITIVE,	/* 0x00 */
@@ -177,23 +176,22 @@ static const char *asn_class_uni_dname[] = {
 
 
 /* Length */
-#define ASN_LEN_LONG		((uint8_t)0x80)
-#define ASN_IS_LEN_LONG(byte)	((byte) & ASN_LEN_LONG)
+#define ASN_LEN_LONG			((uint8_t)0x80)
+#define ASN_IS_LEN_LONG(__byte)		((__byte) & ASN_LEN_LONG)
 
-#define ASN_BIT8		((uint8_t)0x80)
+#define ASN_BIT8			((uint8_t)0x80)
 
 
-
-#define ASN_MIN_OID_LEN		2
-#define ASN_MAX_OID_LEN		128 /* max subid's in an oid */
-#define ASN_MAX_NAME_LEN	MAX_OID_LEN
+#define ASN_MIN_OID_LEN			2
+#define ASN_MAX_OID_LEN			128 /* max subid's in an oid */
+#define ASN_MAX_NAME_LEN		MAX_OID_LEN
 
 
 static inline int
 asn_parse(uint8_t *buf, size_t buf_size, size_t *offset, size_t *hdr_size,
     uint8_t *aclass, uint8_t *ps, size_t *atag, uint8_t **data, size_t *data_size) {
 	uint8_t *cur_pos, *max_pos, cls, f_ps, *dt;
-	size_t off = 0, h_size = 0, tag, tm, dt_size;
+	size_t off = 0, h_size = 0, tag, stm, dt_size;
 
 	if (NULL == buf || 0 == buf_size)
 		return (EINVAL);
@@ -206,6 +204,7 @@ asn_parse(uint8_t *buf, size_t buf_size, size_t *offset, size_t *hdr_size,
 	}
 	if (ASN_MIN_OID_LEN > (buf_size - off))
 		return (EBADMSG);
+
 	cur_pos = (buf + off);
 	max_pos = (buf + buf_size);
 	/* Identifier. */
@@ -230,19 +229,19 @@ asn_parse(uint8_t *buf, size_t buf_size, size_t *offset, size_t *hdr_size,
 	cur_pos ++;
 	h_size ++;
 	if (ASN_IS_LEN_LONG(dt_size)) {
-		tm = (dt_size & ~ASN_LEN_LONG);
-		if (tm == 0) { /* XXX: The indefinite form: find 00 00 as end. */
+		stm = (dt_size & ~ASN_LEN_LONG);
+		if (stm == 0) { /* XXX: The indefinite form: find 00 00 as end. */
 			return (EDOM);
 		} else {
-			h_size += tm;
-			while ((tm --) && max_pos > cur_pos) { /* Skeep zero bytes. */
+			h_size += stm;
+			while ((stm --) && max_pos > cur_pos) { /* Skeep zero bytes. */
 				dt_size = (*cur_pos ++);
 				if (dt_size)
 					break;
 			}
-			if (tm > sizeof(dt_size))
+			if (stm > sizeof(dt_size))
 				return (EOVERFLOW);
-			while ((tm --) && max_pos > cur_pos) {
+			while ((stm --) && max_pos > cur_pos) {
 				dt_size <<= 8;
 				dt_size |= (*cur_pos ++);
 			}
@@ -257,23 +256,30 @@ asn_parse(uint8_t *buf, size_t buf_size, size_t *offset, size_t *hdr_size,
 	    (ASN_ID_F_PC != asn_class_uni_ps[tag] && f_ps != asn_class_uni_ps[tag]))
 		return (EBADMSG);
 	/* Ok, return. */
-	if (NULL != offset)
+	if (NULL != offset) {
 		(*offset) = (off + h_size + dt_size);
-	if (NULL != hdr_size)
+	}
+	if (NULL != hdr_size) {
 		(*hdr_size) = h_size;
-	if (NULL != aclass)
+	}
+	if (NULL != aclass) {
 		(*aclass) = cls;
-	if (NULL != ps)
+	}
+	if (NULL != ps) {
 		(*ps) = f_ps;
-	if (NULL != atag)
+	}
+	if (NULL != atag) {
 		(*atag) = tag;
-	if (NULL != data)
+	}
+	if (NULL != data) {
 		(*data) = dt;
-	if (NULL != data_size)
+	}
+	if (NULL != data_size) {
 		(*data_size) = dt_size;
+	}
+
 	return (0);
 }
-
 
 
 #endif /* __ASN_1_H__ */
