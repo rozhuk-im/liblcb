@@ -58,7 +58,7 @@
 		}							\
 	}
 
-#define STRH2NUM(__str, __len, __res)					\
+#define STRH2NUM(__str, __len, __type, __res)				\
 	for (size_t __i = 0; __i < (__len); __i ++) {			\
 		uint8_t __cval = ((const uint8_t*)(__str))[__i];	\
 		if ('0' <= __cval && '9' >= __cval) {			\
@@ -70,22 +70,22 @@
 		} else {						\
 			continue;					\
 		}							\
-		(__res) = (((__res) << 4) | __cval);			\
+		(__res) = (((__type)((__res) << 4)) | __cval);		\
 	}
 
 #define STRH2UNUM(__str, __len, __type)					\
 	__type __res = 0;						\
 	if (NULL == (__str) || 0 == (__len))				\
 		return (0);						\
-	STR2NUM((__str), (__len), __res);				\
+	STRH2NUM((__str), (__len), __type, __res);			\
 	return (__res);
 
 #define STRH2SNUM(__str, __len, __type)					\
 	__type __res = 0, __sign = 1;					\
 	if (NULL == (__str) || 0 == (__len))				\
 		return (0);						\
-	STR2NUM_SIGN((__str), (__len), __sign);				\
-	STR2NUM((__str), (__len), __res);				\
+	STRH2NUM_SIGN((__str), (__len), __sign);			\
+	STRH2NUM((__str), (__len), __type, __res);			\
 	__res *= __sign;						\
 	return (__res);
 
