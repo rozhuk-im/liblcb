@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -587,6 +587,45 @@ buf2args(char *buf, size_t buf_size, size_t max_args, char **args, size_t *args_
 	return (ret);
 }
 
+int
+buf_get_next_line(uint8_t *buf, size_t buf_size,
+    uint8_t *line, size_t line_size,
+    uint8_t **next_line, size_t *next_line_size) {
+	uint8_t *ptr, *end, *buf_end = (buf + buf_size);
+
+	if (NULL == buf || 0 == buf_size ||
+	    NULL == next_line || NULL == next_line_size)
+		return (EINVAL);
+
+	if (NULL != line) {
+		ptr = (line + line_size);
+		if (ptr < buf) {
+			ptr = buf;
+		}
+		if (ptr < buf_end && 0x0d == ptr[0]) { /* CR */
+			ptr ++;
+		}
+		if (ptr < buf_end && 0x0a == ptr[0]) { /* LF */
+			ptr ++;
+		}
+	} else {
+		ptr = buf;
+	}
+
+	end = mem_chr_ptr(ptr, buf, buf_size, 0x0a /* LF */);
+	if (NULL == end) {
+		end = buf_end;
+	} else if (end > ptr && 0x0d == end[-1]) { /* CR */
+		end --;
+	}
+	if (buf_end == ptr) /* EOF */
+		return (-1);
+
+	(*next_line) = ptr;
+	(*next_line_size) = (size_t)(end - ptr);
+
+	return (0);
+}
 
 size_t
 fmt_as_uptime(time_t *ut, char *buf, size_t buf_size) {
