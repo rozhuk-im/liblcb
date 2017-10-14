@@ -36,19 +36,6 @@
 #include <signal.h>
 
 
-typedef struct cmd_line_data_s {
-	char	*cfg_file_name;
-	char	*pid_file_name;
-	uid_t	pw_uid;		// user uid
-	gid_t	pw_gid;		// user gid
-	int	daemon;
-	int	verbose;
-	char	*file_name;
-} cmd_line_data_t, *cmd_line_data_p;
-
-
-int	cmd_line_parse(int argc, char **argv, cmd_line_data_p data);
-void	cmd_line_usage(const char *pkg_name, const char *pkg_ver);
 void	signal_install(sig_t func);
 void	make_daemon(void);
 int	write_pid(const char *file_name);
@@ -60,10 +47,6 @@ int	read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 int	get_cpu_count(void);
 int	bind_thread_to_cpu(int cpu_id);
 int	fd_set_nonblocking(uintptr_t fd, int nonblocked);
-#if defined(__FreeBSD__) && __FreeBSD__ < 10 /* __FreeBSD__ specific code. */
-int	pipe2(int fildes[2], int flags);
-#endif /* __FreeBSD__ specific code. */
-
 
 size_t	calc_sptab_count(const char *buf, size_t buf_size);
 size_t	calc_sptab_count_r(const char *buf, size_t buf_size);
@@ -91,10 +74,6 @@ int	cvt_bin2hex(const uint8_t *bin, size_t bin_size, int auto_hex_size,
 
 int	yn_set_flag32(const uint8_t *buf, size_t buf_size, uint32_t flag_bit,
 	    uint32_t *flags);
-
-#ifdef SYS_RES_XML_CONFIG
-void	sys_res_limits_load_xml_apply(const uint8_t *buf, size_t buf_size);
-#endif
 
 
 #endif /* __HELPERS_H__ */

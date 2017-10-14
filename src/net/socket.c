@@ -64,6 +64,7 @@
 #include "utils/mem_utils.h"
 
 #include "utils/helpers.h"
+#include "al/os.h"
 #include "net/socket_address.h"
 #include "net/utils.h"
 #include "net/socket.h"
@@ -72,7 +73,6 @@
 #	include "utils/helpers.h"
 #	include "utils/log.h"
 #endif
-
 
 
 #ifdef SOCKET_XML_CONFIG
@@ -824,24 +824,20 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 		return (EINVAL);
 
 	/* Create blocked/nonblocked socket. */
-#ifndef SOCK_NONBLOCK /* Standart / BSD */
-	skt = (uintptr_t)socket(domain, type, protocol);
-	if ((uintptr_t)-1 == skt)
-		return (errno);
-	if (0 != (SO_F_NONBLOCK & flags)) {
-		error = fd_set_nonblocking(skt, 1);
-		if (0 != error)
-			goto err_out;
-	}
-#else /* Linux / FreeBSD10+ */
+#ifdef SOCK_NONBLOCK
 	if (0 != (SO_F_NONBLOCK & flags)) {
 		type |= SOCK_NONBLOCK;
 	} else {
 		type &= ~SOCK_NONBLOCK;
 	}
+#endif
 	skt = (uintptr_t)socket(domain, type, protocol);
 	if ((uintptr_t)-1 == skt)
 		return (errno);
+#ifndef SOCK_NONBLOCK
+	error = fd_set_nonblocking(skt, (0 != (SO_F_NONBLOCK & flags)));
+	if (0 != error)
+		goto err_out;
 #endif
 	/* Tune socket. */
 	if (0 != (SO_F_BROADCAST & flags)) {
@@ -861,7 +857,7 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 	(*skt_ret) = skt;
 
 	return (0);
-	
+
 err_out:
 	/* Error. */
 	close((int)skt);
@@ -876,17 +872,6 @@ skt_accept(uintptr_t skt, sockaddr_storage_t *addr, socklen_t *addrlen,
 
 	if (NULL == skt_ret)
 		return (EINVAL);
-
-#ifndef SOCK_NONBLOCK /* Standart / BSD */
-	s = accept((int)skt, (sockaddr_p)addr, addrlen);
-	if ((uintptr_t)-1 == s)
-		return (errno);
-	int error = fd_set_nonblocking(s, (0 != (SO_F_NONBLOCK & flags)));
-	if (0 != error) {
-		close((int)s);
-		return (error);
-	}
-#else /* Linux / FreeBSD 10 + */
 	/*
 	 * On Linux, the new socket returned by accept() does not
 	 * inherit file status flags such as O_NONBLOCK and O_ASYNC
@@ -896,7 +881,6 @@ skt_accept(uintptr_t skt, sockaddr_storage_t *addr, socklen_t *addrlen,
 	    (0 != (SO_F_NONBLOCK & flags)) ? SOCK_NONBLOCK : 0);
 	if ((uintptr_t)-1 == s)
 		return (errno);
-#endif
 #ifdef SO_NOSIGPIPE
 	int on = 1;
 	setsockopt((int)s, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));

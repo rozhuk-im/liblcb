@@ -48,6 +48,7 @@
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
 #include "utils/log.h"
+#include "al/os.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
