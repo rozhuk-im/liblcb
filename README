@@ -3,9 +3,11 @@ Light Code Base
 Linked code library.
 Compile and include only things that you need.
 
-
+al		- abstraction layer (OS, hardware)
 crypto		- crypto algs
 math		- mathematic functions
+net		- socket and net staff
+proto		- protocols implementetions
 threadpool	- kqueue/epoll thread pool
 utils		- 
 
