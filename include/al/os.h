@@ -36,14 +36,18 @@
 #include <sys/socket.h>
 
 
-#if defined(__FreeBSD__) && __FreeBSD__ < 10 /* __FreeBSD__ specific code. */
+#if defined(__FreeBSD__) && __FreeBSD__ < 10
 int	pipe2(int fildes[2], int flags);
-#endif /* __FreeBSD__ specific code. */
+#endif
 
 
-#ifndef SOCK_NONBLOCK /* Standart / BSD */
+#ifndef SOCK_NONBLOCK
 #define	SOCK_NONBLOCK	0x20000000
 int	accept4(int, struct sockaddr * __restrict, socklen_t * __restrict, int);
+#else
+#ifndef HAVE_SOCK_NONBLOCK
+#define HAVE_SOCK_NONBLOCK	1
+#endif
 #endif
 
 

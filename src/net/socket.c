@@ -824,7 +824,7 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 		return (EINVAL);
 
 	/* Create blocked/nonblocked socket. */
-#ifdef SOCK_NONBLOCK
+#ifdef HAVE_SOCK_NONBLOCK
 	if (0 != (SO_F_NONBLOCK & flags)) {
 		type |= SOCK_NONBLOCK;
 	} else {
@@ -834,7 +834,7 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 	skt = (uintptr_t)socket(domain, type, protocol);
 	if ((uintptr_t)-1 == skt)
 		return (errno);
-#ifndef SOCK_NONBLOCK
+#ifndef HAVE_SOCK_NONBLOCK
 	error = fd_set_nonblocking(skt, (0 != (SO_F_NONBLOCK & flags)));
 	if (0 != error)
 		goto err_out;
