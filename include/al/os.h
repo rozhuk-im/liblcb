@@ -36,7 +36,7 @@
 #include <sys/socket.h>
 
 
-#if defined(__FreeBSD__) && __FreeBSD__ < 10
+#ifndef HAVE_PIPE2
 int	pipe2(int fildes[2], int flags);
 #endif
 

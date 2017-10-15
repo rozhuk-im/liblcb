@@ -46,7 +46,7 @@
 #include "al/os.h"
 
 
-#if defined(__FreeBSD__) && __FreeBSD__ < 10 /* __FreeBSD__ specific code. */
+#ifndef HAVE_PIPE2
 int
 pipe2(int fildes[2], int flags) {
 	int error;
@@ -55,10 +55,10 @@ pipe2(int fildes[2], int flags) {
 	if (0 != error)
 		return (error);
 	if (0 != (O_NONBLOCK & flags)) {
-		error = fd_set_nonblocking(fildes[0], 1);
+		error = fd_set_nonblocking((uintptr_t)fildes[0], 1);
 		if (0 != error)
 			goto err_out;
-		error = fd_set_nonblocking(fildes[1], 1);
+		error = fd_set_nonblocking((uintptr_t)fildes[1], 1);
 		if (0 != error)
 			goto err_out;
 	}
@@ -73,7 +73,7 @@ err_out:
 
 	return (error);
 }
-#endif /* BSD specific code. */
+#endif
 
 
 #ifndef HAVE_SOCK_NONBLOCK
@@ -85,7 +85,7 @@ accept4(int skt, struct sockaddr *addr __restrict,
 	s = accept(skt, addr, addrlen);
 	if (-1 == s)
 		return (-1);
-	if (0 != fd_set_nonblocking(s, (0 != (SOCK_NONBLOCK & flags)))) {
+	if (0 != fd_set_nonblocking((uintptr_t)s, (0 != (SOCK_NONBLOCK & flags)))) {
 		close(s);
 		return (-1);
 	}
