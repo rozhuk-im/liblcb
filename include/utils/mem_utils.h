@@ -494,7 +494,7 @@ mem_set(void *buf, const size_t size, const uint8_t c) {
 	return (memset_volatile(buf, c, size));
 }
 
-#define mem_bzero(__buf, __size)	mem_set((__buf), (size_t)(__size), 0)
+#define mem_bzero(__buf, __size)	mem_set((__buf), (size_t)(__size), 0x00)
 
 
 /* Debug memory fill. */

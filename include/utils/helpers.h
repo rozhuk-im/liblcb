@@ -63,9 +63,8 @@ int	buf_get_next_line(uint8_t *buf, size_t buf_size,
 size_t	fmt_as_uptime(time_t *ut, char *buf, size_t buf_size);
 
 
-uint8_t	data_xor8(void *buf, size_t size);
-void	memxor(void *dst, uint8_t byte, size_t size);
-void	memxorbuf(void *dst, size_t dsize, void *src, size_t ssize);
+uint8_t	data_xor8(const void *buf, size_t size);
+void	memxorbuf(void *dst, size_t dsize, const void *src, size_t ssize);
 
 int	cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
 	    uint8_t *bin, size_t bin_size, size_t *bin_size_ret);

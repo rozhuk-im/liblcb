@@ -39,10 +39,6 @@
 #include <sys/stat.h> /* chmod, fchmod, umask */
 #include <sys/uio.h> /* readv, preadv, writev, pwritev */
 
-#ifdef __linux__ /* Linux specific code. */
-#	include <sched.h>
-#endif /* Linux specific code. */
-
 #include <pthread.h>
 
 #ifdef BSD /* BSD specific code. */
@@ -63,14 +59,6 @@
 
 #include "utils/mem_utils.h"
 #include "utils/helpers.h"
-#ifdef SYS_RES_XML_CONFIG
-#	include <sys/resource.h>
-#	ifdef BSD /* BSD specific code. */
-#		include <sys/rtprio.h>
-#	endif /* BSD specific code. */
-#	include "utils/str2num.h"
-#	include "utils/xml.h"
-#endif
 
 
 void
@@ -481,11 +469,12 @@ fmt_as_uptime(time_t *ut, char *buf, size_t buf_size) {
 
 
 uint8_t
-data_xor8(void *dst, size_t size) {
+data_xor8(const void *buf, size_t size) {
 	size_t i;
-	uint8_t ret = 0, *pt = (uint8_t*)dst;
+	uint8_t ret = 0;
+	const uint8_t *pt = (const uint8_t*)buf;
 
-	if (NULL == dst || 0 == size)
+	if (NULL == buf || 0 == size)
 		return (0);
 
 	for (i = 0; i < size; i ++) {
@@ -496,31 +485,19 @@ data_xor8(void *dst, size_t size) {
 }
 
 void
-memxor(void *dst, uint8_t byte, size_t size) {
-	size_t i;
-	uint8_t *pt = (uint8_t*)dst;
-
-	if (NULL == dst || 0 == size)
-		return;
-
-	for (i = 0; i < size; i ++) {
-		pt[i] ^= byte;
-	}
-}
-
-void
-memxorbuf(void *dst, size_t dsize, void *src, size_t ssize) {
-	size_t i, j;
-	uint8_t *pd = (uint8_t*)dst, *ps = (uint8_t*)src;
+memxorbuf(void *dst, size_t dsize, const void *src, size_t ssize) {
+	size_t di, si;
+	uint8_t *pd = (uint8_t*)dst;
+	const uint8_t *ps = (const uint8_t*)src;
 
 	if (NULL == dst || 0 == dsize || NULL == src || 0 == ssize)
 		return;
 
-	for (i = 0, j = 0; i < dsize; i ++, j ++) {
-		if (j == ssize) {
-			j = 0;
+	for (di = 0, si = 0; si < dsize; di ++, si ++) {
+		if (si == ssize) {
+			si = 0;
 		}
-		pd[i] ^= ps[j];
+		pd[di] ^= ps[si];
 	}
 }
 
