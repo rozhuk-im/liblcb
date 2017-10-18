@@ -493,7 +493,7 @@ memxorbuf(void *dst, size_t dsize, const void *src, size_t ssize) {
 	if (NULL == dst || 0 == dsize || NULL == src || 0 == ssize)
 		return;
 
-	for (di = 0, si = 0; si < dsize; di ++, si ++) {
+	for (di = 0, si = 0; di < dsize; di ++, si ++) {
 		if (si == ssize) {
 			si = 0;
 		}
