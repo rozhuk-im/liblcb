@@ -1131,7 +1131,7 @@ dns_msg_question_add(dns_hdr_p hdr, size_t msg_size, size_t msgbuf_size,
 		(*msg_size_ret) = question_size;
 	}
 
-	return (error);
+	return (0);
 }
 
 /* Extract and return Question data. */
@@ -1220,6 +1220,8 @@ dns_msg_rr_add(dns_hdr_p hdr, size_t msg_size, size_t msgbuf_size, int compress,
 	    sizeof(uint8_t*));
 	rr_size_tm = (msg_size + labels_sequence_size + (sizeof(dns_rr_t) -
 	    (sizeof(uint8_t*) + sizeof(uint8_t))) + data_size);
+	if (msgbuf_size < rr_size_tm) 
+		return (EOVERFLOW);
 
 	//rr->name = ;
 	rr->type = htons(type);
@@ -1228,7 +1230,7 @@ dns_msg_rr_add(dns_hdr_p hdr, size_t msg_size, size_t msgbuf_size, int compress,
 	rr->rdlength = htons(data_size);
 	memcpy(&rr->rdata, data, data_size);
 
-	return (error);
+	return (0);
 }
 
 /*

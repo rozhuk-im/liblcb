@@ -78,14 +78,6 @@ typedef struct sdp_lite_s {
 } sdp_lite_t, *sdp_lite_p;
 
 
-/* Used for DNS cache dump callback. */
-typedef struct sap_rcvr_cache_dump_s {
-	char *buf;
-	size_t buf_size;
-	size_t cur_off;
-} sap_rcvr_cache_dump_t;
-
-
 sdp_lite_p	sdp_lite_alloc(const uint8_t *id, uint16_t id_size, uint16_t name_size);
 void		sdp_lite_free(sdp_lite_p sdpl);
 int		data_cache_enum_cb_fn(void *udata, data_cache_item_p dc_item);
