@@ -408,10 +408,10 @@ buf2args(char *buf, size_t buf_size, size_t max_args, char **args, size_t *args_
 }
 
 int
-buf_get_next_line(uint8_t *buf, size_t buf_size,
-    uint8_t *line, size_t line_size,
-    uint8_t **next_line, size_t *next_line_size) {
-	uint8_t *ptr, *end, *buf_end = (buf + buf_size);
+buf_get_next_line(const uint8_t *buf, size_t buf_size,
+    const uint8_t *line, size_t line_size,
+    const uint8_t **next_line, size_t *next_line_size) {
+	const uint8_t *ptr, *end, *buf_end = (buf + buf_size);
 
 	if (NULL == buf || 0 == buf_size ||
 	    NULL == next_line || NULL == next_line_size)
