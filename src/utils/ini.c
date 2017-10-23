@@ -44,7 +44,8 @@
 #include "utils/helpers.h"
 #include "utils/ini.h"
 
-#define INI_CFG_LINE_ALLOC_PADDING	16
+#define INI_LINE_ALLOC_PADDING		16
+#define INI_LINES_PREALLOC		64
 
 
 typedef struct ini_line_s {
@@ -67,6 +68,7 @@ typedef struct ini_line_s {
 typedef struct ini_s {
 	ini_line_p 	*lines;
 	size_t		lines_count;
+	size_t		lines_allocated;
 } ini_t;
 
 
@@ -76,7 +78,7 @@ ini_line_alloc__int(size_t size) {
 	ini_line_p line;
 
 	/* Alloc and store data from line. */
-	tm = (sizeof(ini_line_t) + size + INI_CFG_LINE_ALLOC_PADDING);
+	tm = (sizeof(ini_line_t) + size + INI_LINE_ALLOC_PADDING);
 	line = zalloc(tm);
 	if (NULL == line)
 		return (NULL);
@@ -124,7 +126,7 @@ ini_destroy(ini_p ini) {
 
 int
 ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
-	int error = 0;
+	int error;
 	uint8_t *ptr;
 	const uint8_t *pline;
 	size_t line_size;
@@ -141,10 +143,8 @@ ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
 	    &pline, &line_size)) {
 		/* Alloc and store data from line. */
 		line = ini_line_alloc__int(line_size);
-		if (NULL == line) {
-			error = errno;
-			goto err_out;
-		}
+		if (NULL == line)
+			return (errno);
 		memcpy(line->data, pline, line_size);
 		if (0 == line_size) {
 			line->type = INI_LINE_TYPE_EMPTY_LINE;
@@ -182,20 +182,19 @@ ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
 			}
 		}
 		/* Add line to array. */
-		lines_new = reallocarray(ini->lines,
-		    (ini->lines_count + 1), sizeof(ini_line_p));
-		if (NULL == lines_new) {
-			error = errno;
+		error = realloc_items((void**)&ini->lines,
+		    sizeof(ini_line_p), &ini->lines_allocated,
+		    INI_LINES_PREALLOC, ini->lines_count);
+		if (0 != error) {
 			free(line);
-			goto err_out;
+			return (error);
 		}
 		ini->lines = lines_new;
 		ini->lines[ini->lines_count] = line;
 		ini->lines_count ++;
 	}
-err_out:
 
-	return (error);
+	return (0);
 }
 
 int
@@ -548,8 +547,9 @@ int
 ini_val_set(ini_p ini, const uint8_t *sect_name,
     size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
     const uint8_t *val, size_t val_size) {
+	int error;
 	size_t sect_off, val_off, data_size;
-	ini_line_p line = NULL, *lines_new;
+	ini_line_p line = NULL;
 
 	if (NULL == ini || (NULL == val && 0 != val_size))
 		return (EINVAL);
@@ -575,13 +575,13 @@ ini_val_set(ini_p ini, const uint8_t *sect_name,
 		line->name[line->name_size] = ']';
 
 		/* Add line to array. */
-		lines_new = reallocarray(ini->lines,
-		    (ini->lines_count + 1), sizeof(ini_line_p));
-		if (NULL == lines_new) {
+		error = realloc_items((void**)&ini->lines,
+		    sizeof(ini_line_p), &ini->lines_allocated,
+		    INI_LINES_PREALLOC, ini->lines_count);
+		if (0 != error) {
 			free(line);
-			return (errno);
+			return (error);
 		}
-		ini->lines = lines_new;
 		ini->lines[ini->lines_count] = line;
 		sect_off = ini->lines_count;
 		ini->lines_count ++;
@@ -593,13 +593,13 @@ ini_val_set(ini_p ini, const uint8_t *sect_name,
 	val_off = ini_sect_val_find(ini, sect_off, val_name, val_name_size);
 	if ((size_t)~0 == val_off) { /* No value in section, add. */
 		/* Add line to array. */
-		lines_new = reallocarray(ini->lines,
-		    (ini->lines_count + 1), sizeof(ini_line_p));
-		if (NULL == lines_new) {
+		error = realloc_items((void**)&ini->lines,
+		    sizeof(ini_line_p), &ini->lines_allocated,
+		    INI_LINES_PREALLOC, ini->lines_count);
+		if (0 != error) {
 			free(line);
-			return (errno);
+			return (error);
 		}
-		ini->lines = lines_new;
 		/* Add to section end. */
 		for (val_off = (sect_off + 1); val_off < ini->lines_count; val_off ++) {
 			if (NULL == ini->lines[val_off])
@@ -640,7 +640,7 @@ alloc_new_line:
 			goto update_value;
 		/* Realloc. */
 		line = realloc(ini->lines[val_off], (sizeof(ini_line_t) +
-		    data_size + INI_CFG_LINE_ALLOC_PADDING));
+		    data_size + INI_LINE_ALLOC_PADDING));
 		if (NULL == line)
 			return (errno);
 		if (ini->lines[val_off] == line)
@@ -648,7 +648,7 @@ alloc_new_line:
 		/* Update pointers. */
 		ini->lines[val_off] = line;
 		line->data = (uint8_t*)(line + 1);
-		line->data_allocated_size = (data_size + INI_CFG_LINE_ALLOC_PADDING);
+		line->data_allocated_size = (data_size + INI_LINE_ALLOC_PADDING);
 		line->name = line->data;
 		line->val = (line->name + line->name_size + 1);
 	}
