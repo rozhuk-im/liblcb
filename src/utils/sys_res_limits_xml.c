@@ -41,10 +41,7 @@
 #include <errno.h>
 #include <stdio.h>  /* snprintf, fprintf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
-#include <unistd.h> /* close, write, sysconf */
 #include <stdlib.h> /* malloc, exit */
-#include <stdarg.h> /* va_start, va_arg */
-#include <signal.h>
 
 #ifdef BSD /* BSD specific code. */
 #	include <sys/rtprio.h>

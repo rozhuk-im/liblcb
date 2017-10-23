@@ -34,6 +34,9 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <sys/socket.h>
+#ifdef HAVE_CONFIG_H
+#	include "config.h"
+#endif
 
 
 #ifndef HAVE_PIPE2
@@ -42,12 +45,14 @@ int	pipe2(int fildes[2], int flags);
 
 
 #ifndef SOCK_NONBLOCK
-#define	SOCK_NONBLOCK	0x20000000
-int	accept4(int, struct sockaddr * __restrict, socklen_t * __restrict, int);
+#	define SOCK_NONBLOCK	0x20000000
+#	ifndef HAVE_ACCEPT4
+		int accept4(int, struct sockaddr * __restrict, socklen_t * __restrict, int);
+#	endif
 #else
-#ifndef HAVE_SOCK_NONBLOCK
-#define HAVE_SOCK_NONBLOCK	1
-#endif
+#	ifndef HAVE_SOCK_NONBLOCK
+#		define HAVE_SOCK_NONBLOCK	1
+#	endif
 #endif
 
 

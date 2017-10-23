@@ -48,8 +48,6 @@
 #		include <string.h> /* memcpy, memmove, memset... */
 #		include <strings.h> /* strncasecmp() */
 #	endif
-	/* Secure version of memset(). */
-	static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 #else
 #	define EINVAL		ERROR_INVALID_PARAMETER
 #	define ENOMEM		ERROR_OUTOFMEMORY
@@ -59,28 +57,19 @@
 #	include <stdint.h>
 #endif
 #include <stdlib.h>
+#ifdef HAVE_CONFIG_H
+#	include "config.h"
+#endif
 
 #ifndef SIZE_T_MAX
 #	define SIZE_T_MAX	((size_t)~0)
 #endif
 
+/* Secure version of memset(). */
+static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 
 
 #ifdef _WINDOWS /* Windows does not have these functions. */
-
-/* Secure version of memset(). */
-static inline void *
-memset_volatile(const void *buf, const int val, const size_t buf_size) {
-	register uint8_t *ptm = (uint8_t*)buf;
-	register const uint8_t *buf_max = (((uint8_t*)buf) + buf_size);
-
-	while (ptm < buf_max) {
-		(*ptm) = val;
-		ptm ++;
-	}
-	return (buf_max);
-}
-
 static inline void *
 memrchr(const void *buf, const int what_find, const size_t buf_size) {
 	register uint8_t *ptm = (((uint8_t*)buf) + buf_size - 1);
@@ -121,7 +110,6 @@ memmem(const void *buf, const size_t buf_size, const void *what_find,
 	}
 	return (NULL);
 }
-
 #endif
 
 
@@ -512,7 +500,7 @@ mem_set(void *buf, const size_t size, const uint8_t c) {
 
 #define mallocarray(__nmemb, __size)	reallocarray(NULL, (__nmemb), (size_t)(__size))
 
-#if !defined(__FreeBSD_version) || __FreeBSD_version < 1100000
+#ifndef HAVE_REALLOCARRAY
 static inline void *
 reallocarray(void *buf, const size_t nmemb, const size_t size) {
 	size_t nmemb_size;

@@ -76,7 +76,7 @@ err_out:
 #endif
 
 
-#ifndef HAVE_SOCK_NONBLOCK
+#ifndef HAVE_ACCEPT4
 int
 accept4(int skt, struct sockaddr *addr __restrict,
     socklen_t *addrlen __restrict, int flags) {

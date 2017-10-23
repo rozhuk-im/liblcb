@@ -54,7 +54,6 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #include <unistd.h> /* close, write, sysconf */
 #include <stdlib.h> /* malloc, exit */
-#include <stdarg.h> /* va_start, va_arg */
 #include <signal.h>
 
 #include "utils/mem_utils.h"
