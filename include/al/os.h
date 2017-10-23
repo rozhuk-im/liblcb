@@ -47,7 +47,7 @@ int	pipe2(int fildes[2], int flags);
 #ifndef SOCK_NONBLOCK
 #	define SOCK_NONBLOCK	0x20000000
 #	ifndef HAVE_ACCEPT4
-		int accept4(int, struct sockaddr * __restrict, socklen_t * __restrict, int);
+		int accept4(int, struct sockaddr *, socklen_t *, int);
 #	endif
 #else
 #	ifndef HAVE_SOCK_NONBLOCK

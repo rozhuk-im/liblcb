@@ -78,8 +78,7 @@ err_out:
 
 #ifndef HAVE_ACCEPT4
 int
-accept4(int skt, struct sockaddr *addr __restrict,
-    socklen_t *addrlen __restrict, int flags) {
+accept4(int skt, struct sockaddr *addr, socklen_t *addrlen, int flags) {
 	int s;
 
 	s = accept(skt, addr, addrlen);
