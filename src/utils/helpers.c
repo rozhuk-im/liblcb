@@ -161,6 +161,32 @@ set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
 }
 
 int
+user_home_dir_get(char *buf, size_t buf_size, size_t *buf_size_ret) {
+	const char *homedir;
+	char tmbuf[4096];
+	size_t homedir_size;
+	struct passwd pwd, *pwdres;
+
+	homedir = getenv("HOME");
+	if (NULL == homedir) {
+		if (0 == getpwuid_r(getuid(), &pwd, tmbuf, sizeof(tmbuf), &pwdres)) {
+			homedir = pwd.pw_dir;
+		}
+	}
+	if (NULL == homedir)
+		return (errno);
+	homedir_size = strlen(homedir);
+	if (NULL != buf_size_ret) {
+		(*buf_size_ret) = homedir_size;
+	}
+	if (NULL == buf && buf_size < homedir_size)
+		return (-1);
+	memcpy(buf, homedir, homedir_size);
+
+	return (0);
+}
+
+int
 read_file(const char *file_name, size_t file_name_size, size_t max_size,
     uint8_t **buf, size_t *buf_size) {
 	int fd, error;
