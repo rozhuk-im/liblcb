@@ -178,6 +178,7 @@ user_home_dir_get(char *buf, size_t buf_size, size_t *buf_size_ret) {
 	return (0);
 }
 
+int
 read_file(const char *file_name, size_t file_name_size, off_t offset,
     size_t size, size_t max_size, uint8_t **buf, size_t *buf_size) {
 	int fd, error;
