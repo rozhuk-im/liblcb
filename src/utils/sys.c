@@ -178,9 +178,8 @@ user_home_dir_get(char *buf, size_t buf_size, size_t *buf_size_ret) {
 	return (0);
 }
 
-int
-read_file(const char *file_name, size_t file_name_size, size_t max_size,
-    uint8_t **buf, size_t *buf_size) {
+read_file(const char *file_name, size_t file_name_size, off_t offset,
+    size_t size, size_t max_size, uint8_t **buf, size_t *buf_size) {
 	int fd, error;
 	ssize_t rd;
 	char filename[1024];
@@ -189,12 +188,12 @@ read_file(const char *file_name, size_t file_name_size, size_t max_size,
 	if (NULL == file_name || (sizeof(filename) - 1) < file_name_size ||
 	    NULL == buf || NULL == buf_size)
 		return (EINVAL);
-
 	if (0 == file_name_size) {
 		file_name_size = strnlen(file_name, (sizeof(filename) - 1));
 	}
 	memcpy(filename, file_name, file_name_size);
 	filename[file_name_size] = 0;
+
 	/* Open file. */
 	fd = open(filename, O_RDONLY);
 	if (-1 == fd)
@@ -204,27 +203,42 @@ read_file(const char *file_name, size_t file_name_size, size_t max_size,
 		error = errno;
 		goto err_out;
 	}
-	/* Check overflow. */
-	(*buf_size) = (size_t)sb.st_size;
-	if (0 != max_size && ((off_t)max_size) < sb.st_size) {
-		error = EFBIG;
-		goto err_out;
+	/* Check size and offset. */
+	if (0 != size) {
+		if ((offset + (off_t)size) > sb.st_size) {
+			error = EINVAL;
+			goto err_out;
+		}
+	} else {
+		/* Check overflow. */
+		if (offset >= sb.st_size) {
+			error = EINVAL;
+			goto err_out;
+		}
+		size = (size_t)(sb.st_size - offset);
+		if (0 != max_size && max_size < size) {
+			(*buf_size) = size;
+			error = EFBIG;
+			goto err_out;
+		}
 	}
 	/* Allocate buf for file content. */
-	(*buf) = malloc((((size_t)sb.st_size) + sizeof(void*)));
+	(*buf_size) = size;
+	(*buf) = malloc((size + sizeof(void*)));
 	if (NULL == (*buf)) {
 		error = ENOMEM;
 		goto err_out;
 	}
 	/* Read file content. */
-	rd = read(fd, (*buf), (size_t)sb.st_size);
+	rd = pread(fd, (*buf), size, offset);
 	close(fd);
 	if (-1 == rd) {
 		error = errno;
 		free((*buf));
+		(*buf) = NULL;
 		return (error);
 	}
-	(*buf)[sb.st_size] = 0;
+	(*buf)[size] = 0;
 
 	return (0);
 

@@ -42,8 +42,8 @@ int	write_pid(const char *file_name);
 int	set_user_and_group(uid_t pw_uid, gid_t pw_gid);
 int	user_home_dir_get(char *buf, size_t buf_size, size_t *buf_size_ret);
 
-int	read_file(const char *file_name, size_t file_name_size, size_t max_size,
-	    uint8_t **buf, size_t *buf_size);
+int	read_file(const char *file_name, size_t file_name_size,
+	    off_t offset, size_t max_size, uint8_t **buf, size_t *buf_size);
 int	read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 	    size_t buf_size, size_t *buf_size_ret);
 int	file_size_get(const char *file_name, off_t *file_size);
