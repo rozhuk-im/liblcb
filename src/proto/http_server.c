@@ -61,7 +61,7 @@
 #include "utils/log.h"
 #include "proto/http_server.h"
 #ifdef HTTP_SRV_XML_CONFIG
-#	include "utils/helpers.h"
+#	include "utils/buf_str.h"
 #	include "utils/xml.h"
 #endif
 

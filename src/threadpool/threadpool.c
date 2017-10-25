@@ -68,8 +68,8 @@
 #include "threadpool/threadpool_msg_sys.h"
 
 #ifdef THREAD_POOL_XML_CONFIG
+#	include "utils/buf_str.h"
 #	include "utils/xml.h"
-#	include "utils/helpers.h"
 #endif
 
 
