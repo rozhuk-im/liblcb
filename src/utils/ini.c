@@ -130,7 +130,7 @@ ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
 	uint8_t *ptr;
 	const uint8_t *pline;
 	size_t line_size;
-	ini_line_p line, *lines_new;
+	ini_line_p line;
 
 	if (NULL == ini || NULL == buf)
 		return (EINVAL);
@@ -189,7 +189,6 @@ ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
 			free(line);
 			return (error);
 		}
-		ini->lines = lines_new;
 		ini->lines[ini->lines_count] = line;
 		ini->lines_count ++;
 	}
