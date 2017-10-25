@@ -46,6 +46,8 @@ int	read_file(const char *file_name, size_t file_name_size, size_t max_size,
 	    uint8_t **buf, size_t *buf_size);
 int	read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 	    size_t buf_size, size_t *buf_size_ret);
+int	file_size_get(const char *file_name, off_t *file_size);
+
 int	get_cpu_count(void);
 int	bind_thread_to_cpu(int cpu_id);
 int	fd_set_nonblocking(uintptr_t fd, int nonblocked);

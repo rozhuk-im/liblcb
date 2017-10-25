@@ -277,6 +277,19 @@ read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 }
 
 int
+file_size_get(const char *file_name, off_t *file_size) {
+	struct stat sb;
+
+	if (NULL == file_name || NULL == file_size)
+		return (EINVAL);
+	if (0 != stat(file_name, &sb))
+		return (errno);
+	(*file_size) = sb.st_size;
+
+	return (0);
+}
+
+int
 get_cpu_count(void) {
 	int ret;
 
