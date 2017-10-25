@@ -39,13 +39,6 @@
 #include <sys/stat.h> /* chmod, fchmod, umask */
 #include <sys/uio.h> /* readv, preadv, writev, pwritev */
 
-#include <pthread.h>
-
-#ifdef BSD /* BSD specific code. */
-#	include <pthread_np.h>
-	typedef cpuset_t cpu_set_t;
-#endif /* BSD specific code. */
-
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
@@ -299,21 +292,6 @@ get_cpu_count(void) {
 	}
 
 	return (ret);
-}
-
-
-int
-bind_thread_to_cpu(int cpu_id) {
-	cpu_set_t cs;
-
-	if (-1 == cpu_id)
-		return (EINVAL);
-
-	/* Bind this thread to a single cpu. */
-	CPU_ZERO(&cs);
-	CPU_SET(cpu_id, &cs);
-
-	return (pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cs));
 }
 
 /* Set file/socket to non blocking mode */
