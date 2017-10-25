@@ -285,12 +285,19 @@ read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 }
 
 int
-file_size_get(const char *file_name, off_t *file_size) {
+file_size_get(const char *file_name, size_t file_name_size, off_t *file_size) {
 	struct stat sb;
+	char filename[1024];
 
-	if (NULL == file_name || NULL == file_size)
+	if (NULL == file_name || (sizeof(filename) - 1) < file_name_size ||
+	    NULL == file_size)
 		return (EINVAL);
-	if (0 != stat(file_name, &sb))
+	if (0 == file_name_size) {
+		file_name_size = strnlen(file_name, (sizeof(filename) - 1));
+	}
+	memcpy(filename, file_name, file_name_size);
+	filename[file_name_size] = 0;
+	if (0 != stat(filename, &sb))
 		return (errno);
 	(*file_size) = sb.st_size;
 
