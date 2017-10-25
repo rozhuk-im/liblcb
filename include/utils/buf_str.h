@@ -28,27 +28,9 @@
  */
 
 
-#ifndef __HELPERS_H__
-#define __HELPERS_H__
+#ifndef __BUF_STR_H__
+#define __BUF_STR_H__
 
-#include <pwd.h>
-#include <grp.h>
-#include <signal.h>
-
-
-void	signal_install(sig_t func);
-void	make_daemon(void);
-int	write_pid(const char *file_name);
-int	set_user_and_group(uid_t pw_uid, gid_t pw_gid);
-int	user_home_dir_get(char *buf, size_t buf_size, size_t *buf_size_ret);
-
-int	read_file(const char *file_name, size_t file_name_size, size_t max_size,
-	    uint8_t **buf, size_t *buf_size);
-int	read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
-	    size_t buf_size, size_t *buf_size_ret);
-int	get_cpu_count(void);
-int	bind_thread_to_cpu(int cpu_id);
-int	fd_set_nonblocking(uintptr_t fd, int nonblocked);
 
 size_t	calc_sptab_count(const char *buf, size_t buf_size);
 size_t	calc_sptab_count_r(const char *buf, size_t buf_size);
@@ -77,4 +59,4 @@ int	yn_set_flag32(const uint8_t *buf, size_t buf_size, uint32_t flag_bit,
 	    uint32_t *flags);
 
 
-#endif /* __HELPERS_H__ */
+#endif /* __BUF_STR_H__ */

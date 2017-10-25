@@ -52,7 +52,7 @@
 #include "net/socket.h"
 #include "net/socket_address.h"
 #include "net/utils.h"
-#include "utils/helpers.h"
+#include "utils/buf_str.h"
 #include "utils/log.h"
 #include "proto/radius_client.h"
 #ifdef RADIUS_CLIENT_XML_CONFIG

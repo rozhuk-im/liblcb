@@ -58,7 +58,7 @@
 #include "net/socket.h"
 #include "net/socket_address.h"
 #include "net/utils.h"
-#include "utils/helpers.h"
+#include "utils/sys.h"
 #include "utils/macro.h"
 #include "utils/log.h"
 #include "proto/dns_resolv.h"

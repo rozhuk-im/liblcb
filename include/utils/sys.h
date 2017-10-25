@@ -28,67 +28,27 @@
  */
 
 
-#include <sys/param.h>
+#ifndef __SYS_H__
+#define __SYS_H__
 
-#ifdef __linux__ /* Linux specific code. */
-#	define _GNU_SOURCE /* See feature_test_macros(7) */
-#	define __USE_GNU 1
-#endif /* Linux specific code. */
-
-#include <sys/types.h>
-
-#include <errno.h>
-#include <fcntl.h> /* open, fcntl */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
-#include <unistd.h> /* close, write, sysconf */
-
-#include "utils/sys.h"
-#include "al/os.h"
+#include <pwd.h>
+#include <grp.h>
+#include <signal.h>
 
 
-#ifndef HAVE_PIPE2
-int
-pipe2(int fildes[2], int flags) {
-	int error;
+void	signal_install(sig_t func);
+void	make_daemon(void);
+int	write_pid(const char *file_name);
+int	set_user_and_group(uid_t pw_uid, gid_t pw_gid);
+int	user_home_dir_get(char *buf, size_t buf_size, size_t *buf_size_ret);
 
-	error = pipe(fildes);
-	if (0 != error)
-		return (error);
-	if (0 != (O_NONBLOCK & flags)) {
-		error = fd_set_nonblocking((uintptr_t)fildes[0], 1);
-		if (0 != error)
-			goto err_out;
-		error = fd_set_nonblocking((uintptr_t)fildes[1], 1);
-		if (0 != error)
-			goto err_out;
-	}
-
-	return (0);
-
-err_out:
-	close(fildes[0]);
-	close(fildes[1]);
-	fildes[0] = -1;
-	fildes[1] = -1;
-
-	return (error);
-}
-#endif
+int	read_file(const char *file_name, size_t file_name_size, size_t max_size,
+	    uint8_t **buf, size_t *buf_size);
+int	read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
+	    size_t buf_size, size_t *buf_size_ret);
+int	get_cpu_count(void);
+int	bind_thread_to_cpu(int cpu_id);
+int	fd_set_nonblocking(uintptr_t fd, int nonblocked);
 
 
-#ifndef HAVE_ACCEPT4
-int
-accept4(int skt, struct sockaddr *addr, socklen_t *addrlen, int flags) {
-	int s;
-
-	s = accept(skt, addr, addrlen);
-	if (-1 == s)
-		return (-1);
-	if (0 != fd_set_nonblocking((uintptr_t)s, (0 != (SOCK_NONBLOCK & flags)))) {
-		close(s);
-		return (-1);
-	}
-
-	return (s);
-}
-#endif
+#endif /* __SYS_H__ */
