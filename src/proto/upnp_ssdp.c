@@ -155,7 +155,7 @@ typedef struct upnp_ssdp_dev_s {
 
 typedef struct upnp_ssdp_s {
 	tp_p		tp;
-	upnp_ssdp_if_p	*s_ifs;	/* interfaces */
+	upnp_ssdp_if_p	*s_ifs;		/* interfaces */
 	uint32_t	s_ifs_cnt;	/*  */
 	upnp_ssdp_dev_p	*root_devs;
 	uint32_t	root_devs_cnt;	/*  */
@@ -277,7 +277,6 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	/* Init static global constants. */
 	upnp_ssdp_init__int();
 
-
 	if (NULL == ussdp_ret)
 		return (EINVAL);
 	if (NULL == s) { /* Apply default settings */
@@ -304,7 +303,7 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 
 	/* IPv4 */
 	if (0 == (UPNP_SSDP_S_F_IPV4 & s->flags))
-		goto skeep_ipv4;
+		goto skip_ipv4;
 	//error = skt_bind((sockaddr_p)&ssdp_v4_mc_addr, SOCK_DGRAM, IPPROTO_UDP, (SO_F_NONBLOCK), &skt);
 	//if (0 != error) /* Bind to mc addr fail, try bind inaddr_any. */
 	error = skt_bind_ap(AF_INET, NULL, UPNP_SSDP_PORT,
@@ -318,11 +317,13 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	}
 	/* Tune socket. */
 	error = skt_snd_tune(skt, s->skt_snd_buf, 1);
-	if (0 != error)
+	if (0 != error) {
 		LOG_ERR(error, "skt_snd_tune");
+	}
 	error = skt_rcv_tune(skt, s->skt_rcv_buf, 1);
-	if (0 != error)
+	if (0 != error) {
 		LOG_ERR(error, "skt_rcv_tune");
+	}
 	if (0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_TTL,
 	    &s->ttl, sizeof(int))) {
 		LOG_ERR(errno, "setsockopt: IP_MULTICAST_TTL");
@@ -341,11 +342,11 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	    upnp_ssdp_mc_recv_cb, ssdp, &ssdp->mc_rcvr_v4);
 	if (0 != error)
 		goto err_out;
-skeep_ipv4:
+skip_ipv4:
 
 	/* IPv6 */
 	if (0 == (UPNP_SSDP_S_F_IPV6 & s->flags))
-		goto skeep_ipv6;
+		goto skip_ipv6;
 	error = skt_bind_ap(AF_INET6, NULL, UPNP_SSDP_PORT,
 	    SOCK_DGRAM, IPPROTO_UDP,
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
@@ -357,11 +358,13 @@ skeep_ipv4:
 	}
 	/* Tune socket. */
 	error = skt_snd_tune(skt, s->skt_snd_buf, 1);
-	if (0 != error)
+	if (0 != error) {
 		LOG_ERR(error, "skt_snd_tune");
+	}
 	error = skt_rcv_tune(skt, s->skt_rcv_buf, 1);
-	if (0 != error)
+	if (0 != error) {
 		LOG_ERR(error, "skt_rcv_tune");
+	}
 	if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
 	    &off, sizeof(int))) {
 		LOG_ERR(errno, "setsockopt: IPV6_MULTICAST_LOOP");
@@ -380,15 +383,17 @@ skeep_ipv4:
 	    upnp_ssdp_mc_recv_cb, ssdp, &ssdp->mc_rcvr_v6);
 	if (0 != error)
 		goto err_out;
-skeep_ipv6:
+skip_ipv6:
 
 	(*ussdp_ret) = ssdp;
+
 	return (0);
 
 err_out:
 	/* Error. */
 	close((int)skt);
 	upnp_ssdp_destroy(ssdp);
+
 	return (error);
 }
 
@@ -436,20 +441,25 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	    NULL == type ||
 	    NULL == dev_ret)
 		return (EINVAL);
-	if (0 == domain_name_size)
+
+	if (0 == domain_name_size) {
 		domain_name_size = strlen(domain_name);
-	if (0 == type_size)
+	}
+	if (0 == type_size) {
 		type_size = strlen(type);
+	}
 	nt_size = (4 + domain_name_size + 8 + type_size + 16);
 	tot_size = (sizeof(upnp_ssdp_dev_t) + UPNP_NT_UUID_SIZE + domain_name_size + type_size + nt_size + 8);
 	dev = zalloc(tot_size);
 	if (NULL == dev)
 		return (ENOMEM);
 	/* Defaults. */
-	if (0 == max_age)
+	if (0 == max_age) {
 		max_age = UPNP_SSDP_DEF_MAX_AGE;
-	if (0 == ann_interval)
+	}
+	if (0 == ann_interval) {
 		ann_interval = UPNP_SSDP_DEF_ANNOUNCE_INTERVAL;
+	}
 	/* sec->ms */
 	ann_interval *= 1000;
 
@@ -503,7 +513,6 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	ssdp->root_devs[ssdp->root_devs_cnt] = dev;
 	ssdp->root_devs_cnt ++;
 	(*dev_ret) = dev;
-	return (0);
 
 err_out:
 	return (error);
@@ -540,9 +549,9 @@ upnp_ssdp_dev_del(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev) {
 	}
 	/* Destroy services. */
 	if (NULL != dev->serviceList) {
-		for (i = 0; i < dev->serviceList_cnt; i ++)
-			if (NULL != dev->serviceList[i])
-				free(dev->serviceList[i]);
+		for (i = 0; i < dev->serviceList_cnt; i ++) {
+			free(dev->serviceList[i]);
+		}
 		free(dev->serviceList);
 	}
 	free(dev);
@@ -569,8 +578,9 @@ upnp_ssdp_svc_add(upnp_ssdp_dev_p dev,
 		return (EINVAL);
 	if (0 == domain_name_size)
 		domain_name_size = strlen(domain_name);
-	if (0 == type_size)
+	if (0 == type_size) {
 		type_size = strlen(type);
+	}
 	nt_size = (4 + domain_name_size + 9 + type_size + 16);
 	tot_size = (sizeof(upnp_ssdp_svc_t) + domain_name_size + type_size + nt_size + 8);
 	svc = zalloc(tot_size);
@@ -597,6 +607,7 @@ upnp_ssdp_svc_add(upnp_ssdp_dev_p dev,
 	dev->serviceList = serviceList_new;
 	dev->serviceList[dev->serviceList_cnt] = svc;
 	dev->serviceList_cnt ++;
+
 	return (0);
 }
 
@@ -619,6 +630,7 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 		return (EINVAL);
 	if (IFNAMSIZ < if_name_size)
 		return (EINVAL);
+
 	memcpy(ifname, if_name, if_name_size);
 	ifname[if_name_size] = 0;
 	if_index = if_nametoindex(ifname);
@@ -661,6 +673,7 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	s_if->dev_ifs = dev_ifs_new;
 	s_if->dev_ifs[s_if->dev_ifs_cnt] = dev_if;
 	s_if->dev_ifs_cnt ++;
+
 	return (0);
 }
 
@@ -769,8 +782,10 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 	ssdp->s_ifs = s_ifs_new;
 	ssdp->s_ifs[ssdp->s_ifs_cnt] = s_if;
 	ssdp->s_ifs_cnt ++;
-	if (NULL != s_if_ret)
+	if (NULL != s_if_ret) {
 		(*s_if_ret) = s_if;
+	}
+
 	return (0);
 
 err_out:
@@ -787,6 +802,7 @@ err_out:
 		    if_index, &ssdp_v6_mc_addr_link_local);
 	}
 	free(s_if);
+
 	return (error);
 }
 
@@ -1014,6 +1030,7 @@ upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 	    (NULL == search_target && 0 != search_target_size) ||
 	    (UPNP_NOTIFY_TYPE_MAX_SIZE - 1) < search_target_size) /* Search target size too big. */
 		return (EINVAL);
+
 	/* Check: is ip proto enabled? */
 	switch (addr->ss_family) {
 	case AF_INET:
@@ -1027,12 +1044,14 @@ upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 	default:
 		return (EINVAL);
 	}
+
 	if (0 == mem_cmpn_cstr("ssdp:all", search_target, search_target_size)) {
 		search_target = NULL;
 		search_target_size = 0;
 	} else if (0 == mem_cmpn_cstr("upnp:rootdevice", search_target, search_target_size)) {
 		root_dev_only = 1;
 	}
+
 	for (i = 0; i < s_if->dev_ifs_cnt; i ++) {
 		dev_if = s_if->dev_ifs[i];
 		if (NULL == dev_if ||
@@ -1136,6 +1155,7 @@ dev_no_match:
 		// XXX todo: enum embeded deviceList
 		//edev = dev->deviceList;
 	}
+
 	return (0);
 }
 
@@ -1153,6 +1173,7 @@ upnp_ssdp_dev_notify_sendto_mc(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev, int action
 		upnp_ssdp_dev_notify_sendto(ssdp, dev,
 		    &ssdp_v6_mc_addr_link_local, action);
 	}
+
 	return (0);
 }
 
@@ -1241,6 +1262,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		return (EINVAL);
 	if ((sizeof(nt_loc) - 1) < nt_size)
 		return (0); /* Search target size too big. */
+
 	dev = dev_if->dev;
 	io_buf_init(&buf, 0, buf_data, sizeof(buf_data));
 
@@ -1391,5 +1413,6 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		LOG_ERR_FMT(error, "sendto: %s, size = %zu", straddr, buf.used);
 		return (error);
 	}
+
 	return (0);
 }
