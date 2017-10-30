@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -243,10 +243,12 @@ dns_resolver_data_cache_hash(void *udata __unused, const uint8_t *key,
 		return (ret);
 	for (i = 0; i < key_size; i ++) {
 		cur_byte = (uint8_t)key[i];
-		if ('A' <= cur_byte && 'Z' >= cur_byte) 
+		if ('A' <= cur_byte && 'Z' >= cur_byte) {
 			cur_byte |= 32;
+		}
 		ret ^= cur_byte;
 	}
+
 	return (ret);
 }
 
@@ -293,6 +295,7 @@ dns_rslvr_cache_entry_alloc(uint8_t *name, size_t name_size,
 	memcpy(cache_entry->name, name, name_size);
 	cache_entry->name[name_size] = 0;
 	(*cache_entry_ret) = cache_entry;
+
 	return (0);
 }
 
@@ -311,8 +314,7 @@ dns_rslvr_cache_entry_free(dns_rslvr_cache_entry_p cache_entry) {
 		memcpy(name, cache_entry->name, name_size);
 		name[name_size] = 0;
 	}
-	if (NULL != cache_entry->pdata)
-		free(cache_entry->pdata);
+	free(cache_entry->pdata);
 	free(cache_entry);
 
 	dns_rslvr_task_notify_chain(task, name, name_size);
@@ -335,8 +337,9 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 	time_now = time(NULL);
 	data_size = data_count;
 	flags &= DNS_R_CD_F_CNAME;
-	if (0 != data_size && 0 == (DNS_R_CD_F_CNAME & flags))
+	if (0 != data_size && 0 == (DNS_R_CD_F_CNAME & flags)) {
 		data_size *= sizeof(dns_rslvr_cache_addr_t);
+	}
 
 	hbucket_entry_lock(&cache_entry->entry);
 	if (0 == data_count)
@@ -392,8 +395,9 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 				add = 0;
 				break;
 			}
-			if (caddr->valid_untill < time_now) /* Mark as free. */
+			if (caddr->valid_untill < time_now) { /* Mark as free. */
 				first_free = min(j, first_free);
+			}
 		}
 		if (0 == add)
 			continue;
@@ -572,18 +576,13 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	io_buf_init(&rslvr->buf, 0, rslvr->buf_data, sizeof(rslvr->buf_data));
 	IO_BUF_MARK_TRANSFER_ALL_FREE(&rslvr->buf);
 
-	rslvr->sktv4 = (uintptr_t)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if ((uintptr_t)-1 == rslvr->sktv4) {
-		error = errno;
+	error = skt_create(AF_INET, SOCK_DGRAM, IPPROTO_UDP,
+	    SO_F_NONBLOCK, &rslvr->sktv4);
+	if (0 != error) {
+		skt->ident = (uintptr_t)-1;
 		goto err_out;
 	}
-	error = fd_set_nonblocking(rslvr->sktv4, 1);
-	if (0 != error)
-		goto err_out;
 	/* Tune socket. */
-#ifdef SO_NOSIGPIPE
-	setsockopt((int)rslvr->sktv4, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));
-#endif
 	error = skt_snd_tune(rslvr->sktv4, buf, 1);
 	if (0 != error)
 		goto err_out;
@@ -594,15 +593,16 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	mem_bzero(rslvr->dns_addrs,
 	    (sizeof(sockaddr_storage_t) * dns_addrs_count));
 	rslvr->dns_addrs_count = dns_addrs_count;
-	for (i = 0; i < dns_addrs_count; i ++)
+	for (i = 0; i < dns_addrs_count; i ++) {
 		sa_copy(&dns_addrs[i], &rslvr->dns_addrs[i]);
+	}
 	rslvr->tp = tp;
 	rslvr->timeout = timeout;
 	rslvr->neg_cache = neg_cache;
 	rslvr->retry_count = retry_count;
-	for (i = 0; i < DNS_RESOLVER_MAX_TASKS; i ++)
+	for (i = 0; i < DNS_RESOLVER_MAX_TASKS; i ++) {
 		rslvr->tasks_tmr[i].cb_func = dns_resolver_task_timeout_cb;
-
+	}
 
 	error = tp_task_pkt_rcvr_create(tp_thread_get_pvt(tp), rslvr->sktv4,
 	    0, 0, &rslvr->buf, dns_resolver_recv_cb, rslvr, &rslvr->io_pkt_rcvr4);
@@ -616,11 +616,13 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	rslvr->clean_interval = (neg_cache * 2);
 
 	(*dns_rslvr_ret) = rslvr;
+
 	return (0);
 
 err_out:
 	/* Error. */
 	dns_resolver_destroy(rslvr);
+
 	return (error);
 }
 
@@ -645,8 +647,7 @@ dns_resolver_destroy(dns_rslvr_p rslvr) {
 	/* XXX Lock */
 	/* XXX Lock destroy */
 
-	if (NULL != rslvr->dns_addrs)
-		free(rslvr->dns_addrs);
+	free(rslvr->dns_addrs);
 	io_buf_free(&rslvr->buf);
 	hbucket_destroy(rslvr->hbskt, dns_resolver_destroy_entry_enum_cb, rslvr);
 	mem_filld(rslvr, sizeof(dns_rslvr_t));
@@ -798,8 +799,9 @@ task_alloc:
 	if (NULL == task) {
 		error = dns_rslvr_task_alloc(rslvr, cb_func, arg, &task);
 		if (0 != error) {
-			if (0 != cache_entry_updating)
+			if (0 != cache_entry_updating) {
 				hbucket_zone_unlock(zone);
+			}
 			goto err_out;
 		}
 		task->flags = flags;
@@ -819,8 +821,9 @@ task_alloc:
 	if (0 != error)
 		goto err_out;
 ok_out:
-	if (NULL != task_ret)
+	if (NULL != task_ret) {
 		(*task_ret) = task;
+	}
 
 	return (0);
 
@@ -829,6 +832,7 @@ err_out:
 	if (0 != send_request) /* Called from: dns_resolver_recv_cb() need callback. */
 		cb_func(task, error, NULL, 0, arg);
 	dns_rslvr_task_free(task);
+
 	return (error);
 }
 
@@ -930,8 +934,9 @@ dns_resolver_task_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	//LOGD_EV_FMT("task %i - %s", task->task_id, task->cache_entry->name);
 	error = ETIMEDOUT;
 	task->timeouts ++;
-	if (task->timeouts <= task->rslvr->retry_count) /* Re send query. */
+	if (task->timeouts <= task->rslvr->retry_count) { /* Re send query. */
 		error = dns_resolver_send(task);
+	}
 
 	/* If timeout retry exeed or error on send - try next server. */
 	while ((task->cur_srv_idx + 1) < task->rslvr->dns_addrs_count &&
@@ -940,9 +945,10 @@ dns_resolver_task_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 		task->cur_srv_idx ++;
 		error = dns_resolver_send(task);
 	}
-	if (0 != error) /* Report about error and destroy task. */
+	if (0 != error) { /* Report about error and destroy task. */
 		dns_resolver_task_done(task, error, NULL, 0,
 		    (time(NULL) + task->rslvr->neg_cache));
+	}
 }
 
 static int
@@ -1094,8 +1100,9 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 		}
 	} /* while. */
 	if ((0 != restarted || 0 != error) && 0 == addrs_count) { /* No addr for cname in answer, request it. */
-		if (0 != error) /* Try next dns server if answer with errors. */
+		if (0 != error) { /* Try next dns server if answer with errors. */
 			task->cur_srv_idx ++;
+		}
 		error = dns_resolver_send(task);
 		if (0 == error)
 			goto rcv_next;
@@ -1108,5 +1115,6 @@ call_cb:
 rcv_next:
 	IO_BUF_MARK_AS_EMPTY(buf);
 	IO_BUF_MARK_TRANSFER_ALL_FREE(buf);
+
 	return (TP_TASK_CB_CONTINUE);
 }
