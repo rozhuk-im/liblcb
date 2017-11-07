@@ -41,10 +41,6 @@
 
 #ifndef _WINDOWS
 #	include <sys/param.h>
-#	ifdef __linux__ /* Linux specific code. */
-#		define _GNU_SOURCE /* See feature_test_macros(7) */
-#		define __USE_GNU 1
-#	endif /* Linux specific code. */
 #	include <sys/types.h>
 #	ifdef _KERNEL
 #		include <sys/systm.h>

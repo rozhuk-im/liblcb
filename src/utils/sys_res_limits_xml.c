@@ -29,24 +29,15 @@
 
 
 #include <sys/param.h>
-
-#ifdef __linux__ /* Linux specific code. */
-#	define _GNU_SOURCE /* See feature_test_macros(7) */
-#	define __USE_GNU 1
-#endif /* Linux specific code. */
-
 #include <sys/types.h>
 #include <sys/resource.h>
-
 #include <errno.h>
 #include <stdio.h>  /* snprintf, fprintf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #include <stdlib.h> /* malloc, exit */
-
 #ifdef BSD /* BSD specific code. */
 #	include <sys/rtprio.h>
 #endif /* BSD specific code. */
-
 #include "utils/mem_utils.h"
 #include "utils/str2num.h"
 #include "utils/xml.h"

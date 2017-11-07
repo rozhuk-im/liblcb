@@ -34,18 +34,12 @@
 
 #ifndef _WINDOWS
 #	include <sys/param.h>
-#	ifdef __linux__ /* Linux specific code. */
-#		define _GNU_SOURCE /* See feature_test_macros(7) */
-#		define __USE_GNU 1
-#	endif /* Linux specific code. */
 #	include <sys/types.h>
 #	include <sys/mman.h> /* mmap, munmap */
 #	ifdef _KERNEL
 #		include <sys/systm.h>
 #	else
 #		include <inttypes.h>
-#		include <stdlib.h>
-#		include <string.h> /* memcpy, memmove, memset... */
 #		include <strings.h> /* strncasecmp() */
 #	endif
 #else
@@ -53,10 +47,11 @@
 #	define ENOMEM		ERROR_OUTOFMEMORY
 #	define uint8_t		unsigned char
 #	define size_t		SIZE_T
-#	include <string.h> /* memcpy, memmove, memset... */
+
 #	include <stdint.h>
 #endif
 #include <stdlib.h>
+#include <string.h> /* memcpy, memmove, memset... */
 #ifdef HAVE_CONFIG_H
 #	include "config.h"
 #endif
@@ -69,7 +64,7 @@
 static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 
 
-#ifdef _WINDOWS /* Windows does not have these functions. */
+#ifndef HAVE_MEMRCHR
 static inline void *
 memrchr(const void *buf, const int what_find, const size_t buf_size) {
 	register uint8_t *ptm = (((uint8_t*)buf) + buf_size - 1);
@@ -81,7 +76,9 @@ memrchr(const void *buf, const int what_find, const size_t buf_size) {
 	}
 	return (NULL);
 }
+#endif
 
+#ifndef HAVE_MEMMEM
 static inline void *
 memmem(const void *buf, const size_t buf_size, const void *what_find,
     const size_t what_find_size) {
@@ -431,7 +428,7 @@ mem_cmpi(const void *buf1, const void *buf2, const size_t size) {
 		return (-127);
 	if (NULL == buf2)
 		return (127);
-#if !defined(_KERNEL) && !defined(_WINDOWS)
+#ifdef HAVE_STRNCASECMP
 	return (strncasecmp((const char*)buf1, (const char*)buf2, size));
 #else
 	register uint8_t tm1, tm2;
@@ -456,6 +453,7 @@ mem_cmpi(const void *buf1, const void *buf2, const size_t size) {
 			continue;
 		return ((tm1 - tm2));
 	}
+
 	return (0);
 #endif
 }
@@ -575,9 +573,9 @@ mapalloc_fd(uintptr_t fd, const size_t size) {
 	} else { /* From file. */
 		flags |= MAP_SHARED;
 	}
-#ifdef BSD /* BSD specific code. */
+#ifdef MAP_NOCORE
 	flags |= MAP_NOCORE;
-#endif /* BSD specific code. */
+#endif
 
 	buf = mmap(NULL, size, (PROT_READ | PROT_WRITE),
 	    (flags
