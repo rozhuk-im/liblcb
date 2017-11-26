@@ -102,33 +102,36 @@
 
 
 #ifndef TAILQ_FOREACH_SAFE /* Linux does not have this macro. */
-#define	TAILQ_FOREACH_SAFE(__var, __head, __field, __tvar)		\
-	for ((__var) = TAILQ_FIRST((__head));				\
-	    (__var) && ((__tvar) = TAILQ_NEXT((__var), __field), 1);	\
-	    (__var) = (__tvar))
+#	define	TAILQ_FOREACH_SAFE(__var, __head, __field, __tvar)	\
+		for ((__var) = TAILQ_FIRST((__head));			\
+		    (__var) && ((__tvar) = TAILQ_NEXT((__var), __field), 1); \
+		    (__var) = (__tvar))
 #endif
 
 #ifndef TAILQ_SWAP /* Linux does not have this macro. */
-#define TAILQ_SWAP(__head1, __head2, __type, __field) do {		\
-	struct __type *swap_first = (__head1)->tqh_first;		\
-	struct __type **swap_last = (__head1)->tqh_last;		\
-	(__head1)->tqh_first = (__head2)->tqh_first;			\
-	(__head1)->tqh_last = (__head2)->tqh_last;			\
-	(__head2)->tqh_first = swap_first;				\
-	(__head2)->tqh_last = swap_last;				\
-	if (NULL != (swap_first = (__head1)->tqh_first)) {		\
-		swap_first->__field.tqe_prev = &(__head1)->tqh_first;	\
-	} else {							\
-		(__head1)->tqh_last = &(__head1)->tqh_first;		\
-	}								\
-	if (NULL != (swap_first = (__head2)->tqh_first)) {		\
-		swap_first->__field.tqe_prev = &(__head2)->tqh_first;	\
-	} else {							\
-		(__head2)->tqh_last = &(__head2)->tqh_first;		\
-	}								\
-} while (0)
+#	define TAILQ_SWAP(__head1, __head2, __type, __field) do {	\
+		struct __type *swap_first = (__head1)->tqh_first;	\
+		struct __type **swap_last = (__head1)->tqh_last;	\
+		(__head1)->tqh_first = (__head2)->tqh_first;		\
+		(__head1)->tqh_last = (__head2)->tqh_last;		\
+		(__head2)->tqh_first = swap_first;			\
+		(__head2)->tqh_last = swap_last;			\
+		if (NULL != (swap_first = (__head1)->tqh_first)) {	\
+			swap_first->__field.tqe_prev = &(__head1)->tqh_first; \
+		} else {						\
+			(__head1)->tqh_last = &(__head1)->tqh_first;	\
+		}							\
+		if (NULL != (swap_first = (__head2)->tqh_first)) {	\
+			swap_first->__field.tqe_prev = &(__head2)->tqh_first; \
+		} else {						\
+			(__head2)->tqh_last = &(__head2)->tqh_first;	\
+		}							\
+	} while (0)
 #endif
 
+#ifndef TAILQ_PREV_PTR
+#	define TAILQ_PREV_PTR(elm, field)	((elm)->field.tqe_prev)
+#endif
 
 #ifndef s6_addr32
 #	define s6_addr32	__u6_addr.__u6_addr32
@@ -158,9 +161,9 @@
 
 #define is_space(__c)	(' ' == (__c) || ('\t' <= (__c) && '\r' >= (__c)))
 
-#define IS_NAME_DOTS(__name)	((__name)[0] == '.' &&			\
-				 ((__name)[1] == '\0' || 		\
-				 ((__name)[1] == '.' && (__name)[2] == '\0')))
+#define IS_NAME_DOTS(__name)	('.' == (__name)[0] &&			\
+				 (0 == (__name)[1] || 			\
+				  ('.' == (__name)[1] && 0 == (__name)[2])))
 
 
 #ifndef offsetof /* offsetof struct field */
@@ -173,63 +176,55 @@
 #endif
 
 #define MEMCPY_STRUCT_FIELD(__dst, __sdata, __stype, __sfield)		\
-	memcpy(__dst,							\
+	memcpy((__dst),							\
 	    (((const char*)(__sdata)) + offsetof(__stype, __sfield)),	\
 	    fieldsetof(__stype, __sfield))
 
 
 /* From linux: dirent.h */
 #ifndef _D_EXACT_NAMLEN
-#ifdef _DIRENT_HAVE_D_NAMLEN
-#	define _D_EXACT_NAMLEN(__de)	((__de)->d_namlen)
-#else
-#	define _D_EXACT_NAMLEN(__de)	(strnlen((__de)->d_name, sizeof((__de)->d_name)))
-#endif
+#	ifdef _DIRENT_HAVE_D_NAMLEN
+#		define _D_EXACT_NAMLEN(__de)	((__de)->d_namlen)
+#	else
+#		define _D_EXACT_NAMLEN(__de)	(strnlen((__de)->d_name, sizeof((__de)->d_name)))
+#	endif
 #endif /* _D_EXACT_NAMLEN */
 
 
-
-
 #ifndef MTX_S
-//#include <pthread.h>
-
-#define MTX_S			pthread_mutex_t
-
-#define MTX_INIT(__mutex) do {						\
-	pthread_mutexattr_t attr;					\
-	pthread_mutexattr_init(&attr);					\
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);	\
-	pthread_mutex_init((__mutex), &attr);				\
-	pthread_mutexattr_destroy(&attr);				\
-} while (0)
-#define MTX_DESTROY(__mutex)	pthread_mutex_destroy((__mutex))
-#define MTX_LOCK(__mutex)	pthread_mutex_lock((__mutex))
-#define MTX_TRYLOCK(__mutex)	pthread_mutex_trylock((__mutex))
-#define MTX_UNLOCK(__mutex)	pthread_mutex_unlock((__mutex))
-
+//#	include <pthread.h>
+#	define MTX_S			pthread_mutex_t
+#	define MTX_INIT(__mutex) do {					\
+		pthread_mutexattr_t attr;				\
+		pthread_mutexattr_init(&attr);				\
+		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); \
+		pthread_mutex_init((__mutex), &attr);			\
+		pthread_mutexattr_destroy(&attr);			\
+	} while (0)
+#	define MTX_DESTROY(__mutex)	pthread_mutex_destroy((__mutex))
+#	define MTX_LOCK(__mutex)	pthread_mutex_lock((__mutex))
+#	define MTX_TRYLOCK(__mutex)	pthread_mutex_trylock((__mutex))
+#	define MTX_UNLOCK(__mutex)	pthread_mutex_unlock((__mutex))
 #endif
 
 
 #ifndef COND_VAR_S
-//#include <pthread.h>
-
-#define COND_VAR_S		pthread_cond_t
-
-#define COND_VAR_INIT(__cond, __shared) do {				\
-	pthread_condattr_t attr;					\
-	pthread_condattr_init(&attr);					\
-	pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);		\
-	pthread_condattr_setpshared(&attr,				\
-	    ((__shared) ? PTHREAD_PROCESS_SHARED : PTHREAD_PROCESS_PRIVATE)); \
-	pthread_cond_init((__cond), &attr);				\
-	pthread_condattr_destroy(&attr);				\
-} while (0)
-#define COND_VAR_DESTROY(__cond)	pthread_cond_destroy((__cond))
-#define COND_VAR_BCAST(__cond)		pthread_cond_broadcast((__cond))
-#define COND_VAR_SIGNAL(__cond)		pthread_cond_signal((__cond))
-#define COND_VAR_WAIT(__cond, __mutex)	pthread_cond_wait((__cond), (__mutex))
-#define COND_VAR_WAITT(__cond, __mutex, __time)	pthread_cond_timedwait((__cond), (__mutex), (__time))
-
+//#	include <pthread.h>
+#	define COND_VAR_S		pthread_cond_t
+#	define COND_VAR_INIT(__cond, __shared) do {			\
+		pthread_condattr_t attr;				\
+		pthread_condattr_init(&attr);				\
+		pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);	\
+		pthread_condattr_setpshared(&attr,			\
+		    ((__shared) ? PTHREAD_PROCESS_SHARED : PTHREAD_PROCESS_PRIVATE)); \
+		pthread_cond_init((__cond), &attr);			\
+		pthread_condattr_destroy(&attr);			\
+	} while (0)
+#	define COND_VAR_DESTROY(__cond)	pthread_cond_destroy((__cond))
+#	define COND_VAR_BCAST(__cond)	pthread_cond_broadcast((__cond))
+#	define COND_VAR_SIGNAL(__cond)	pthread_cond_signal((__cond))
+#	define COND_VAR_WAIT(__cond, __mutex) pthread_cond_wait((__cond), (__mutex))
+#	define COND_VAR_WAITT(__cond, __mutex, __time) pthread_cond_timedwait((__cond), (__mutex), (__time))
 #endif
 
 
