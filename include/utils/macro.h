@@ -55,12 +55,12 @@
 		((((char*)(__ptr)) + ((size_t)(__align_size)) - 1) & ~(((size_t)(__align_size)) - 1))
 #endif
 
-#ifndef min
-#	define min(__a, __b)	(((__a) < (__b)) ? (__a) : (__b))
+#ifndef MIN
+#	define MIN(__a, __b)	(((__a) < (__b)) ? (__a) : (__b))
 #endif
 
-#ifndef max
-#	define max(__a, __b)	(((__a) > (__b)) ? (__a) : (__b))
+#ifndef MAX
+#	define MAX(__a, __b)	(((__a) > (__b)) ? (__a) : (__b))
 #endif
 
 #ifndef limit_val

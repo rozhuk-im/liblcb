@@ -227,8 +227,8 @@ radius_client_server_xml_load_settings(const uint8_t *buf, size_t buf_size,
 		return (EINVAL);
 	}
 	if (0 != sa_addr_port_from_str(&s->addr, (const char*)ptm, tm)) {
-		memcpy(straddr, ptm, min(STR_ADDR_LEN, tm));
-		straddr[min(STR_ADDR_LEN, tm)] = 0;
+		memcpy(straddr, ptm, MIN(STR_ADDR_LEN, tm));
+		straddr[MIN(STR_ADDR_LEN, tm)] = 0;
 		LOG_ERR_FMT(EINVAL, "Radius client: invalid server addr: %s", straddr);
 		return (EINVAL);
 	}

@@ -37,14 +37,6 @@
 #include <inttypes.h>
 #include "utils/mem_utils.h"
 
-#ifndef min
-#	define min(a,b)		(((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef max
-#	define max(a, b)	(((a) > (b)) ? (a) : (b))
-#endif
-
 
 /* 188, 192, 204, 208 bytes packets. */
 #define MPEG2_TS_PKT_SIZE_188	188 /* MPEG-2 TS packet size */
@@ -657,10 +649,10 @@ typedef struct mpeg2_es_video_hdr_s {
 
 
 static inline int
-mpeg2_ts_pkt_is_valid(mpeg2_ts_hdr_p ts_hdr, const size_t mpeg2_ts_pkt_size) {
-	uint8_t *buf_pos;
+mpeg2_ts_pkt_is_valid(const mpeg2_ts_hdr_t *ts_hdr, const size_t mpeg2_ts_pkt_size) {
+	const uint8_t *buf_pos;
 	uint32_t pid;
-	mpeg2_ts_adapt_field_p af;
+	const mpeg2_ts_adapt_field_t *af;
 
 	if (NULL == ts_hdr ||
 	    MPEG2_TS_PKT_SIZE_MIN > mpeg2_ts_pkt_size ||
@@ -671,10 +663,10 @@ mpeg2_ts_pkt_is_valid(mpeg2_ts_hdr_p ts_hdr, const size_t mpeg2_ts_pkt_size) {
 	pid = MPEG2_TS_PID(ts_hdr);
 	if (MPEG2_TS_PID_NULL == pid) /* Null packets. */
 		return (1);
-	buf_pos = ((uint8_t*)(ts_hdr + 1)); /* Move pointer */
+	buf_pos = ((const uint8_t*)(ts_hdr + 1)); /* Move pointer */
 	
 	if (0 != ts_hdr->afe) { /* Adapt feild. */
-		af = ((mpeg2_ts_adapt_field_p)buf_pos);
+		af = ((const mpeg2_ts_adapt_field_t*)buf_pos);
 		if ((af->len > (mpeg2_ts_pkt_size - 6) && 0 != ts_hdr->cp) ||
 		    (af->len > (mpeg2_ts_pkt_size - 5) && 0 == ts_hdr->cp)) {
 			return (0);
@@ -686,23 +678,23 @@ mpeg2_ts_pkt_is_valid(mpeg2_ts_hdr_p ts_hdr, const size_t mpeg2_ts_pkt_size) {
 	/* PSI: Program specific information processing. */
 	switch (pid) {
 	case MPEG2_TS_PID_PAT: /* Program Association Table. */
-		if (0 == MPEG2_PSI_IS_PAT_HDR(((mpeg2_psi_tbl_hdr_p)buf_pos)))
+		if (0 == MPEG2_PSI_IS_PAT_HDR(((const mpeg2_psi_tbl_hdr_t*)buf_pos)))
 			return (0);
 		return (1);
 	case MPEG2_TS_PID_CAT: /* Conditional Access Table. */
-		if (0 == MPEG2_PSI_IS_CAT_HDR(((mpeg2_psi_tbl_hdr_p)buf_pos)))
+		if (0 == MPEG2_PSI_IS_CAT_HDR(((const mpeg2_psi_tbl_hdr_t*)buf_pos)))
 			return (0);
 		return (1);
 	case MPEG2_TS_PID_TSDT: /* Transport Stream Description Table. */
-		if (0 == MPEG2_PSI_IS_TSDT_HDR(((mpeg2_psi_tbl_hdr_p)buf_pos)))
+		if (0 == MPEG2_PSI_IS_TSDT_HDR(((const mpeg2_psi_tbl_hdr_t*)buf_pos)))
 			return (0);
 		return (1);
 	case MPEG2_TS_PID_SDT: /* Service Description Table. */
-		if (0 == MPEG2_PSI_IS_SDT_HDR(((mpeg2_psi_tbl_hdr_p)buf_pos)))
+		if (0 == MPEG2_PSI_IS_SDT_HDR(((const mpeg2_psi_tbl_hdr_t*)buf_pos)))
 			return (0);
 		return (1);
 	case MPEG2_TS_PID_EIT: /* Event Information Table. */
-		if (0 == MPEG2_PSI_IS_EIT_HDR(((mpeg2_psi_tbl_hdr_p)buf_pos)))
+		if (0 == MPEG2_PSI_IS_EIT_HDR(((const mpeg2_psi_tbl_hdr_t*)buf_pos)))
 			return (0);
 		return (1);
 	}
@@ -735,7 +727,7 @@ mpeg2_ts_pkt_size_detect(const uint8_t *buf, const size_t buf_size,
 		if (NULL == ptm)
 			break;
 		if ((ptm + MPEG2_TS_PKT_SIZE_MAX) > buf_end ||
-		    0 == mpeg2_ts_pkt_is_valid((mpeg2_ts_hdr_p)ptm, MPEG2_TS_PKT_SIZE_MAX)) {
+		    0 == mpeg2_ts_pkt_is_valid((const mpeg2_ts_hdr_t*)ptm, MPEG2_TS_PKT_SIZE_MAX)) {
 			ptm ++;
 			continue;
 		}
@@ -759,7 +751,7 @@ mpeg2_ts_pkt_size_detect(const uint8_t *buf, const size_t buf_size,
 					break; /* Wrong packet size. */
 				if ((pkts[k] + pkt_sizes[i]) > buf_end)
 					break; /* Packet to big / out of buf. */
-				if (0 == mpeg2_ts_pkt_is_valid((mpeg2_ts_hdr_p)pkts[k], pkt_sizes[i]))
+				if (0 == mpeg2_ts_pkt_is_valid((const mpeg2_ts_hdr_t*)pkts[k], pkt_sizes[i]))
 					break;
 				seq_len ++;
 			}
@@ -795,7 +787,7 @@ mpeg2_ts_pkt_get_next(const uint8_t *buf, const size_t buf_size,
 	if (mpeg2_ts_pkt_size > (buf_size - off))
 		return (0);
 	ptm = (buf + off);
-	if (0 != MPEG2_TS_HDR_IS_VALID((mpeg2_ts_hdr_p)ptm)) {
+	if (0 != MPEG2_TS_HDR_IS_VALID((const mpeg2_ts_hdr_t*)ptm)) {
 		(*pkt) = (uint8_t*)ptm;
 		return (1);
 	}
@@ -804,7 +796,7 @@ mpeg2_ts_pkt_get_next(const uint8_t *buf, const size_t buf_size,
 		ptm = mem_chr_ptr(ptm, buf, _buf_size, MPEG2_TS_SB);
 		if (NULL == ptm)
 			return (0);
-		if (0 == MPEG2_TS_HDR_IS_VALID((mpeg2_ts_hdr_p)ptm)) {
+		if (0 == MPEG2_TS_HDR_IS_VALID((const mpeg2_ts_hdr_t*)ptm)) {
 			ptm ++;
 			continue;
 		}
@@ -980,7 +972,7 @@ mpeg2_ts_serialize_data(const uint32_t pid, const uint8_t sc,
 	}
 
 	/* Free space in current packet VS data_size. */
-	r_off = min((mpeg2_ts_pkt_size - pkt_data_size), data_size);
+	r_off = MIN((mpeg2_ts_pkt_size - pkt_data_size), data_size);
 	memcpy(w_pos, data, r_off);
 	pkt_data_size += r_off;
 	if (mpeg2_ts_pkt_size > pkt_data_size) /* Staff padding. */
@@ -1002,7 +994,7 @@ mpeg2_ts_serialize_data(const uint32_t pid, const uint8_t sc,
 			ts_hdr->cp = 1;
 			ts_hdr->cc = _cc;
 			_cc = MPEG2_TS_CC_GET_NEXT(_cc);
-			tm = min(chunk_payload_size, (data_size - r_off));
+			tm = MIN(chunk_payload_size, (data_size - r_off));
 			memcpy((ts_hdr + 1), &data[r_off], tm);
 			if (chunk_payload_size > tm) {
 				memset((((uint8_t*)(ts_hdr + 1)) + tm), 0xff,

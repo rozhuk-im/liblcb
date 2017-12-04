@@ -855,7 +855,7 @@ bn_digit_gcd_bin(bn_digit_t a, bn_digit_t b) {
 	/* Let shift = the greatest power of 2 dividing both a and b. */
 	shift_a = bn_digit_ctz(reg_a);
 	shift_b = bn_digit_ctz(reg_b);
-	shift = ((shift_a >= shift_b) ? shift_b : shift_a); /* min(shift_a, shift_b) */
+	shift = ((shift_a >= shift_b) ? shift_b : shift_a); /* MIN(shift_a, shift_b) */
 	/* Remove all factors of 2 in a and b. */
 	reg_a >>= shift_a;
 	reg_b >>= shift_b;
@@ -2040,7 +2040,7 @@ bn_l_shift(bn_p bn, size_t bits) {
 		return;
 	}
 #endif
-	digits = min(bn->count, (bn->digits + 1 + (bits / BN_DIGIT_BITS)));
+	digits = MIN(bn->count, (bn->digits + 1 + (bits / BN_DIGIT_BITS)));
 	bn_init_digits__int(bn, digits);
 	bn_digits_l_shift(bn->num, digits, bits);
 	bn_update_digits__int(bn, digits);
@@ -2070,7 +2070,7 @@ bn_and(bn_p bn, bn_p n) {
 	BN_POINTER_CHK_EINVAL(n);
 	BN_PREFETCH_BN_DATA(bn);
 	BN_PREFETCH_BN_DATA(n);
-	digits = min(bn->digits, n->digits);
+	digits = MIN(bn->digits, n->digits);
 	for (i = 0; i < digits; i ++) {
 		bn->num[i] &= n->num[i];
 	}
@@ -2092,7 +2092,7 @@ bn_or(bn_p bn, bn_p n) {
 		return (EOVERFLOW);
 	BN_PREFETCH_BN_DATA(bn);
 	BN_PREFETCH_BN_DATA(n);
-	digits = max(bn->digits, n->digits);
+	digits = MAX(bn->digits, n->digits);
 	bn_init_digits__int(bn, digits);
 	for (i = 0; i < n->digits; i ++) {
 		bn->num[i] |= n->num[i];
@@ -2112,7 +2112,7 @@ bn_xor(bn_p bn, bn_p n) {
 		return (EOVERFLOW);
 	BN_PREFETCH_BN_DATA(bn);
 	BN_PREFETCH_BN_DATA(n);
-	digits = max(bn->digits, n->digits);
+	digits = MAX(bn->digits, n->digits);
 	bn_init_digits__int(bn, digits);
 	for (i = 0; i < n->digits; i ++) {
 		bn->num[i] ^= n->num[i];
@@ -2140,7 +2140,7 @@ bn_add(bn_p bn, bn_p n, bn_digit_t *carry) {
 
 	BN_POINTER_CHK_EINVAL(bn);
 	BN_POINTER_CHK_EINVAL(n);
-	digits = (max(bn->digits, n->digits) + 1);
+	digits = (MAX(bn->digits, n->digits) + 1);
 	bn_init_digits__int(bn, digits);
 	BN_RET_ON_ERR(bn_digits_add(bn->num, bn->count,
 	    n->num, n->digits, carry));
@@ -2518,7 +2518,7 @@ bn_gcd_bin(bn_p bn, bn_p a, bn_p b) {
 	/* Let shift = the greatest power of 2 dividing both a and b. */
 	shift_a = bn_ctz(ta);
 	shift_b = bn_ctz(tb);
-	shift = ((shift_a >= shift_b) ? shift_b : shift_a); /* min(shift_a, shift_b) */
+	shift = ((shift_a >= shift_b) ? shift_b : shift_a); /* MIN(shift_a, shift_b) */
 	bn_r_shift(ta, shift_a); /* Remove all factors of 2 in a. */
 
 	/* From here on, a is always odd. */
@@ -2819,7 +2819,7 @@ bn_calc_jsf(bn_p a, bn_p b, size_t jsf_arr_size,
 
 	if (NULL == a || NULL == b || NULL == jsf_arr)
 		return (EINVAL);
-	offset = (max(bn_calc_bits(a), bn_calc_bits(b)) + 1);
+	offset = (MAX(bn_calc_bits(a), bn_calc_bits(b)) + 1);
 	if (jsf_arr_size < (2 * offset))
 		return (EOVERFLOW);
 	BN_RET_ON_ERR(bn_assign_init(&tmA, a));
@@ -3228,7 +3228,7 @@ bn_mod_inv1(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data __unused) {
 	if (0 != bn_is_zero(bn) || 0 != bn_is_zero(m) || bn_cmp(bn, m) >= 0)
 		return (EINVAL);
 	/* Apply extended Euclidean algorithm, modified to avoid negative numbers. */
-	bits = ((4 + max(bn->digits, m->digits)) * BN_DIGIT_BITS);
+	bits = ((4 + MAX(bn->digits, m->digits)) * BN_DIGIT_BITS);
 	BN_RET_ON_ERR(bn_init(&q, bits));
 	BN_RET_ON_ERR(bn_init(&t1, bits));
 	BN_RET_ON_ERR(bn_init(&t3, bits));
@@ -3281,7 +3281,7 @@ bn_mod_inv2(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
 
 	if (0 != bn_is_zero(bn) || 0 != bn_is_zero(m) || bn_cmp(bn, m) >= 0)
 		return (EINVAL);
-	bits = ((4 + max(bn->digits, m->digits)) * BN_DIGIT_BITS);
+	bits = ((4 + MAX(bn->digits, m->digits)) * BN_DIGIT_BITS);
 	BN_RET_ON_ERR(bn_init(&r, bits));
 	BN_RET_ON_ERR(bn_init(&q, bits));
 	BN_RET_ON_ERR(bn_init(&d, bits));
@@ -3321,7 +3321,7 @@ bn_mod_inv3(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
 
 	if (0 != bn_is_zero(bn) || 0 != bn_is_zero(m) || bn_cmp(bn, m) >= 0)
 		return (EINVAL);
-	bits = ((4 + max(bn->digits, m->digits)) * BN_DIGIT_BITS);
+	bits = ((4 + MAX(bn->digits, m->digits)) * BN_DIGIT_BITS);
 	BN_RET_ON_ERR(bn_init(&gcd, bits));
 	BN_RET_ON_ERR(bn_init(&x, bits));
 	BN_RET_ON_ERR(bn_init(&y, bits));
@@ -3342,7 +3342,7 @@ bn_mod_inv_bin(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
 
 	if (0 != bn_is_zero(bn) || 0 != bn_is_zero(m) || bn_cmp(bn, m) >= 0)
 		return (EINVAL);
-	bits = ((4 + max(bn->digits, m->digits)) * BN_DIGIT_BITS);
+	bits = ((4 + MAX(bn->digits, m->digits)) * BN_DIGIT_BITS);
 	BN_RET_ON_ERR(bn_init(&u, bits));
 	BN_RET_ON_ERR(bn_init(&v, bits));
 	BN_RET_ON_ERR(bn_init(&x1, bits));
@@ -3396,7 +3396,7 @@ bn_mod_div_mont(bn_p bn, bn_p d, bn_p m, bn_mod_rd_data_p mod_rd_data __unused) 
 
 	if (0 != bn_is_zero(bn) || 0 != bn_is_zero(m) || bn_cmp(bn, m) >= 0)
 		return (EINVAL);
-	bits = ((4 + max(bn->digits, m->digits)) * BN_DIGIT_BITS);
+	bits = ((4 + MAX(bn->digits, m->digits)) * BN_DIGIT_BITS);
 	//BN_RET_ON_ERR(bn_init(&u, bits));
 	BN_RET_ON_ERR(bn_init(&v, bits));
 	BN_RET_ON_ERR(bn_init(&a, bits));
@@ -3453,7 +3453,7 @@ static inline int
 bn_mod_inv_mont(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
 	bn_t tm;
 	
-	BN_RET_ON_ERR(bn_init(&tm, ((1 + max(bn->digits, m->digits)) * BN_DIGIT_BITS)));
+	BN_RET_ON_ERR(bn_init(&tm, ((1 + MAX(bn->digits, m->digits)) * BN_DIGIT_BITS)));
 	BN_RET_ON_ERR(bn_assign_digit(&tm, 1));
 	BN_RET_ON_ERR(bn_mod_div_mont(&tm, bn, m, mod_rd_data));
 	BN_RET_ON_ERR(bn_assign(bn, &tm));
@@ -3579,7 +3579,7 @@ bn_mod_sqrt(bn_p bn, bn_p m, bn_mod_rd_data_p mod_rd_data) {
 	} else if (1 == (m->num[0] & 3)) { /* Is m mod 4 == 1? - Tonelli–Shanks algorithm. */
 		bn_t b, t, bn_inv;
 
-		bits = (BN_DIGIT_BITS + (max(bn->digits, m->digits) * 2 * BN_DIGIT_BITS));
+		bits = (BN_DIGIT_BITS + (MAX(bn->digits, m->digits) * 2 * BN_DIGIT_BITS));
 		BN_RET_ON_ERR(bn_init(&tm, bits));
 		BN_RET_ON_ERR(bn_init(&b, bits));
 		BN_RET_ON_ERR(bn_init(&t, bits));

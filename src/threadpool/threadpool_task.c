@@ -518,7 +518,7 @@ tp_task_handler(int type, tp_event_p ev, tp_udata_p tp_udata,
 		    0 == IO_BUF_TR_SIZE_GET(tptask->buf))
 			goto call_cb; /* transfered_size = 0 */
 		/* Transfer as much as we can. */
-		data2transfer_size = min(data2transfer_size,
+		data2transfer_size = MIN(data2transfer_size,
 		    IO_BUF_TR_SIZE_GET(tptask->buf));
 	}
 	/* IO operations. */

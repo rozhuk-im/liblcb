@@ -390,7 +390,7 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 				break;
 			}
 			if (caddr->valid_untill < time_now) { /* Mark as free. */
-				first_free = min(j, first_free);
+				first_free = MIN(j, first_free);
 			}
 		}
 		if (0 == add)
@@ -429,7 +429,7 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 			flags |= DNS_R_F_IPV6;
 			break;
 		}
-		valid_untill = min(valid_untill, caddr->valid_untill);
+		valid_untill = MIN(valid_untill, caddr->valid_untill);
 	}
 
 data_upd_done:
@@ -573,7 +573,7 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	error = skt_create(AF_INET, SOCK_DGRAM, IPPROTO_UDP,
 	    SO_F_NONBLOCK, &rslvr->sktv4);
 	if (0 != error) {
-		skt->ident = (uintptr_t)-1;
+		rslvr->sktv4 = (uintptr_t)-1;
 		goto err_out;
 	}
 	/* Tune socket. */
@@ -769,7 +769,7 @@ dns_resolv_hostaddr_int(dns_rslvr_p rslvr, int send_request,
 			continue;
 		}
 		/* FOUND!!! */
-		addrs_count = min(cache_entry->data_count, SIZEOF(ssaddrs));
+		addrs_count = MIN(cache_entry->data_count, SIZEOF(ssaddrs));
 		dns_rslvr_cache_addr_cp(cache_entry->addrs, addrs_count, ssaddrs);
 		hbucket_zone_unlock(zone);
 		cb_func(task, 0, ssaddrs, addrs_count, arg);
@@ -860,7 +860,7 @@ dns_resolver_task_done(dns_rslvr_task_p task, int error,
 	    (uint16_t)addrs_count, 0, valid_untill);
 
 	if (NULL != task->cb_func) {
-		addrs_count = min(addrs_count, SIZEOF(ssaddrs));
+		addrs_count = MIN(addrs_count, SIZEOF(ssaddrs));
 		dns_rslvr_cache_addr_cp(addrs, addrs_count, ssaddrs);
 		task->cb_func(task, error, ssaddrs, addrs_count, task->udata);
 	}
@@ -1015,7 +1015,7 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 				/* Skeep: Serial, Refresh, Retry, Expire. */
 				rr_data += (sizeof(uint32_t) * 4);
 				memcpy(&tmu32, rr_data, sizeof(tmu32));
-				valid_untill = (time_now + min(rr_ttl, ntohl(tmu32)));
+				valid_untill = (time_now + MIN(rr_ttl, ntohl(tmu32)));
 				LOGD_EV_FMT("%s, SOA ttl = %i, minimum = %i",
 				    task->cache_entry->name, rr_ttl, ntohl(tmu32));
 				break;
@@ -1039,8 +1039,8 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 			break;
 		}
 		Offset += rr_size;
-		rr_ttl = min(DNS_TTL_MAX, rr_ttl); /* Fix abnormal ttl. */
-		rr_ttl = max(DNS_RESOLVER_TTL_MIN, rr_ttl); /* Fix abnormal ttl. */
+		rr_ttl = MIN(DNS_TTL_MAX, rr_ttl); /* Fix abnormal ttl. */
+		rr_ttl = MAX(DNS_RESOLVER_TTL_MIN, rr_ttl); /* Fix abnormal ttl. */
 		switch (rr_type) {
 		case DNS_RR_TYPE_A:
 			if (4 != rr_data_size)

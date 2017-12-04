@@ -219,7 +219,7 @@ http_srv_xml_load_hostnames(const uint8_t *buf, size_t buf_size,
 	while (0 == xml_get_val_args(buf, buf_size, &cur_pos, NULL, NULL,
 	    &data, &data_size, (const uint8_t*)"hostnameList", "hostname", NULL)) {
 		error = hostname_list_add(hst_name_lst, data, data_size);
-		data_size = min(data_size, (sizeof(strbuf) - 1));
+		data_size = MIN(data_size, (sizeof(strbuf) - 1));
 		memcpy(strbuf, data, data_size);
 		strbuf[data_size] = 0;
 		if (0 != error) {
@@ -271,8 +271,8 @@ http_srv_xml_load_bind(const uint8_t *buf, size_t buf_size,
 		return (EINVAL);
 	}
 	if (0 != sa_addr_port_from_str(&s->addr, (const char*)data, data_size)) {
-		memcpy(straddr, data, min((sizeof(straddr) - 1), data_size));
-		straddr[min((sizeof(straddr) - 1), data_size)] = 0;
+		memcpy(straddr, data, MIN((sizeof(straddr) - 1), data_size));
+		straddr[MIN((sizeof(straddr) - 1), data_size)] = 0;
 		LOG_ERR_FMT(EINVAL, "HTTP server: invalid addr: %s (len=%zu)", straddr, data_size);
 		return (EINVAL);
 	}
@@ -282,8 +282,8 @@ http_srv_xml_load_bind(const uint8_t *buf, size_t buf_size,
 		error = get_if_addr_by_name((const char*)data, data_size,
 		    s->addr.ss_family, &s->addr);
 		if (0 != error) {
-			memcpy(straddr, data, min((sizeof(straddr) - 1), data_size));
-			straddr[min((sizeof(straddr) - 1), data_size)] = 0;
+			memcpy(straddr, data, MIN((sizeof(straddr) - 1), data_size));
+			straddr[MIN((sizeof(straddr) - 1), data_size)] = 0;
 			LOG_ERR_FMT(error, "HTTP server: cant get addr for: %s", straddr);
 			return (error);
 		}

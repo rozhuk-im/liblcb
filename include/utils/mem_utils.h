@@ -83,6 +83,7 @@ static inline void *
 memmem(const void *buf, const size_t buf_size, const void *what_find,
     const size_t what_find_size) {
 	register uint8_t *ptm;
+	register size_t buf_size_wrk;
 
 	if (0 == what_find_size || what_find_size > buf_size)
 		return (NULL);
@@ -95,10 +96,10 @@ memmem(const void *buf, const size_t buf_size, const void *what_find,
 	}
 
 	ptm = ((uint8_t*)buf);
-	buf_size -= (what_find_size - 1);
+	buf_size_wrk = (buf_size - (what_find_size - 1));
 	for (;;) {
 		ptm = (uint8_t*)memchr(ptm, (*((uint8_t*)what_find)),
-		    (buf_size - (ptm - ((uint8_t*)buf))));
+		    (buf_size_wrk - (ptm - ((uint8_t*)buf))));
 		if (NULL == ptm)
 			return (NULL);
 		if (0 == memcmp(ptm, what_find, what_find_size))
@@ -432,12 +433,12 @@ mem_cmpi(const void *buf1, const void *buf2, const size_t size) {
 	return (strncasecmp((const char*)buf1, (const char*)buf2, size));
 #else
 	register uint8_t tm1, tm2;
-	register uint8_t *buf1_byte, *buf2_byte;
+	register const uint8_t *buf1_byte, *buf2_byte;
 	register const uint8_t *buf1_max;
 
-	buf1_byte = ((uint8_t*)buf1);
+	buf1_byte = ((const uint8_t*)buf1);
 	buf1_max = (buf1_byte + size);
-	buf2_byte = ((uint8_t*)buf2);
+	buf2_byte = ((const uint8_t*)buf2);
 	for (; buf1_byte < buf1_max; buf1_byte ++, buf2_byte ++) {
 		tm1 = (*buf1_byte);
 		if ('A' <= tm1 &&

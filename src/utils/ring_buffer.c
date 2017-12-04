@@ -495,7 +495,7 @@ r_buf_wbuf_set(r_buf_p r_buf, size_t offset, size_t buf_size) {
 		r_buf->iov[r_buf->iov_index].iov_base += offset;
 	}
 	r_buf->wpos += buf_size;
-	r_buf->iov_index_max = max(r_buf->iov_index_max, r_buf->iov_index);
+	r_buf->iov_index_max = MAX(r_buf->iov_index_max, r_buf->iov_index);
 
 	return (0);
 }
@@ -520,7 +520,7 @@ r_buf_wbuf_set2(r_buf_p r_buf, uint8_t *buf, size_t buf_size, r_buf_rpos_p rpos)
 	r_buf->iov[r_buf->iov_index].iov_base = buf;
 	r_buf->iov[r_buf->iov_index].iov_len = buf_size;
 	r_buf->wpos = (size_t)(buf_end - r_buf->buf);
-	r_buf->iov_index_max = max(r_buf->iov_index_max, r_buf->iov_index);
+	r_buf->iov_index_max = MAX(r_buf->iov_index_max, r_buf->iov_index);
 
 	if (NULL != rpos) {
 		rpos->iov_index = r_buf->iov_index;
@@ -554,7 +554,7 @@ r_buf_wbuf_set_ex(r_buf_p r_buf, iovec_p iov, size_t iov_cnt) {
 	r_buf->iov[r_buf->iov_index].iov_base = buf;
 	r_buf->iov[r_buf->iov_index].iov_len = buf_size;
 	r_buf->wpos = (buf_end - r_buf->buf);
-	r_buf->iov_index_max = max(r_buf->iov_index_max, r_buf->iov_index);
+	r_buf->iov_index_max = MAX(r_buf->iov_index_max, r_buf->iov_index);
 
 	// XXX!!!
 	r_buf->iov_index ++;

@@ -123,7 +123,7 @@ log_write_err_fmt_fd(uintptr_t fd, const char *fname, int line, int error,
 	va_start(ap, fmt);
 	nsize += (size_t)vsnprintf((buf + nsize), ((sizeof(buf) - 4) - nsize), fmt, ap);
 	va_end(ap);
-	nsize = min(nsize, (sizeof(buf) - 4));
+	nsize = MIN(nsize, (sizeof(buf) - 4));
 	buf[nsize] = 0;
 	nsize += (size_t)snprintf((buf + nsize), (sizeof(buf) - nsize), "\r\n");
 
@@ -186,7 +186,7 @@ log_write_ev_fmt_fd(uintptr_t fd, const char *fname, int line, const char *fmt, 
 	va_start(ap, fmt);
 	nsize += (size_t)vsnprintf((buf + nsize), ((sizeof(buf) - 4) - nsize), fmt, ap);
 	va_end(ap);
-	nsize = min(nsize, (sizeof(buf) - 4));
+	nsize = MIN(nsize, (sizeof(buf) - 4));
 	buf[nsize] = 0;
 	nsize += (size_t)snprintf((buf + nsize), (sizeof(buf) - nsize), "\r\n");
 

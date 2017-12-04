@@ -1289,7 +1289,7 @@ ecdsa_sign_be(ec_curve_p curve, uint8_t *hash, size_t hash_size,
 	BN_RET_ON_ERR(bn_init(&s, bits));
 	BN_RET_ON_ERR(bn_init(&d, bits));
 	/* HASH import. */
-	BN_RET_ON_ERR(bn_import_be_bin(&r, hash, min(hash_size, bytes)));
+	BN_RET_ON_ERR(bn_import_be_bin(&r, hash, MIN(hash_size, bytes)));
 	/* Random number. */
 	BN_RET_ON_ERR(bn_import_be_bin(&s, rnd, bytes));
 	/* Key import. */
@@ -1328,7 +1328,7 @@ ecdsa_sign_le(ec_curve_p curve, uint8_t *hash, size_t hash_size,
 	BN_RET_ON_ERR(bn_init(&s, bits));
 	BN_RET_ON_ERR(bn_init(&d, bits));
 	/* HASH import. */
-	BN_RET_ON_ERR(bn_import_le_bin(&r, hash, min(hash_size, bytes)));
+	BN_RET_ON_ERR(bn_import_le_bin(&r, hash, MIN(hash_size, bytes)));
 	/* Random number. */
 	BN_RET_ON_ERR(bn_import_le_bin(&s, rnd, bytes));
 	/* Key import. */
@@ -1470,7 +1470,7 @@ ecdsa_verify_be(ec_curve_p curve,
 	BN_RET_ON_ERR(ecdsa_pub_key_import_be(curve, pub_key_x, pub_key_y,
 	    pub_key_size, &Q));
 	/* Import Hash. */
-	BN_RET_ON_ERR(bn_import_be_bin(&e, hash, min(hash_size, bytes)));
+	BN_RET_ON_ERR(bn_import_be_bin(&e, hash, MIN(hash_size, bytes)));
 	/* Import r.*/
 	BN_RET_ON_ERR(bn_import_be_bin(&r, sign_r, sign_size));
 	/* Import s.*/
@@ -1507,7 +1507,7 @@ ecdsa_verify_le(ec_curve_p curve,
 	BN_RET_ON_ERR(ecdsa_pub_key_import_le(curve, pub_key_x, pub_key_y,
 	    pub_key_size, &Q));
 	/* Import Hash. */
-	BN_RET_ON_ERR(bn_import_le_bin(&e, hash, min(hash_size, bytes)));
+	BN_RET_ON_ERR(bn_import_le_bin(&e, hash, MIN(hash_size, bytes)));
 	/* Import r.*/
 	BN_RET_ON_ERR(bn_import_le_bin(&r, sign_r, sign_size));
 	/* Import s.*/
@@ -1644,7 +1644,7 @@ ecdsa_verify_priv_key_be(ec_curve_p curve,
 	BN_RET_ON_ERR(bn_init(&s, bits));
 	BN_RET_ON_ERR(bn_init(&d, bits));
 	/* Import Hash. */
-	BN_RET_ON_ERR(bn_import_be_bin(&e, hash, min(hash_size, bytes)));
+	BN_RET_ON_ERR(bn_import_be_bin(&e, hash, MIN(hash_size, bytes)));
 	/* Import r.*/
 	BN_RET_ON_ERR(bn_import_be_bin(&r, sign_r, sign_size));
 	/* Import s.*/
@@ -1679,7 +1679,7 @@ ecdsa_verify_priv_key_le(ec_curve_p curve,
 	BN_RET_ON_ERR(bn_init(&s, bits));
 	BN_RET_ON_ERR(bn_init(&d, bits));
 	/* Import Hash. */
-	BN_RET_ON_ERR(bn_import_le_bin(&e, hash, min(hash_size, bytes)));
+	BN_RET_ON_ERR(bn_import_le_bin(&e, hash, MIN(hash_size, bytes)));
 	/* Import r.*/
 	BN_RET_ON_ERR(bn_import_le_bin(&r, sign_r, sign_size));
 	/* Import s.*/
@@ -1949,7 +1949,7 @@ ecdsa_recover_pub_key_from_sign_be(ec_curve_p curve,
 		return (EINVAL);
 	/* HASH import. */
 	BN_RET_ON_ERR(bn_init(&e, bits));
-	BN_RET_ON_ERR(bn_import_be_bin(&e, hash, min(hash_size, bytes)));
+	BN_RET_ON_ERR(bn_import_be_bin(&e, hash, MIN(hash_size, bytes)));
 	BN_RET_ON_ERR(bn_mod_reduce(&e, &curve->n, &curve->n_mod_rd_data));
 
 	BN_RET_ON_ERR(bn_init(&x, bits));

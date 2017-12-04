@@ -208,8 +208,8 @@ typedef struct rtp_src_info_s {
 static inline int
 rtp_payload_get(const uint8_t *buf, const size_t buf_size,
     size_t *start_off, size_t *end_off) {
-	rtp_hdr_p rtp_hdr = (const rtp_hdr_p)buf;
-	rtp_hdr_ext_p rtp_hdr_ext;
+	const rtp_hdr_t *rtp_hdr = (const rtp_hdr_t*)buf;
+	const rtp_hdr_ext_t *rtp_hdr_ext;
 	size_t s_off, e_off = 0;
 
 	if (sizeof(rtp_hdr_t) > buf_size)
@@ -220,7 +220,7 @@ rtp_payload_get(const uint8_t *buf, const size_t buf_size,
 	s_off = (sizeof(rtp_hdr_t) + (sizeof(uint32_t) * rtp_hdr->cc));
 
 	if (rtp_hdr->x) { /* Extension. */
-		rtp_hdr_ext = (const rtp_hdr_ext_p)(buf + s_off);
+		rtp_hdr_ext = (const rtp_hdr_ext_t*)(buf + s_off);
 		s_off += sizeof(rtp_hdr_ext_t);
 		if (s_off > buf_size)
 			return (EINVAL);

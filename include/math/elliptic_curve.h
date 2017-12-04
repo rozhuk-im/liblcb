@@ -1822,7 +1822,7 @@ ec_point_proj_inter_twin_mult_affine(ec_point_p a, bn_p ad, ec_point_p b, bn_p b
 	/* Compute the w-TNAF representation of k. */
 	BN_RET_ON_ERR(bn_calc_naf(ad, EP_DEPTH, sizeof(naf0), naf0, &naf0_cnt));
 	BN_RET_ON_ERR(bn_calc_naf(bd, EP_WIDTH, sizeof(naf1), naf1, &naf1_cnt));
-	naf_cnt = max(naf0_cnt, naf1_cnt);
+	naf_cnt = MAX(naf0_cnt, naf1_cnt);
 
 	BN_RET_ON_ERR(ec_point_proj_init(&tm, curve->m));
 	bn_assign_zero(&tm.z); /* "Zeroize" point. */
