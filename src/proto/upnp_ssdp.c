@@ -613,7 +613,7 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	upnp_ssdp_if_p s_if;
 	upnp_ssdp_dev_if_p dev_if, *dev_ifs_new;
 	uint32_t if_index;
-	char ifname[(IFNAMSIZ + 2)];
+	char ifname[IFNAMSIZ];
 	int error;
 
 	LOGD_EV("...");
@@ -622,8 +622,11 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	    NULL == if_name || 0 == if_name_size ||
 	    (NULL == url4 && NULL == url6) || (0 == url4_size && 0 == url6_size))
 		return (EINVAL);
-	if (IFNAMSIZ < if_name_size)
+	if (IFNAMSIZ <= if_name_size)
 		return (EINVAL);
+	if (0 == if_name_size) {
+		if_name_size = strnlen(if_name, (IFNAMSIZ - 1));
+	}
 
 	memcpy(ifname, if_name, if_name_size);
 	ifname[if_name_size] = 0;
@@ -726,12 +729,15 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 	int error;
 	upnp_ssdp_if_p s_if, *s_ifs_new;
 	uint32_t if_index;
-	char ifname[(IFNAMSIZ + 2)];
+	char ifname[IFNAMSIZ];
 
 	LOGD_EV("...");
 	if (NULL == ssdp ||
-	    NULL == if_name || IFNAMSIZ < if_name_size)
+	    NULL == if_name || IFNAMSIZ <= if_name_size)
 		return (EINVAL);
+	if (0 == if_name_size) {
+		if_name_size = strnlen(if_name, (IFNAMSIZ - 1));
+	}
 	memcpy(ifname, if_name, if_name_size);
 	ifname[if_name_size] = 0;
 	if_index = if_nametoindex(ifname);
@@ -1254,8 +1260,11 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 	if (NULL == ssdp || NULL == addr || NULL == dev_if ||
 	    (NULL == nt && 0 != nt_size))
 		return (EINVAL);
-	if ((sizeof(nt_loc) - 1) < nt_size)
+	if (sizeof(nt_loc) <= nt_size)
 		return (0); /* Search target size too big. */
+	if (0 == nt_size) {
+		nt_size = strnlen(nt, (sizeof(nt_loc) - 1));
+	}
 
 	dev = dev_if->dev;
 	io_buf_init(&buf, 0, buf_data, sizeof(buf_data));

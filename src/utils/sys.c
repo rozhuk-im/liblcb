@@ -179,7 +179,7 @@ read_file(const char *file_name, size_t file_name_size, off_t offset,
 	char filename[1024];
 	struct stat sb;
 
-	if (NULL == file_name || (sizeof(filename) - 1) < file_name_size ||
+	if (NULL == file_name || sizeof(filename) <= file_name_size ||
 	    NULL == buf || NULL == buf_size)
 		return (EINVAL);
 	if (0 == file_name_size) {
@@ -249,7 +249,7 @@ read_file_buf(const char *file_name, size_t file_name_size, uint8_t *buf,
 	size_t rd;
 	char filename[1024];
 
-	if (NULL == file_name || (sizeof(filename) - 1) < file_name_size ||
+	if (NULL == file_name || sizeof(filename) <= file_name_size ||
 	    NULL == buf || 0 == buf_size)
 		return (EINVAL);
 
@@ -282,7 +282,7 @@ file_size_get(const char *file_name, size_t file_name_size, off_t *file_size) {
 	struct stat sb;
 	char filename[1024];
 
-	if (NULL == file_name || (sizeof(filename) - 1) < file_name_size ||
+	if (NULL == file_name || sizeof(filename) <= file_name_size ||
 	    NULL == file_size)
 		return (EINVAL);
 	if (0 == file_name_size) {

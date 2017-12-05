@@ -747,9 +747,12 @@ skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
     size_t ifname_size, const sockaddr_storage_t *mc_addr) {
 	struct ifreq ifr;
 
-	if (NULL == ifname || 0 == ifname_size || IFNAMSIZ < ifname_size)
+	if (NULL == ifname || IFNAMSIZ <= ifname_size)
 		return (EINVAL);
 	/* if_nametoindex(ifname), but faster - we already have a socket. */
+	if (0 == ifname_size) {
+		ifname_size = strnlen(ifname, (IFNAMSIZ - 1));
+	}
 	mem_bzero(&ifr, sizeof(ifr));
 	memcpy(ifr.ifr_name, ifname, ifname_size);
 	ifr.ifr_name[ifname_size] = 0;

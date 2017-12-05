@@ -232,9 +232,11 @@ sap_receiver_listener_add4(sap_rcvr_p srcvr, const char *ifname, size_t ifname_s
 	sockaddr_storage_t mc_addr;
 	in_addr_t sin_addr;
 
-	if (NULL == srcvr || NULL == mcaddr || (sizeof(mcaddrstr) - 1) < mcaddr_size)
+	if (NULL == srcvr || NULL == mcaddr || sizeof(mcaddrstr) <= mcaddr_size)
 		return (EINVAL);
-
+	if (0 == mcaddr_size) {
+		mcaddr_size = strnlen(mcaddr, (sizeof(mcaddrstr) - 1));
+	}
 	memcpy(mcaddrstr, mcaddr, mcaddr_size);
 	mcaddrstr[mcaddr_size] = 0;
 
