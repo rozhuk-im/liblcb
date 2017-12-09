@@ -1263,7 +1263,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 	if (sizeof(nt_loc) <= nt_size)
 		return (0); /* Search target size too big. */
 	if (0 == nt_size) {
-		nt_size = strnlen(nt, (sizeof(nt_loc) - 1));
+		nt_size = strnlen((const char*)nt, (sizeof(nt_loc) - 1));
 	}
 
 	dev = dev_if->dev;
