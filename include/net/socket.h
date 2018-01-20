@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <inttypes.h>
 
 #ifndef TCP_CA_NAME_MAX /* For stupid linux. */
 #define TCP_CA_NAME_MAX 16

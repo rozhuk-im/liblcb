@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 	#define	size_t		SIZE_T
 	#define	ssize_t		SSIZE_T
 #else
+#	include <sys/types.h>
 #	include <inttypes.h>
 #endif
 

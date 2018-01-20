@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2012 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,9 @@
 
 #ifndef __BT_ENCODE_H__
 #define __BT_ENCODE_H__
+
+#include <sys/types.h>
+#include <inttypes.h>
 
 
 #define BT_EN_TYPE_STR	0

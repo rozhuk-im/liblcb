@@ -32,6 +32,8 @@
 #define __DNS_RESOLV_H__
 
 
+#include <sys/types.h>
+#include <inttypes.h>
 #include "threadpool/threadpool.h"
 
 

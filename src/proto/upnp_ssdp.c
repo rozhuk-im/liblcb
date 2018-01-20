@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 #include <sys/sysctl.h>
 //#include <netinet/in.h>
 
+#include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <unistd.h> /* close, write, sysconf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */

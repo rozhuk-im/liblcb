@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2014 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,8 @@
 #define __INFO_H__
 
 #include <sys/time.h> /* For getrusage. */
+#include <sys/types.h>
+#include <inttypes.h>
 
 #ifndef INFO_SYSRES_UPD_INTERVAL
 #define INFO_SYSRES_UPD_INTERVAL 2 /* Seconds. */

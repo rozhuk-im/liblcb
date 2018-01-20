@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2012 - 2015 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2012 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,9 @@
 
 #ifndef __RING_BUFFER_H__
 #define __RING_BUFFER_H__
+
+#include <sys/types.h>
+#include <inttypes.h>
 
 
 typedef struct iovec_s {

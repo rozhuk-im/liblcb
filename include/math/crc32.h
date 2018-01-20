@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@
 #ifndef __CRC32_H__
 #define __CRC32_H__
 
+#include <sys/types.h>
 #include <inttypes.h>
 
 

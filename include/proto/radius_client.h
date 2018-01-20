@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 - 2015 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2014 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,8 @@
 #define __RADIUS_CLIENT_H__
 
 
+#include <sys/types.h>
+#include <inttypes.h>
 #include "threadpool/threadpool.h"
 #include "proto/radius.h"
 

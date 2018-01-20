@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2012 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,10 @@
 #define __BT_TRACKER_H__
 
 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <inttypes.h>
 
 
 /* compact analog of struct sockaddr_storage */
