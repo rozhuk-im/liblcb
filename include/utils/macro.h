@@ -37,9 +37,9 @@
 #include <inttypes.h>
 
 #ifndef IOV_MAX
-#include <limits.h>
-#include <bits/xopen_lim.h>
-#include <bits/stdio_lim.h>
+#	include <limits.h>
+#	include <stdio.h>
+#	include <bits/xopen_lim.h>
 #endif
 
 
@@ -143,15 +143,15 @@
 
 
 #ifndef IN_LOOPBACK
-#	define IN_LOOPBACK(__x) (0x7f000000 == (0xff000000 & (u_int32_t)(__x)))
+#	define IN_LOOPBACK(__x) (0x7f000000 == (0xff000000 & (uint32_t)(__x)))
 #endif
 
 #ifndef IN_BROADCAST
-#	define IN_BROADCAST(__x) (INADDR_BROADCAST == (u_int32_t)(__x))
+#	define IN_BROADCAST(__x) (INADDR_BROADCAST == (uint32_t)(__x))
 #endif
 
 #ifndef IN_MULTICAST
-#	define IN_MULTICAST(__x) (0xe0000000 == (0xf0000000 & (u_int32_t)(__x)))
+#	define IN_MULTICAST(__x) (0xe0000000 == (0xf0000000 & (uint32_t)(__x)))
 #endif
 
 #ifndef IN6_IS_ADDR_MULTICAST
