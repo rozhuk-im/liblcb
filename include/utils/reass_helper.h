@@ -34,10 +34,6 @@
 
 #ifndef _WINDOWS
 #	include <sys/param.h>
-#	ifndef BSD
-#		define _GNU_SOURCE /* See feature_test_macros(7) */
-#		define __USE_GNU 1
-#	endif
 #	include <sys/types.h>
 #	ifdef _KERNEL
 #		include <sys/systm.h>

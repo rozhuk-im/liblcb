@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2014 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,17 +28,11 @@
  */
 
 
-#ifndef __HW_HELPERS_H__
-#define __HW_HELPERS_H__
+#ifndef __ABSTRACTION_LAYER_HW_H__
+#define __ABSTRACTION_LAYER_HW_H__
 
 
 #include <sys/param.h>
-
-#ifdef __linux__ /* Linux specific code. */
-#define _GNU_SOURCE /* See feature_test_macros(7) */
-#define __USE_GNU 1
-#endif /* Linux specific code. */
-
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
@@ -433,4 +427,4 @@ crod_bailout:
 #endif
 
 
-#endif /* __HW_HELPERS_H__ */
+#endif /* __ABSTRACTION_LAYER_HW_H__ */
