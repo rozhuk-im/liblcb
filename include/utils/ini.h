@@ -49,8 +49,6 @@ int	ini_create(ini_p *ini_ret);
 void	ini_destroy(ini_p ini);
 
 int	ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size);
-int	ini_load(ini_p ini, const char *file_name,
-	    size_t file_name_size, size_t max_size);
 
 int	ini_buf_calc_size(ini_p ini, size_t *file_size);
 int	ini_buf_gen(ini_p ini, uint8_t *buf, size_t buf_size,
@@ -65,7 +63,7 @@ size_t	ini_sect_findi(ini_p ini, const uint8_t *sect_name,
 
 int	ini_sect_val_enum(ini_p ini, size_t sect_off, size_t *val_off,
 	    const uint8_t **val_name, size_t *val_name_size,
-	    const uint8_t **val, size_t *val_size) ;
+	    const uint8_t **val, size_t *val_size);
 size_t	ini_sect_val_find(ini_p ini, size_t sect_off,
 	    const uint8_t *val_name, size_t val_name_size);
 size_t	ini_sect_val_findi(ini_p ini, size_t sect_off,
