@@ -90,6 +90,7 @@ write_pid(const char *file_name) {
 	int fd;
 	char data[64];
 	size_t data_size;
+	ssize_t ios;
 
 	if (NULL == file_name)
 		return (EINVAL);
@@ -98,7 +99,12 @@ write_pid(const char *file_name) {
 	if (-1 == fd)
 		return (errno);
 	data_size = (size_t)snprintf(data, sizeof(data), "%d", getpid());
-	write(fd, data, data_size);
+	ios = write(fd, data, data_size);
+	if ((size_t)ios != data_size) {
+		close(fd);
+		unlink(file_name);
+		return (errno);
+	}
 	fchmod(fd, (S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH));
 	close(fd);
 
