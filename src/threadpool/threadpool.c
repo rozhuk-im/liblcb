@@ -247,6 +247,8 @@ tpt_data_event_init(tpt_p tpt) {
 		kev.udata = NULL;
 		if (-1 == kevent((int)tpt->io_fd, &kev, 1, NULL, 0, NULL))
 			return (errno);
+		if (0 != (EV_ERROR & kev.flags))
+			return (kev.data);
 	}
 	return (0);
 }
@@ -294,6 +296,8 @@ tpt_ev_post(int op, uint16_t event, uint16_t flags, tp_event_p ev,
 	}
 	if (-1 == kevent((int)tp_udata->tpt->io_fd, &kev, 1, NULL, 0, NULL))
 		return (errno);
+	if (0 != (EV_ERROR & kev.flags))
+		return (kev.data);
 	return (0);
 }
 
