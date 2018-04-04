@@ -356,14 +356,14 @@ info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 			    "infinity / ");
 		} else {
 			buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
-			    "%zu / ", rlp.rlim_cur);
+			    "%zu / ", (size_t)rlp.rlim_cur);
 		}
 		if (RLIM_INFINITY == rlp.rlim_max) {
 			buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
 			    "infinity\r\n");
 		} else {
 			buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
-			    "%zu\r\n", rlp.rlim_max);
+			    "%zu\r\n", (size_t)rlp.rlim_max);
 		}
 	}
 	if (NULL != buf_size_ret) {
