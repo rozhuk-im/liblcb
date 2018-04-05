@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,12 +36,8 @@
 #	include <sys/param.h>
 #	include <sys/types.h>
 #	include <sys/mman.h> /* mmap, munmap */
-#	ifdef _KERNEL
-#		include <sys/systm.h>
-#	else
-#		include <inttypes.h>
-#		include <strings.h> /* strncasecmp() */
-#	endif
+#	include <inttypes.h>
+#	include <strings.h> /* strncasecmp() */
 #else
 #	define EINVAL		ERROR_INVALID_PARAMETER
 #	define ENOMEM		ERROR_OUTOFMEMORY
@@ -58,6 +54,9 @@
 
 #ifndef SIZE_T_MAX
 #	define SIZE_T_MAX	((size_t)~0)
+#endif
+#ifndef RSIZE_MAX
+#	define RSIZE_MAX	(SIZE_T_MAX >> 1)
 #endif
 
 /* Secure version of memset(). */
@@ -483,6 +482,24 @@ mem_set(void *buf, const size_t size, const uint8_t c) {
 
 #define mem_bzero(__buf, __size)	mem_set((__buf), (size_t)(__size), 0x00)
 
+#ifndef HAVE_EXPLICIT_BZERO
+#	define explicit_bzero		mem_bzero
+#endif
+
+#ifndef HAVE_MEMSET_S
+static inline int
+memset_s(void *dest, size_t destsz, int c, size_t len) {
+	if (0 == len)
+		return (0);
+	if (NULL == dest || len > destsz ||
+	    RSIZE_MAX < destsz || RSIZE_MAX < len)
+		return (EINVAL);
+
+	memset_volatile(dest, (uint8_t)c, len);
+
+	return (0);
+}
+#endif
 
 /* Debug memory fill. */
 #ifdef DEBUG
