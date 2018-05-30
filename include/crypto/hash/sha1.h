@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -84,6 +84,24 @@
 #	define sha1_bzero(__mem, __size)	SecureZeroMemory((__mem), (__size))
 #endif
 
+#ifdef __SSE2__
+#	include <cpuid.h>
+#	include <emmintrin.h>
+#	include <immintrin.h>
+#endif
+
+#if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
+#	include <shaintrin.h>
+#	define SHA1_ENABLE_SIMD	1
+#endif
+
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#	define SHA1_ALIGN(__n)	__declspec(align(__n)) /* DECLSPEC_ALIGN() */
+#else /* GCC/clang */
+#	define SHA1_ALIGN(__n)	__attribute__ ((aligned(__n)))
+#endif
+
+
 #if defined(_WINDOWS) && defined(UNICODE)
 #	define sha1_hmac_get_digest_str		sha1_hmac_get_digest_strW
 #	define sha1_get_digest_str		sha1_get_digest_strW
@@ -104,30 +122,36 @@
 
 
 /* Define the SHA1 circular left shift macro. */
-#define SHA1_ROTL(bits, word)	(((word) << (bits)) | ((word) >> (32 - (bits))))
+#define SHA1_ROTL(__n, __word)	(((__word) << (__n)) | ((__word) >> (32 - (__n))))
 
-#define SHA1_Ch(x, y, z)	(((x) & (y)) | ((~(x)) & (z)))
-#define SHA1_Maj(x, y, z)	(((x) & (y)) | ((x) & (z)) | ((y) & (z)))
+#define SHA1_Ch(__x, __y, __z)	(((__x) & (__y)) | ((~(__x)) & (__z)))
+#define SHA1_Maj(__x, __y, __z)	(((__x) & (__y)) | ((__x) & (__z)) | ((__y) & (__z)))
 /* From RFC 4634. */
-//#define SHA1_Ch(x, y, z)	(((x) & (y)) ^ ((~(x)) & (z)))
-//#define SHA1_Maj(x, y, z)	(((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
+//#define SHA1_Ch(__x, __y, __z)	(((__x) & (__y)) ^ ((~(__x)) & (__z)))
+//#define SHA1_Maj(__x, __y, __z)	(((__x) & (__y)) ^ ((__x) & (__z)) ^ ((__y) & (__z)))
 /* The following definitions are equivalent and potentially faster. */
-//#define SHA1_Ch(x, y, z)	(((x) & ((y) ^ (z))) ^ (z))
-//#define SHA1_Maj(x, y, z)	(((x) & ((y) | (z))) | ((y) & (z)))
-#define SHA1_Parity(x, y, z)	((x) ^ (y) ^ (z))
+//#define SHA1_Ch(__x, __y, __z)	(((__x) & ((__y) ^ (__z))) ^ (__z))
+//#define SHA1_Maj(__x, __y, __z)	(((__x) & ((__y) | (__z))) | ((__y) & (__z)))
+#define SHA1_Parity(__x, __y, __z)	((__x) ^ (__y) ^ (__z))
 
 
 /* This structure will hold context information for the SHA-1 hashing operation. */
 typedef struct sha1_ctx_s {
-	uint32_t hash[(SHA1_HASH_SIZE / sizeof(uint32_t))]; /* State (ABCDE) / Message Digest. */
 	uint64_t count; /* Number of bits, modulo 2^64 (lsb first). */
-	uint64_t buffer[SHA1_MSG_BLK_64CNT]; /* Input buffer: 512-bit message blocks. */
-	uint32_t W[80]; /* Temp buf for sha1_transform(). */
+	SHA1_ALIGN(32) uint32_t hash[(SHA1_HASH_SIZE / sizeof(uint32_t))]; /* State (ABCDE) / Message Digest. */
+	SHA1_ALIGN(32) uint64_t buffer[SHA1_MSG_BLK_64CNT]; /* Input buffer: 512-bit message blocks. */
+	SHA1_ALIGN(32) uint32_t W[80]; /* Temp buf for sha1_transform(). */
+#ifdef __SSE2__
+	int use_sse2; /* SSE2 transform. */
+#endif
+#ifdef SHA1_ENABLE_SIMD
+	int use_simd; /* SHA SIMD tansform. */
+#endif
 } sha1_ctx_t, *sha1_ctx_p;
 
 typedef struct hmac_sha1_ctx_s {
 	sha1_ctx_t ctx;
-	uint64_t k_opad[SHA1_MSG_BLK_64CNT]; /* outer padding - key XORd with opad. */
+	SHA1_ALIGN(32) uint64_t k_opad[SHA1_MSG_BLK_64CNT]; /* outer padding - key XORd with opad. */
 } hmac_sha1_ctx_t, *hmac_sha1_ctx_p;
 
 
@@ -165,6 +189,17 @@ sha1_init(sha1_ctx_p ctx) {
 	ctx->hash[3] = 0x10325476;
 	ctx->hash[4] = 0xc3d2e1f0;
 	ctx->count = 0;
+#if defined(__SSE2__) || defined(SHA1_ENABLE_SIMD)
+	uint32_t eax, ebx, ecx, edx;
+#endif
+#ifdef __SSE2__
+	__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx);
+	ctx->use_sse2 = (edx & (((uint32_t)1) << 26));
+#endif
+#ifdef SHA1_ENABLE_SIMD
+	__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
+	ctx->use_simd = (ebx & (((uint32_t)1) << 29));
+#endif
 }
 
 /*
@@ -183,7 +218,7 @@ sha1_init(sha1_ctx_p ctx) {
  *      names used in the publication.
  */
 static inline void
-sha1_transform(sha1_ctx_p ctx, const uint8_t *block) {
+sha1_transform_native(sha1_ctx_p ctx, const uint8_t *block) {
 	/* Constants defined in SHA-1. */
 	const uint32_t K[] = {0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6};
 	register uint32_t t; /* Loop counter. */
@@ -252,6 +287,442 @@ sha1_transform(sha1_ctx_p ctx, const uint8_t *block) {
 	ctx->hash[3] += D;
 	ctx->hash[4] += E;
 }
+
+
+#ifdef __SSE2__
+/*
+ * First 16 bytes just need byte swapping. Preparing just means
+ * adding in the round constants.
+ */
+#define SHA1_PREP00_15(__P, __W, __K) do {				\
+	(__W) = _mm_shufflehi_epi16((__W), _MM_SHUFFLE(2, 3, 0, 1));	\
+	(__W) = _mm_shufflelo_epi16((__W), _MM_SHUFFLE(2, 3, 0, 1));	\
+	(__W) = _mm_or_si128(_mm_slli_epi16((__W), 8), _mm_srli_epi16((__W), 8)); \
+	(__P).u128 = _mm_add_epi32((__W), (__K));			\
+} while (0)
+
+#define SHA1_PREP(__prep, __xw0, __xw1, __xw2, __xw3, __k) do {		\
+	__m128i r0, r1, r2, r3;						\
+									\
+	/* load W[t-4] 16-byte aligned, and shift */			\
+	r3 = _mm_srli_si128((__xw3), 4);				\
+	r0 = (__xw0);							\
+	/* get high 64-bits of __xw0 into low 64-bits */		\
+	r1 = _mm_shuffle_epi32((__xw0), _MM_SHUFFLE(1, 0, 3, 2));	\
+	/* load high 64-bits of r1 */					\
+	r1 = _mm_unpacklo_epi64(r1, (__xw1));				\
+	r2 = (__xw2);							\
+									\
+	r0 = _mm_xor_si128(r1, r0);					\
+	r2 = _mm_xor_si128(r3, r2);					\
+	r0 = _mm_xor_si128(r2, r0);					\
+	/* unrotated W[t]..W[t+2] in r0 ... still need W[t+3] */	\
+									\
+	r2 = _mm_slli_si128(r0, 12);					\
+	r1 = _mm_cmplt_epi32(r0, _mm_setzero_si128());			\
+	r0 = _mm_add_epi32(r0, r0); /* shift left by 1 */		\
+	r0 = _mm_sub_epi32(r0, r1); /* r0 has W[t]..W[t+2] */		\
+									\
+	r3 = _mm_srli_epi32(r2, 30);					\
+	r2 = _mm_slli_epi32(r2, 2);					\
+									\
+	r0 = _mm_xor_si128(r0, r3);					\
+	r0 = _mm_xor_si128(r0, r2); /* r0 now has W[t+3] */		\
+									\
+	(__xw0) = r0;							\
+	(__prep).u128 = _mm_add_epi32(r0, (__k));			\
+} while (0)
+
+/* SHA-160 F Functions. */
+#define SHA1_F1(__a, __b, __c, __d, __e, __msg) do {			\
+	(__e) += (((__d) ^ ((__b) & ((__c) ^ (__d)))) + (__msg) + SHA1_ROTL(5, (__a))); \
+	(__b)  = SHA1_ROTL(30, (__b));					\
+} while (0)
+
+#define SHA1_F2(__a, __b, __c, __d, __e, __msg) do {			\
+	(__e) += (((__b) ^ (__c) ^ (__d)) + (__msg) + SHA1_ROTL(5, (__a))); \
+	(__b)  = SHA1_ROTL(30, (__b));					\
+} while (0)
+
+#define SHA1_F3(__a, __b, __c, __d, __e, __msg) do {			\
+	(__e) += ((((__b) & (__c)) | (((__b) | (__c)) & (__d))) + (__msg) + SHA1_ROTL(5, (__a))); \
+	(__b)  = SHA1_ROTL(30, (__b));					\
+} while (0)
+
+#define SHA1_F4(__a, __b, __c, __d, __e, __msg) do {			\
+	(__e) += (((__b) ^ (__c) ^ (__d)) + (__msg) + SHA1_ROTL(5, (__a))); \
+	(__b)  = SHA1_ROTL(30, (__b));					\
+} while (0)
+
+/*
+* SHA-160 Compression Function using SSE for message expansion
+*/
+static inline void
+sha1_transform_sse2(sha1_ctx_p ctx, const uint8_t *block) {
+	const __m128i K00_19 = _mm_set1_epi32((int32_t)0x5A827999);
+	const __m128i K20_39 = _mm_set1_epi32((int32_t)0x6ED9EBA1);
+	const __m128i K40_59 = _mm_set1_epi32((int32_t)0x8F1BBCDC);
+	const __m128i K60_79 = _mm_set1_epi32((int32_t)0xCA62C1D6);
+	const __m128i *input_mm = (const __m128i*)block;
+	register uint32_t A, B, C, D, E; /* Word buffers. */
+
+	A = ctx->hash[0];
+	B = ctx->hash[1];
+	C = ctx->hash[2];
+	D = ctx->hash[3];
+	E = ctx->hash[4];
+
+	union sha1_v4si_u {
+		uint32_t u32[4];
+		__m128i u128;
+	} P0, P1, P2, P3;
+	/* Using SSE4; slower on Core2 and Nehalem
+	 * #define SHA1_GET_P_32(__P, __i) _mm_extract_epi32((__P).u128, (__i))
+	 * Much slower on all tested platforms
+	 * #define SHA1_GET_P_32(__P, __i) _mm_cvtsi128_si32(_mm_srli_si128((__P).u128, ((__i) * 4)))
+	 */
+	#define SHA1_GET_P_32(__P, __i) (__P).u32[(__i)]
+
+	__m128i W0 = _mm_loadu_si128(&input_mm[0]);
+	SHA1_PREP00_15(P0, W0, K00_19);
+
+	__m128i W1 = _mm_loadu_si128(&input_mm[1]);
+	SHA1_PREP00_15(P1, W1, K00_19);
+
+	__m128i W2 = _mm_loadu_si128(&input_mm[2]);
+	SHA1_PREP00_15(P2, W2, K00_19);
+
+	__m128i W3 = _mm_loadu_si128(&input_mm[3]);
+	SHA1_PREP00_15(P3, W3, K00_19);
+
+
+	SHA1_F1(A, B, C, D, E, SHA1_GET_P_32(P0, 0));
+	SHA1_F1(E, A, B, C, D, SHA1_GET_P_32(P0, 1));
+	SHA1_F1(D, E, A, B, C, SHA1_GET_P_32(P0, 2));
+	SHA1_F1(C, D, E, A, B, SHA1_GET_P_32(P0, 3));
+	SHA1_PREP(P0, W0, W1, W2, W3, K00_19);
+
+	SHA1_F1(B, C, D, E, A, SHA1_GET_P_32(P1, 0));
+	SHA1_F1(A, B, C, D, E, SHA1_GET_P_32(P1, 1));
+	SHA1_F1(E, A, B, C, D, SHA1_GET_P_32(P1, 2));
+	SHA1_F1(D, E, A, B, C, SHA1_GET_P_32(P1, 3));
+	SHA1_PREP(P1, W1, W2, W3, W0, K20_39);
+
+	SHA1_F1(C, D, E, A, B, SHA1_GET_P_32(P2, 0));
+	SHA1_F1(B, C, D, E, A, SHA1_GET_P_32(P2, 1));
+	SHA1_F1(A, B, C, D, E, SHA1_GET_P_32(P2, 2));
+	SHA1_F1(E, A, B, C, D, SHA1_GET_P_32(P2, 3));
+	SHA1_PREP(P2, W2, W3, W0, W1, K20_39);
+
+	SHA1_F1(D, E, A, B, C, SHA1_GET_P_32(P3, 0));
+	SHA1_F1(C, D, E, A, B, SHA1_GET_P_32(P3, 1));
+	SHA1_F1(B, C, D, E, A, SHA1_GET_P_32(P3, 2));
+	SHA1_F1(A, B, C, D, E, SHA1_GET_P_32(P3, 3));
+	SHA1_PREP(P3, W3, W0, W1, W2, K20_39);
+
+	SHA1_F1(E, A, B, C, D, SHA1_GET_P_32(P0, 0));
+	SHA1_F1(D, E, A, B, C, SHA1_GET_P_32(P0, 1));
+	SHA1_F1(C, D, E, A, B, SHA1_GET_P_32(P0, 2));
+	SHA1_F1(B, C, D, E, A, SHA1_GET_P_32(P0, 3));
+	SHA1_PREP(P0, W0, W1, W2, W3, K20_39);
+
+	SHA1_F2(A, B, C, D, E, SHA1_GET_P_32(P1, 0));
+	SHA1_F2(E, A, B, C, D, SHA1_GET_P_32(P1, 1));
+	SHA1_F2(D, E, A, B, C, SHA1_GET_P_32(P1, 2));
+	SHA1_F2(C, D, E, A, B, SHA1_GET_P_32(P1, 3));
+	SHA1_PREP(P1, W1, W2, W3, W0, K20_39);
+
+	SHA1_F2(B, C, D, E, A, SHA1_GET_P_32(P2, 0));
+	SHA1_F2(A, B, C, D, E, SHA1_GET_P_32(P2, 1));
+	SHA1_F2(E, A, B, C, D, SHA1_GET_P_32(P2, 2));
+	SHA1_F2(D, E, A, B, C, SHA1_GET_P_32(P2, 3));
+	SHA1_PREP(P2, W2, W3, W0, W1, K40_59);
+
+	SHA1_F2(C, D, E, A, B, SHA1_GET_P_32(P3, 0));
+	SHA1_F2(B, C, D, E, A, SHA1_GET_P_32(P3, 1));
+	SHA1_F2(A, B, C, D, E, SHA1_GET_P_32(P3, 2));
+	SHA1_F2(E, A, B, C, D, SHA1_GET_P_32(P3, 3));
+	SHA1_PREP(P3, W3, W0, W1, W2, K40_59);
+
+	SHA1_F2(D, E, A, B, C, SHA1_GET_P_32(P0, 0));
+	SHA1_F2(C, D, E, A, B, SHA1_GET_P_32(P0, 1));
+	SHA1_F2(B, C, D, E, A, SHA1_GET_P_32(P0, 2));
+	SHA1_F2(A, B, C, D, E, SHA1_GET_P_32(P0, 3));
+	SHA1_PREP(P0, W0, W1, W2, W3, K40_59);
+
+	SHA1_F2(E, A, B, C, D, SHA1_GET_P_32(P1, 0));
+	SHA1_F2(D, E, A, B, C, SHA1_GET_P_32(P1, 1));
+	SHA1_F2(C, D, E, A, B, SHA1_GET_P_32(P1, 2));
+	SHA1_F2(B, C, D, E, A, SHA1_GET_P_32(P1, 3));
+	SHA1_PREP(P1, W1, W2, W3, W0, K40_59);
+
+	SHA1_F3(A, B, C, D, E, SHA1_GET_P_32(P2, 0));
+	SHA1_F3(E, A, B, C, D, SHA1_GET_P_32(P2, 1));
+	SHA1_F3(D, E, A, B, C, SHA1_GET_P_32(P2, 2));
+	SHA1_F3(C, D, E, A, B, SHA1_GET_P_32(P2, 3));
+	SHA1_PREP(P2, W2, W3, W0, W1, K40_59);
+
+	SHA1_F3(B, C, D, E, A, SHA1_GET_P_32(P3, 0));
+	SHA1_F3(A, B, C, D, E, SHA1_GET_P_32(P3, 1));
+	SHA1_F3(E, A, B, C, D, SHA1_GET_P_32(P3, 2));
+	SHA1_F3(D, E, A, B, C, SHA1_GET_P_32(P3, 3));
+	SHA1_PREP(P3, W3, W0, W1, W2, K60_79);
+
+	SHA1_F3(C, D, E, A, B, SHA1_GET_P_32(P0, 0));
+	SHA1_F3(B, C, D, E, A, SHA1_GET_P_32(P0, 1));
+	SHA1_F3(A, B, C, D, E, SHA1_GET_P_32(P0, 2));
+	SHA1_F3(E, A, B, C, D, SHA1_GET_P_32(P0, 3));
+	SHA1_PREP(P0, W0, W1, W2, W3, K60_79);
+
+	SHA1_F3(D, E, A, B, C, SHA1_GET_P_32(P1, 0));
+	SHA1_F3(C, D, E, A, B, SHA1_GET_P_32(P1, 1));
+	SHA1_F3(B, C, D, E, A, SHA1_GET_P_32(P1, 2));
+	SHA1_F3(A, B, C, D, E, SHA1_GET_P_32(P1, 3));
+	SHA1_PREP(P1, W1, W2, W3, W0, K60_79);
+
+	SHA1_F3(E, A, B, C, D, SHA1_GET_P_32(P2, 0));
+	SHA1_F3(D, E, A, B, C, SHA1_GET_P_32(P2, 1));
+	SHA1_F3(C, D, E, A, B, SHA1_GET_P_32(P2, 2));
+	SHA1_F3(B, C, D, E, A, SHA1_GET_P_32(P2, 3));
+	SHA1_PREP(P2, W2, W3, W0, W1, K60_79);
+
+	SHA1_F4(A, B, C, D, E, SHA1_GET_P_32(P3, 0));
+	SHA1_F4(E, A, B, C, D, SHA1_GET_P_32(P3, 1));
+	SHA1_F4(D, E, A, B, C, SHA1_GET_P_32(P3, 2));
+	SHA1_F4(C, D, E, A, B, SHA1_GET_P_32(P3, 3));
+	SHA1_PREP(P3, W3, W0, W1, W2, K60_79);
+
+	SHA1_F4(B, C, D, E, A, SHA1_GET_P_32(P0, 0));
+	SHA1_F4(A, B, C, D, E, SHA1_GET_P_32(P0, 1));
+	SHA1_F4(E, A, B, C, D, SHA1_GET_P_32(P0, 2));
+	SHA1_F4(D, E, A, B, C, SHA1_GET_P_32(P0, 3));
+
+	SHA1_F4(C, D, E, A, B, SHA1_GET_P_32(P1, 0));
+	SHA1_F4(B, C, D, E, A, SHA1_GET_P_32(P1, 1));
+	SHA1_F4(A, B, C, D, E, SHA1_GET_P_32(P1, 2));
+	SHA1_F4(E, A, B, C, D, SHA1_GET_P_32(P1, 3));
+
+	SHA1_F4(D, E, A, B, C, SHA1_GET_P_32(P2, 0));
+	SHA1_F4(C, D, E, A, B, SHA1_GET_P_32(P2, 1));
+	SHA1_F4(B, C, D, E, A, SHA1_GET_P_32(P2, 2));
+	SHA1_F4(A, B, C, D, E, SHA1_GET_P_32(P2, 3));
+
+	SHA1_F4(E, A, B, C, D, SHA1_GET_P_32(P3, 0));
+	SHA1_F4(D, E, A, B, C, SHA1_GET_P_32(P3, 1));
+	SHA1_F4(C, D, E, A, B, SHA1_GET_P_32(P3, 2));
+	SHA1_F4(B, C, D, E, A, SHA1_GET_P_32(P3, 3));
+
+	ctx->hash[0] += A;
+	ctx->hash[1] += B;
+	ctx->hash[2] += C;
+	ctx->hash[3] += D;
+	ctx->hash[4] += E;
+}
+#endif
+
+#ifdef SHA1_ENABLE_SIMD
+static inline void
+sha1_transform_simd(sha1_ctx_p ctx, const uint8_t *block) {
+	const __m128i MASK = _mm_set_epi64x(0x0001020304050607ULL, 0x08090a0b0c0d0e0fULL);
+	const __m128i *input_mm = (const __m128i*)block;
+
+	/* Load initial values. */
+	__m128i ABCD = (__m128i)_mm_loadu_si128((__m128i*)ctx->hash);
+	__m128i E0 = (__m128i)_mm_set_epi32((int32_t)ctx->hash[4], 0, 0, 0);
+	ABCD = _mm_shuffle_epi32(ABCD, 0x1B);
+
+	/* Save current hash. */
+	const __m128i ABCD_SAVE = ABCD;
+	const __m128i E0_SAVE = E0;
+
+	__m128i MSG0, MSG1, MSG2, MSG3;
+	__m128i E1;
+
+	/* Rounds 0-3 */
+	MSG0 = _mm_loadu_si128((input_mm + 0));
+	MSG0 = _mm_shuffle_epi8(MSG0, MASK);
+	E0 = _mm_add_epi32(E0, MSG0);
+	E1 = ABCD;
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 0);
+
+	/* Rounds 4-7 */
+	MSG1 = _mm_loadu_si128((input_mm + 1));
+	MSG1 = _mm_shuffle_epi8(MSG1, MASK);
+	E1 = _mm_sha1nexte_epu32(E1, MSG1);
+	E0 = ABCD;
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 0);
+	MSG0 = _mm_sha1msg1_epu32(MSG0, MSG1);
+
+	/* Rounds 8-11 */
+	MSG2 = _mm_loadu_si128((input_mm + 2));
+	MSG2 = _mm_shuffle_epi8(MSG2, MASK);
+	E0 = _mm_sha1nexte_epu32(E0, MSG2);
+	E1 = ABCD;
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 0);
+	MSG1 = _mm_sha1msg1_epu32(MSG1, MSG2);
+	MSG0 = _mm_xor_si128(MSG0, MSG2);
+
+	/* Rounds 12-15 */
+	MSG3 = _mm_loadu_si128((input_mm + 3));
+	MSG3 = _mm_shuffle_epi8(MSG3, MASK);
+	E1 = _mm_sha1nexte_epu32(E1, MSG3);
+	E0 = ABCD;
+	MSG0 = _mm_sha1msg2_epu32(MSG0, MSG3);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 0);
+	MSG2 = _mm_sha1msg1_epu32(MSG2, MSG3);
+	MSG1 = _mm_xor_si128(MSG1, MSG3);
+
+	/* Rounds 16-19 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG0);
+	E1 = ABCD;
+	MSG1 = _mm_sha1msg2_epu32(MSG1, MSG0);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 0);
+	MSG3 = _mm_sha1msg1_epu32(MSG3, MSG0);
+	MSG2 = _mm_xor_si128(MSG2, MSG0);
+
+	/* Rounds 20-23 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG1);
+	E0 = ABCD;
+	MSG2 = _mm_sha1msg2_epu32(MSG2, MSG1);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 1);
+	MSG0 = _mm_sha1msg1_epu32(MSG0, MSG1);
+	MSG3 = _mm_xor_si128(MSG3, MSG1);
+
+	/* Rounds 24-27 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG2);
+	E1 = ABCD;
+	MSG3 = _mm_sha1msg2_epu32(MSG3, MSG2);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 1);
+	MSG1 = _mm_sha1msg1_epu32(MSG1, MSG2);
+	MSG0 = _mm_xor_si128(MSG0, MSG2);
+
+	/* Rounds 28-31 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG3);
+	E0 = ABCD;
+	MSG0 = _mm_sha1msg2_epu32(MSG0, MSG3);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 1);
+	MSG2 = _mm_sha1msg1_epu32(MSG2, MSG3);
+	MSG1 = _mm_xor_si128(MSG1, MSG3);
+
+	/* Rounds 32-35 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG0);
+	E1 = ABCD;
+	MSG1 = _mm_sha1msg2_epu32(MSG1, MSG0);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 1);
+	MSG3 = _mm_sha1msg1_epu32(MSG3, MSG0);
+	MSG2 = _mm_xor_si128(MSG2, MSG0);
+
+	/* Rounds 36-39 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG1);
+	E0 = ABCD;
+	MSG2 = _mm_sha1msg2_epu32(MSG2, MSG1);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 1);
+	MSG0 = _mm_sha1msg1_epu32(MSG0, MSG1);
+	MSG3 = _mm_xor_si128(MSG3, MSG1);
+
+	/* Rounds 40-43 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG2);
+	E1 = ABCD;
+	MSG3 = _mm_sha1msg2_epu32(MSG3, MSG2);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 2);
+	MSG1 = _mm_sha1msg1_epu32(MSG1, MSG2);
+	MSG0 = _mm_xor_si128(MSG0, MSG2);
+
+	/* Rounds 44-47 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG3);
+	E0 = ABCD;
+	MSG0 = _mm_sha1msg2_epu32(MSG0, MSG3);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 2);
+	MSG2 = _mm_sha1msg1_epu32(MSG2, MSG3);
+	MSG1 = _mm_xor_si128(MSG1, MSG3);
+
+	/* Rounds 48-51 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG0);
+	E1 = ABCD;
+	MSG1 = _mm_sha1msg2_epu32(MSG1, MSG0);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 2);
+	MSG3 = _mm_sha1msg1_epu32(MSG3, MSG0);
+	MSG2 = _mm_xor_si128(MSG2, MSG0);
+
+	/* Rounds 52-55 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG1);
+	E0 = ABCD;
+	MSG2 = _mm_sha1msg2_epu32(MSG2, MSG1);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 2);
+	MSG0 = _mm_sha1msg1_epu32(MSG0, MSG1);
+	MSG3 = _mm_xor_si128(MSG3, MSG1);
+
+	/* Rounds 56-59 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG2);
+	E1 = ABCD;
+	MSG3 = _mm_sha1msg2_epu32(MSG3, MSG2);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 2);
+	MSG1 = _mm_sha1msg1_epu32(MSG1, MSG2);
+	MSG0 = _mm_xor_si128(MSG0, MSG2);
+
+	/* Rounds 60-63 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG3);
+	E0 = ABCD;
+	MSG0 = _mm_sha1msg2_epu32(MSG0, MSG3);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 3);
+	MSG2 = _mm_sha1msg1_epu32(MSG2, MSG3);
+	MSG1 = _mm_xor_si128(MSG1, MSG3);
+
+	/* Rounds 64-67 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG0);
+	E1 = ABCD;
+	MSG1 = _mm_sha1msg2_epu32(MSG1, MSG0);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 3);
+	MSG3 = _mm_sha1msg1_epu32(MSG3, MSG0);
+	MSG2 = _mm_xor_si128(MSG2, MSG0);
+
+	/* Rounds 68-71 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG1);
+	E0 = ABCD;
+	MSG2 = _mm_sha1msg2_epu32(MSG2, MSG1);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 3);
+	MSG3 = _mm_xor_si128(MSG3, MSG1);
+
+	/* Rounds 72-75 */
+	E0 = _mm_sha1nexte_epu32(E0, MSG2);
+	E1 = ABCD;
+	MSG3 = _mm_sha1msg2_epu32(MSG3, MSG2);
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E0, 3);
+
+	/* Rounds 76-79 */
+	E1 = _mm_sha1nexte_epu32(E1, MSG3);
+	E0 = ABCD;
+	ABCD = (__m128i)_mm_sha1rnds4_epu32(ABCD, E1, 3);
+
+	/* Add values back to state */
+	E0 = _mm_sha1nexte_epu32(E0, E0_SAVE);
+	ABCD = _mm_add_epi32(ABCD, ABCD_SAVE);
+
+	/* Save state. */
+	ABCD = _mm_shuffle_epi32(ABCD, 0x1B);
+	_mm_storeu_si128((__m128i*)ctx->hash, ABCD);
+	ctx->hash[4] = (uint32_t)_mm_extract_epi32(E0, 3);
+}
+#endif
+
+static inline void
+sha1_transform(sha1_ctx_p ctx, const uint8_t *block) {
+
+#ifdef SHA1_ENABLE_SIMD
+	if (0 != ctx->use_simd) {
+		sha1_transform_simd(ctx, block);
+		return;
+	}
+#endif
+#ifdef __SSE2__
+	if (0 != ctx->use_sse2) {
+		sha1_transform_sse2(ctx, block);
+		return;
+	}
+#endif
+	sha1_transform_native(ctx, block);
+}
+
 
 /*
  *  sha1_update
@@ -539,23 +1010,23 @@ sha1_self_test(void) {
 	sha1_ctx_t ctx;
 	uint8_t digest[SHA1_HASH_SIZE];
 	char digest_str[SHA1_HASH_STR_SIZE + 1]; /* Calculated digest. */
-	char *data[] = {
-	    (char*)"",
-	    (char*)"a",
-	    (char*)"abc",
-	    (char*)"message digest",
-	    (char*)"abcdefghijklmnopqrstuvwxyz",
-	    (char*)"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
-	    (char*)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-	    (char*)"12345678901234567890123456789012345678901234567890123456789012345678901234567890",
-	    (char*)"01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
-	    (char*)"a",
-	    (char*)"0123456701234567012345670123456701234567012345670123456701234567",
-	    (char*)"012345670123456701234567012345670123456701234567012345",
-	    (char*)"0123456701234567012345670123456701234567012345670123456",
-	    (char*)"01234567012345670123456701234567012345670123456701234567",
-	    (char*)"012345670123456701234567012345670123456701234567012345678",
-	    (char*)"012345670123456701234567012345670123456701234567012345670123456",
+	const char *data[] = {
+	    "",
+	    "a",
+	    "abc",
+	    "message digest",
+	    "abcdefghijklmnopqrstuvwxyz",
+	    "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+	    "12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+	    "01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
+	    "a",
+	    "0123456701234567012345670123456701234567012345670123456701234567",
+	    "012345670123456701234567012345670123456701234567012345",
+	    "0123456701234567012345670123456701234567012345670123456",
+	    "01234567012345670123456701234567012345670123456701234567",
+	    "012345670123456701234567012345670123456701234567012345678",
+	    "012345670123456701234567012345670123456701234567012345670123456",
 	    NULL
 	};
 	size_t data_size[] = {
@@ -564,49 +1035,49 @@ sha1_self_test(void) {
 	size_t repeat_count[] = {
 	    1, 1, 1, 1, 1, 1, 1, 1, 1, 1000000, 10, 1, 1, 1, 1, 1, 0
 	};
-	char *result_digest[] = {
-	    (char*)"da39a3ee5e6b4b0d3255bfef95601890afd80709",
-	    (char*)"86f7e437faa5a7fce15d1ddcb9eaeaea377667b8",
-	    (char*)"a9993e364706816aba3e25717850c26c9cd0d89d",
-	    (char*)"c12252ceda8be8994d5fa0290a47231c1d16aae3",
-	    (char*)"32d10c7b8cf96570ca04ce37f2a19d84240d3a89",
-	    (char*)"84983e441c3bd26ebaae4aa1f95129e5e54670f1",
-	    (char*)"761c457bf73b14d27e9e9265c46f4b4dda11f940",
-	    (char*)"50abf5706a150990a08b2c5ea40fa0e585554732",
-	    (char*)"2249bd93900b5cb32bd4714a2be11e4c18450623",
-	    (char*)"34aa973cd4c4daa4f61eeb2bdbad27316534016f",
-	    (char*)"dea356a2cddd90c7a7ecedc5ebb563934f460452",
-	    (char*)"09325e9054f88d7340deeb8785c6f8455ad13c78",
-	    (char*)"adfc128b4a89c560e754c1659a6a90968b55490e",
-	    (char*)"e8db7ebaebb692565d590a48b1dc506b6f130950",
-	    (char*)"f8331b7f064d5886f371c47d8912c04439f4290a",
-	    (char*)"f50965cd66d5793b37291ec7afe090406f2b6115",
+	const char *result_digest[] = {
+	    "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+	    "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8",
+	    "a9993e364706816aba3e25717850c26c9cd0d89d",
+	    "c12252ceda8be8994d5fa0290a47231c1d16aae3",
+	    "32d10c7b8cf96570ca04ce37f2a19d84240d3a89",
+	    "84983e441c3bd26ebaae4aa1f95129e5e54670f1",
+	    "761c457bf73b14d27e9e9265c46f4b4dda11f940",
+	    "50abf5706a150990a08b2c5ea40fa0e585554732",
+	    "2249bd93900b5cb32bd4714a2be11e4c18450623",
+	    "34aa973cd4c4daa4f61eeb2bdbad27316534016f",
+	    "dea356a2cddd90c7a7ecedc5ebb563934f460452",
+	    "09325e9054f88d7340deeb8785c6f8455ad13c78",
+	    "adfc128b4a89c560e754c1659a6a90968b55490e",
+	    "e8db7ebaebb692565d590a48b1dc506b6f130950",
+	    "f8331b7f064d5886f371c47d8912c04439f4290a",
+	    "f50965cd66d5793b37291ec7afe090406f2b6115",
 	    NULL
 	};
-	char *result_hdigest[] = {
-	    (char*)"fbdb1d1b18aa6c08324b7d64b71fb76370690e1d",
-	    (char*)"3902ed847ff28930b5f141abfa8b471681253673",
-	    (char*)"5b333a389b4e9a2358ac5392bf2a64dc68e3c943",
-	    (char*)"39729a5ace94cc349b79adffbd113a599ca59d47",
-	    (char*)"d74df27e4293c4225813dd723007cfb8933bc70b",
-	    (char*)"e977b6b86e9f1920f01be85e9cea1f5a15b89421",
-	    (char*)"a70fe63deac3c18b9d36ba4ecd44bdaf07cf5548",
-	    (char*)"3e9e3aeaa5c932036358071bfcc3755344e7e357",
-	    (char*)"2993491f3989c24a1267a5a35c5de325e6ef5312",
-	    (char*)"3902ed847ff28930b5f141abfa8b471681253673",
-	    (char*)"96e41775f72e3b2c61dca03d5c767019bebcc335",
-	    (char*)"4ba0fa8d31c37fcad8476eb4bdd64e62e843284f",
-	    (char*)"84dccb278a7be4e7c4318849bf22fa42f44baccd",
-	    (char*)"9698a0a5cda19c5f4266cd851f5a606dc7b85e91",
-	    (char*)"bbf00e8e0ff7a4dcd1cff54080c516fab3692d6b",
-	    (char*)"d5d9e4085429568f05a4ef8233f42722c4462d6c",
+	const char *result_hdigest[] = {
+	    "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d",
+	    "3902ed847ff28930b5f141abfa8b471681253673",
+	    "5b333a389b4e9a2358ac5392bf2a64dc68e3c943",
+	    "39729a5ace94cc349b79adffbd113a599ca59d47",
+	    "d74df27e4293c4225813dd723007cfb8933bc70b",
+	    "e977b6b86e9f1920f01be85e9cea1f5a15b89421",
+	    "a70fe63deac3c18b9d36ba4ecd44bdaf07cf5548",
+	    "3e9e3aeaa5c932036358071bfcc3755344e7e357",
+	    "2993491f3989c24a1267a5a35c5de325e6ef5312",
+	    "3902ed847ff28930b5f141abfa8b471681253673",
+	    "96e41775f72e3b2c61dca03d5c767019bebcc335",
+	    "4ba0fa8d31c37fcad8476eb4bdd64e62e843284f",
+	    "84dccb278a7be4e7c4318849bf22fa42f44baccd",
+	    "9698a0a5cda19c5f4266cd851f5a606dc7b85e91",
+	    "bbf00e8e0ff7a4dcd1cff54080c516fab3692d6b",
+	    "d5d9e4085429568f05a4ef8233f42722c4462d6c",
 	    NULL
 	};
 
 	for (i = 0; NULL != data[i]; i ++) {
 		sha1_init(&ctx);
 		for (j = 0; j < repeat_count[i]; j ++) {
-			sha1_update(&ctx, (uint8_t*)data[i], data_size[i]);
+			sha1_update(&ctx, (const uint8_t*)data[i], data_size[i]);
 		}
 		sha1_final(&ctx, digest);
 		sha1_cvt_hex(digest, (uint8_t*)digest_str);
@@ -625,4 +1096,4 @@ sha1_self_test(void) {
 #endif
 
 
-#endif // __SHA1_H__INCLUDED__
+#endif /* __SHA1_H__INCLUDED__ */
