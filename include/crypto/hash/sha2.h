@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,20 @@
 #	define sha2_bzero(__mem, __size)	SecureZeroMemory((__mem), (__size))
 #endif
 
+#if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
+#	include <cpuid.h>
+#	include <immintrin.h>
+#	include <shaintrin.h>
+#	define SHA2_ENABLE_SIMD	1
+#endif
+
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#	define SHA2_ALIGN(__n)	__declspec(align(__n)) /* DECLSPEC_ALIGN() */
+#else /* GCC/clang */
+#	define SHA2_ALIGN(__n)	__attribute__ ((aligned(__n)))
+#endif
+
+
 #if defined(_WINDOWS) && defined(UNICODE)
 #	define sha2_hmac_get_digest_str		sha2_hmac_get_digest_strW
 #	define sha2_get_digest_str		sha2_get_digest_strW
@@ -87,38 +101,38 @@
 
 
 /* Define the SHA shift, rotate left and rotate right macro */
-#define SHA2_SHR32(bits, word)	((word) >> (bits))
-#define SHA2_ROTR32(bits, word)	(((word) >> (bits)) | ((word) << (32 - (bits))))
-#define SHA2_SHR64(bits, word)	(((uint64_t)(word)) >> (bits))
-#define SHA2_ROTR64(bits, word)	((((uint64_t)(word)) >> (bits)) | (((uint64_t)(word)) << (64 - (bits))))
+#define SHA2_SHR32(__n, __w)	((__w) >> (__n))
+#define SHA2_ROTR32(__n, __w)	(((__w) >> (__n)) | ((__w) << (32 - (__n))))
+#define SHA2_SHR64(__n, __w)	(((uint64_t)(__w)) >> (__n))
+#define SHA2_ROTR64(__n, __w)	((((uint64_t)(__w)) >> (__n)) | (((uint64_t)(__w)) << (64 - (__n))))
 
 /* Define the SHA SIGMA and sigma macros */
-#define SHA2_32_SIGMA0(word)						\
-	(SHA2_ROTR32(2, word) ^ SHA2_ROTR32(13, word) ^ SHA2_ROTR32(22, word))
-#define SHA2_32_SIGMA1(word)						\
-	(SHA2_ROTR32(6, word) ^ SHA2_ROTR32(11, word) ^ SHA2_ROTR32(25, word))
-#define SHA2_32_sigma0(word)						\
-	(SHA2_ROTR32(7, word) ^ SHA2_ROTR32(18, word) ^ SHA2_SHR32(3, word))
-#define SHA2_32_sigma1(word)						\
-	(SHA2_ROTR32(17, word) ^ SHA2_ROTR32(19, word) ^ SHA2_SHR32(10, word))
+#define SHA2_32_SIGMA0(__w)						\
+	(SHA2_ROTR32(2, __w) ^ SHA2_ROTR32(13, __w) ^ SHA2_ROTR32(22, __w))
+#define SHA2_32_SIGMA1(__w)						\
+	(SHA2_ROTR32(6, __w) ^ SHA2_ROTR32(11, __w) ^ SHA2_ROTR32(25, __w))
+#define SHA2_32_sigma0(__w)						\
+	(SHA2_ROTR32(7, __w) ^ SHA2_ROTR32(18, __w) ^ SHA2_SHR32(3, __w))
+#define SHA2_32_sigma1(__w)						\
+	(SHA2_ROTR32(17, __w) ^ SHA2_ROTR32(19, __w) ^ SHA2_SHR32(10, __w))
 
-#define SHA2_64_SIGMA0(word)						\
-	(SHA2_ROTR64(28, word) ^ SHA2_ROTR64(34, word) ^ SHA2_ROTR64(39, word))
-#define SHA2_64_SIGMA1(word)						\
-	(SHA2_ROTR64(14, word) ^ SHA2_ROTR64(18, word) ^ SHA2_ROTR64(41, word))
-#define SHA2_64_sigma0(word)						\
-	(SHA2_ROTR64(1, word) ^ SHA2_ROTR64(8, word) ^ SHA2_SHR64(7, word))
-#define SHA2_64_sigma1(word)						\
-	(SHA2_ROTR64(19, word) ^ SHA2_ROTR64(61, word) ^ SHA2_SHR64(6, word))
+#define SHA2_64_SIGMA0(__w)						\
+	(SHA2_ROTR64(28, __w) ^ SHA2_ROTR64(34, __w) ^ SHA2_ROTR64(39, __w))
+#define SHA2_64_SIGMA1(__w)						\
+	(SHA2_ROTR64(14, __w) ^ SHA2_ROTR64(18, __w) ^ SHA2_ROTR64(41, __w))
+#define SHA2_64_sigma0(__w)						\
+	(SHA2_ROTR64(1, __w) ^ SHA2_ROTR64(8, __w) ^ SHA2_SHR64(7, __w))
+#define SHA2_64_sigma1(__w)						\
+	(SHA2_ROTR64(19, __w) ^ SHA2_ROTR64(61, __w) ^ SHA2_SHR64(6, __w))
 
-#define SHA2_Ch(x, y, z)	(((x) & (y)) | ((~(x)) & (z)))
-#define SHA2_Maj(x, y, z)	(((x) & (y)) | ((x) & (z)) | ((y) & (z)))
+#define SHA2_Ch(__x, __y, __z)	(((__x) & (__y)) | ((~(__x)) & (__z)))
+#define SHA2_Maj(__x, __y, __z)	(((__x) & (__y)) | ((__x) & (__z)) | ((__y) & (__z)))
 /* From RFC 4634. */
-//#define SHA2_Ch(x, y, z)	(((x) & (y)) ^ ((~(x)) & (z)))
-//#define SHA2_Maj(x, y, z)	(((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
+//#define SHA2_Ch(__x, __y, __z)	(((__x) & (__y)) ^ ((~(__x)) & (__z)))
+//#define SHA2_Maj(__x, __y, __z)	(((__x) & (__y)) ^ ((__x) & (__z)) ^ ((__y) & (__z)))
 /* The following definitions are equivalent and potentially faster. */
-//#define SHA2_Ch(x, y, z)	(((x) & ((y) ^ (z))) ^ (z))
-//#define SHA2_Maj(x, y, z)	(((x) & ((y) | (z))) | ((y) & (z)))
+//#define SHA2_Ch(__x, __y, __z)	(((__x) & ((__y) ^ (__z))) ^ (__z))
+//#define SHA2_Maj(__x, __y, __z)	(((__x) & ((__y) | (__z))) | ((__y) & (__z)))
 
 
 /* Initial Hash Values: FIPS-180-2 Change Notice 1 */
@@ -146,18 +160,21 @@ static const uint64_t SHA2_512_H0[(SHA2_512_HASH_SIZE / sizeof(uint64_t))] = {
 
 /* This structure will hold context information for the SHA-1 hashing operation. */
 typedef struct sha2_ctx_s {
-	uint64_t hash[(SHA2_HASH_MAX_SIZE / sizeof(uint64_t))]; /* Message Digest. */
+	SHA2_ALIGN(32) uint64_t hash[(SHA2_HASH_MAX_SIZE / sizeof(uint64_t))]; /* Message Digest. */
+	SHA2_ALIGN(32) uint64_t buffer[SHA2_MSG_BLK_MAX_64CNT]; /* Input buffer: message blocks. */
+	SHA2_ALIGN(32) uint64_t W[80]; /* Temp buf for sha2_transform(). */
 	uint64_t count;		/* Number of bits, modulo 2^64 (lsb first). */
 	uint64_t count_hi;	/* Number of bits high. */
 	size_t hash_size;	/* hash size of SHA being used */
 	size_t block_size;	/* block size of SHA being used */
-	uint64_t buffer[SHA2_MSG_BLK_MAX_64CNT]; /* Input buffer: message blocks. */
-	uint64_t W[80];		/* Temp buf for sha2_transform(). */
+#ifdef SHA2_ENABLE_SIMD
+	int use_simd;		/* Use SIMD SHA */
+#endif
 } sha2_ctx_t, *sha2_ctx_p;
 
 typedef struct hmac_sha2_ctx_s {
 	sha2_ctx_t ctx;
-	uint64_t k_opad[SHA2_MSG_BLK_MAX_64CNT]; /* outer padding - key XORd with opad. */
+	SHA2_ALIGN(32) uint64_t k_opad[SHA2_MSG_BLK_MAX_64CNT]; /* outer padding - key XORd with opad. */
 } hmac_sha2_ctx_t, *hmac_sha2_ctx_p;
 
 
@@ -235,6 +252,12 @@ sha2_init(const size_t bits, sha2_ctx_p ctx) {
 	}
 	ctx->count = 0;
 	ctx->count_hi = 0;
+#ifdef SHA2_ENABLE_SIMD
+	uint32_t eax, ebx, ecx, edx;
+
+	__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
+	ctx->use_simd = (ebx & (((uint32_t)1) << 29));
+#endif
 }
 
 /*
@@ -308,6 +331,198 @@ sha2_transform_block64(sha2_ctx_p ctx, const uint8_t *block) {
 	hash[6] += G;
 	hash[7] += H;
 }
+
+#ifdef SHA2_ENABLE_SIMD
+static inline void
+sha2_transform_block64_simd(sha2_ctx_p ctx, const uint8_t *block) {
+	const __m128i* input_mm = (const __m128i*)block;
+	__m128i STATE0, STATE1;
+	__m128i MSG, TMP, MASK;
+	__m128i TMSG0, TMSG1, TMSG2, TMSG3;
+	__m128i ABEF_SAVE, CDGH_SAVE;
+
+	/* Load initial values. */
+	TMP = _mm_loadu_si128((__m128i*)&ctx->hash[0]);
+	STATE1 = _mm_loadu_si128((__m128i*)&ctx->hash[2]);
+	MASK = _mm_set_epi64x(0x0c0d0e0f08090a0bULL, 0x0405060700010203ULL);
+
+	TMP = _mm_shuffle_epi32(TMP, 0xB1); // CDAB
+	STATE1 = _mm_shuffle_epi32(STATE1, 0x1B); // EFGH
+	STATE0 = _mm_alignr_epi8(TMP, STATE1, 8); // ABEF
+	STATE1 = _mm_blend_epi16(STATE1, TMP, 0xF0); // CDGH
+
+	/* Save current hash. */
+	ABEF_SAVE = STATE0;
+	CDGH_SAVE = STATE1;
+
+	/* Rounds 0-3 */
+	MSG = _mm_loadu_si128((input_mm + 0));
+	TMSG0 = _mm_shuffle_epi8(MSG, MASK);
+	MSG = _mm_add_epi32(TMSG0, _mm_set_epi64x((int64_t)0xE9B5DBA5B5C0FBCFULL, (int64_t)0x71374491428A2F98ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+
+	/* Rounds 4-7 */
+	TMSG1 = _mm_loadu_si128((input_mm + 1));
+	TMSG1 = _mm_shuffle_epi8(TMSG1, MASK);
+	MSG = _mm_add_epi32(TMSG1, _mm_set_epi64x((int64_t)0xAB1C5ED5923F82A4ULL, (int64_t)0x59F111F13956C25BULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG0 = _mm_sha256msg1_epu32(TMSG0, TMSG1);
+
+	/* Rounds 8-11 */
+	TMSG2 = _mm_loadu_si128((input_mm + 2));
+	TMSG2 = _mm_shuffle_epi8(TMSG2, MASK);
+	MSG = _mm_add_epi32(TMSG2, _mm_set_epi64x((int64_t)0x550C7DC3243185BEULL, (int64_t)0x12835B01D807AA98ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG1 = _mm_sha256msg1_epu32(TMSG1, TMSG2);
+
+	/* Rounds 12-15 */
+	TMSG3 = _mm_loadu_si128((input_mm + 3));
+	TMSG3 = _mm_shuffle_epi8(TMSG3, MASK);
+	MSG = _mm_add_epi32(TMSG3, _mm_set_epi64x((int64_t)0xC19BF1749BDC06A7ULL, (int64_t)0x80DEB1FE72BE5D74ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG3, TMSG2, 4);
+	TMSG0 = _mm_add_epi32(TMSG0, TMP);
+	TMSG0 = _mm_sha256msg2_epu32(TMSG0, TMSG3);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG2 = _mm_sha256msg1_epu32(TMSG2, TMSG3);
+
+	/* Rounds 16-19 */
+	MSG = _mm_add_epi32(TMSG0, _mm_set_epi64x((int64_t)0x240CA1CC0FC19DC6ULL, (int64_t)0xEFBE4786E49B69C1ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG0, TMSG3, 4);
+	TMSG1 = _mm_add_epi32(TMSG1, TMP);
+	TMSG1 = _mm_sha256msg2_epu32(TMSG1, TMSG0);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG3 = _mm_sha256msg1_epu32(TMSG3, TMSG0);
+
+	/* Rounds 20-23 */
+	MSG = _mm_add_epi32(TMSG1, _mm_set_epi64x((int64_t)0x76F988DA5CB0A9DCULL, (int64_t)0x4A7484AA2DE92C6FULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG1, TMSG0, 4);
+	TMSG2 = _mm_add_epi32(TMSG2, TMP);
+	TMSG2 = _mm_sha256msg2_epu32(TMSG2, TMSG1);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG0 = _mm_sha256msg1_epu32(TMSG0, TMSG1);
+
+	/* Rounds 24-27 */
+	MSG = _mm_add_epi32(TMSG2, _mm_set_epi64x((int64_t)0xBF597FC7B00327C8ULL, (int64_t)0xA831C66D983E5152ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG2, TMSG1, 4);
+	TMSG3 = _mm_add_epi32(TMSG3, TMP);
+	TMSG3 = _mm_sha256msg2_epu32(TMSG3, TMSG2);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG1 = _mm_sha256msg1_epu32(TMSG1, TMSG2);
+
+	/* Rounds 28-31 */
+	MSG = _mm_add_epi32(TMSG3, _mm_set_epi64x((int64_t)0x1429296706CA6351ULL, (int64_t)0xD5A79147C6E00BF3ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG3, TMSG2, 4);
+	TMSG0 = _mm_add_epi32(TMSG0, TMP);
+	TMSG0 = _mm_sha256msg2_epu32(TMSG0, TMSG3);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG2 = _mm_sha256msg1_epu32(TMSG2, TMSG3);
+
+	/* Rounds 32-35 */
+	MSG = _mm_add_epi32(TMSG0, _mm_set_epi64x((int64_t)0x53380D134D2C6DFCULL, (int64_t)0x2E1B213827B70A85ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG0, TMSG3, 4);
+	TMSG1 = _mm_add_epi32(TMSG1, TMP);
+	TMSG1 = _mm_sha256msg2_epu32(TMSG1, TMSG0);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG3 = _mm_sha256msg1_epu32(TMSG3, TMSG0);
+
+	/* Rounds 36-39 */
+	MSG = _mm_add_epi32(TMSG1, _mm_set_epi64x((int64_t)0x92722C8581C2C92EULL, (int64_t)0x766A0ABB650A7354ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG1, TMSG0, 4);
+	TMSG2 = _mm_add_epi32(TMSG2, TMP);
+	TMSG2 = _mm_sha256msg2_epu32(TMSG2, TMSG1);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG0 = _mm_sha256msg1_epu32(TMSG0, TMSG1);
+
+	/* Rounds 40-43 */
+	MSG = _mm_add_epi32(TMSG2, _mm_set_epi64x((int64_t)0xC76C51A3C24B8B70ULL, (int64_t)0xA81A664BA2BFE8A1ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG2, TMSG1, 4);
+	TMSG3 = _mm_add_epi32(TMSG3, TMP);
+	TMSG3 = _mm_sha256msg2_epu32(TMSG3, TMSG2);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG1 = _mm_sha256msg1_epu32(TMSG1, TMSG2);
+
+	/* Rounds 44-47 */
+	MSG = _mm_add_epi32(TMSG3, _mm_set_epi64x((int64_t)0x106AA070F40E3585ULL, (int64_t)0xD6990624D192E819ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG3, TMSG2, 4);
+	TMSG0 = _mm_add_epi32(TMSG0, TMP);
+	TMSG0 = _mm_sha256msg2_epu32(TMSG0, TMSG3);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG2 = _mm_sha256msg1_epu32(TMSG2, TMSG3);
+
+	/* Rounds 48-51 */
+	MSG = _mm_add_epi32(TMSG0, _mm_set_epi64x((int64_t)0x34B0BCB52748774CULL, (int64_t)0x1E376C0819A4C116ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG0, TMSG3, 4);
+	TMSG1 = _mm_add_epi32(TMSG1, TMP);
+	TMSG1 = _mm_sha256msg2_epu32(TMSG1, TMSG0);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+	TMSG3 = _mm_sha256msg1_epu32(TMSG3, TMSG0);
+
+	/* Rounds 52-55 */
+	MSG = _mm_add_epi32(TMSG1, _mm_set_epi64x((int64_t)0x682E6FF35B9CCA4FULL, (int64_t)0x4ED8AA4A391C0CB3ULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG1, TMSG0, 4);
+	TMSG2 = _mm_add_epi32(TMSG2, TMP);
+	TMSG2 = _mm_sha256msg2_epu32(TMSG2, TMSG1);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+
+	/* Rounds 56-59 */
+	MSG = _mm_add_epi32(TMSG2, _mm_set_epi64x((int64_t)0x8CC7020884C87814ULL, (int64_t)0x78A5636F748F82EEULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	TMP = _mm_alignr_epi8(TMSG2, TMSG1, 4);
+	TMSG3 = _mm_add_epi32(TMSG3, TMP);
+	TMSG3 = _mm_sha256msg2_epu32(TMSG3, TMSG2);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+
+	/* Rounds 60-63 */
+	MSG = _mm_add_epi32(TMSG3, _mm_set_epi64x((int64_t)0xC67178F2BEF9A3F7ULL, (int64_t)0xA4506CEB90BEFFFAULL));
+	STATE1 = _mm_sha256rnds2_epu32(STATE1, STATE0, MSG);
+	MSG = _mm_shuffle_epi32(MSG, 0x0E);
+	STATE0 = _mm_sha256rnds2_epu32(STATE0, STATE1, MSG);
+
+	/* Add values back to state */
+	STATE0 = _mm_add_epi32(STATE0, ABEF_SAVE);
+	STATE1 = _mm_add_epi32(STATE1, CDGH_SAVE);
+
+
+	TMP = _mm_shuffle_epi32(STATE0, 0x1B); /* FEBA */
+	STATE1 = _mm_shuffle_epi32(STATE1, 0xB1); /* DCHG */
+	STATE0 = _mm_blend_epi16(TMP, STATE1, 0xF0); /* DCBA */
+	STATE1 = _mm_alignr_epi8(STATE1, TMP, 8); /* ABEF */
+
+	/* Save state */
+	_mm_storeu_si128((__m128i*)&ctx->hash[0], STATE0);
+	_mm_storeu_si128((__m128i*)&ctx->hash[2], STATE1);
+}
+#endif
+
 /*
  * SHA2_384_512ProcessMessageBlock
  *
@@ -398,11 +613,17 @@ sha2_transform_block128(sha2_ctx_p ctx, const uint8_t *block) {
 static inline void
 sha2_transform(sha2_ctx_p ctx, const uint8_t *block) {
 
-	if (SHA2_256_MSG_BLK_SIZE == ctx->block_size) {
-		sha2_transform_block64(ctx, block);
-	} else {
+	if (SHA2_512_MSG_BLK_SIZE == ctx->block_size) {
 		sha2_transform_block128(ctx, block);
+		return;
 	}
+#ifdef SHA2_ENABLE_SIMD
+	if (ctx->use_simd) {
+		sha2_transform_block64_simd(ctx, block);
+		return;
+	}
+#endif
+	sha2_transform_block64(ctx, block);
 }
 
 /*
@@ -517,7 +738,7 @@ sha2_final(sha2_ctx_p ctx, uint8_t *digest) {
 
 /* RFC 2104 */
 /*
- * the HMAC_SHA1 transform looks like:
+ * the HMAC_SHA2 transform looks like:
  *
  * SHA2(K XOR opad, SHA2(K XOR ipad, data))
  *
@@ -738,184 +959,184 @@ static inline int
 sha2_self_test(void) {
 	size_t i;
 	char digest_str[SHA2_HASH_STR_MAX_SIZE + 1]; /* Calculated digest. */
-	char *data[] = {
-	    (char*)"",
-	    (char*)"a",
-	    (char*)"abc",
-	    (char*)"message digest",
-	    (char*)"012345670123456701234567012345670123456701234567012345",
-	    (char*)"0123456701234567012345670123456701234567012345670123456",
-	    (char*)"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
-	    (char*)"012345670123456701234567012345670123456701234567012345678",
-	    (char*)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-	    (char*)"012345670123456701234567012345670123456701234567012345670123456",
-	    (char*)"0123456701234567012345670123456701234567012345670123456701234567",
-	    (char*)"01234567012345670123456701234567012345670123456701234567012345678",
-	    (char*)"12345678901234567890123456789012345678901234567890123456789012345678901234567890",
-	    (char*)"012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456",
-	    (char*)"0123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
-	    (char*)"01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345678",
-	    (char*)"0123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456",
-	    (char*)"01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
-	    (char*)"012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345678",
+	const char *data[] = {
+	    "",
+	    "a",
+	    "abc",
+	    "message digest",
+	    "012345670123456701234567012345670123456701234567012345",
+	    "0123456701234567012345670123456701234567012345670123456",
+	    "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+	    "012345670123456701234567012345670123456701234567012345678",
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+	    "012345670123456701234567012345670123456701234567012345670123456",
+	    "0123456701234567012345670123456701234567012345670123456701234567",
+	    "01234567012345670123456701234567012345670123456701234567012345678",
+	    "12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+	    "012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456",
+	    "0123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
+	    "01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345678",
+	    "0123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456",
+	    "01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
+	    "012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345678",
 	    NULL
 	};
 	size_t data_size[] = {
 	    0, 1, 3, 14, 54, 55, 56, 57, 62, 63, 64, 65, 80, 111, 112, 113, 127, 128, 129, 0
 	};
-	char *result_digest224[] = {
-	    (char*)"d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
-	    (char*)"abd37534c7d9a2efb9465de931cd7055ffdb8879563ae98078d6d6d5",
-	    (char*)"23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7",
-	    (char*)"2cb21c83ae2f004de7e81c3c7019cbcb65b71ab656b22d6d0c39b8eb",
-	    (char*)"f7e62d005fb5d13d92b1ca042ba62d1abc35686962f8888049f1c817",
-	    (char*)"0f4aed339c1323553f150acab7dc13679566642f77def27fcbd55320",
-	    (char*)"75388b16512776cc5dba5da1fd890150b0c6455cb4f58b1952522525",
-	    (char*)"65e7cb7d49f46bd2e4d63e6a37ca8e472eea589be61502fe8c01410a",
-	    (char*)"bff72b4fcb7d75e5632900ac5f90d219e05e97a7bde72e740db393d9",
-	    (char*)"27cbe74013dfb2ff46d246211bed82e6ecb93a1e6eb5def8c7ea146a",
-	    (char*)"1152a558c1dbcd023222e3472f2b9a2bdf8984e5d82153e6b126a201",
-	    (char*)"0e719da8a107590fc3ba844aa3f596d2edba231a89501f5837fd00bf",
-	    (char*)"b50aecbe4e9bb0b57bc5f3ae760a8e01db24f203fb3cdcd13148046e",
-	    (char*)"10ec5f7daa49ea9c78c2dcae936bb9e23e07b4f87aa389bac0a2190d",
-	    (char*)"375c8530330c05c42a2ed24da851950c44e3865ee00f0a9e44f25b72",
-	    (char*)"bc73c6b436e03d7e62803275ef475864ede3ab55eb18e63293c1a42b",
-	    (char*)"04ad4c32acc05bd4bd0b73f681e36d55c0f958335d149f49f2a316a4",
-	    (char*)"28fd2cc5f136e9a1077e596e68769fd11b0954d0bb3ef7f7074ad5b4",
-	    (char*)"db738d64d4f973f35e0c24408d795a21dd65e3880689be18492f2f95",
+	const char *result_digest224[] = {
+	    "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
+	    "abd37534c7d9a2efb9465de931cd7055ffdb8879563ae98078d6d6d5",
+	    "23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7",
+	    "2cb21c83ae2f004de7e81c3c7019cbcb65b71ab656b22d6d0c39b8eb",
+	    "f7e62d005fb5d13d92b1ca042ba62d1abc35686962f8888049f1c817",
+	    "0f4aed339c1323553f150acab7dc13679566642f77def27fcbd55320",
+	    "75388b16512776cc5dba5da1fd890150b0c6455cb4f58b1952522525",
+	    "65e7cb7d49f46bd2e4d63e6a37ca8e472eea589be61502fe8c01410a",
+	    "bff72b4fcb7d75e5632900ac5f90d219e05e97a7bde72e740db393d9",
+	    "27cbe74013dfb2ff46d246211bed82e6ecb93a1e6eb5def8c7ea146a",
+	    "1152a558c1dbcd023222e3472f2b9a2bdf8984e5d82153e6b126a201",
+	    "0e719da8a107590fc3ba844aa3f596d2edba231a89501f5837fd00bf",
+	    "b50aecbe4e9bb0b57bc5f3ae760a8e01db24f203fb3cdcd13148046e",
+	    "10ec5f7daa49ea9c78c2dcae936bb9e23e07b4f87aa389bac0a2190d",
+	    "375c8530330c05c42a2ed24da851950c44e3865ee00f0a9e44f25b72",
+	    "bc73c6b436e03d7e62803275ef475864ede3ab55eb18e63293c1a42b",
+	    "04ad4c32acc05bd4bd0b73f681e36d55c0f958335d149f49f2a316a4",
+	    "28fd2cc5f136e9a1077e596e68769fd11b0954d0bb3ef7f7074ad5b4",
+	    "db738d64d4f973f35e0c24408d795a21dd65e3880689be18492f2f95",
 	    NULL
 	};
-	char *result_digest256[] = {
-	    (char*)"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-	    (char*)"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-	    (char*)"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-	    (char*)"f7846f55cf23e14eebeab5b4e1550cad5b509e3348fbc4efa3a1413d393cb650",
-	    (char*)"57a069f9dde6cd4e7142defb5579e0ed87587491f8fe0e89cae06486ba9ec58c",
-	    (char*)"6c8b1d86d0460e5cf48cacad0b844dc52b91967791d15fc7a90bb1cc3bc20879",
-	    (char*)"248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
-	    (char*)"929e74c8b5300a1fe90ef7a5a811d84b1d0832f5905d22d01169c5dc72d4885b",
-	    (char*)"db4bfcbd4da0cd85a60c3c37d3fbd8805c77f15fc6b1fdfe614ee0a7c8fdb4c0",
-	    (char*)"d7c32c78e3517862a0c2823da7927e648ed3f98df2b5acbb281a2ef14718e6f7",
-	    (char*)"8182cadb21af0e37c06414ece08e19c65bdb22c396d48ba7341012eea9ffdfdd",
-	    (char*)"3af49e9f35df79113cfb77d54a9e90cf486f23d3a28f972d9b948fb239f9b60c",
-	    (char*)"f371bc4a311f2b009eef952dd83ca80e2b60026c8e935592d0f9c308453c813e",
-	    (char*)"da968265fa7a27806a19c5bc14f62188fd9bed0fd4cedfdaf8ce99192847c6b7",
-	    (char*)"0ea705b1a43a896343a017d8f3e18b4276b5a30a0aad847345e2798a3998d070",
-	    (char*)"848efe0b37e4bd5e7e0b50fc38263255ad614e560a6b3cd6eedf9a0a0ff565d3",
-	    (char*)"e469b91793c029ee897ad1b1e6f047f55a60ebbe59d62262cdb31fcf973d860c",
-	    (char*)"8c47d8dbc626b56a6c2aa57818843ee0f78b35e06055972f226ab1a2d92272a8",
-	    (char*)"6d5013a9b331929c8c8d81bb4257bcf281a2949b653437a354eacc1a5e98461e",
+	const char *result_digest256[] = {
+	    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+	    "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+	    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+	    "f7846f55cf23e14eebeab5b4e1550cad5b509e3348fbc4efa3a1413d393cb650",
+	    "57a069f9dde6cd4e7142defb5579e0ed87587491f8fe0e89cae06486ba9ec58c",
+	    "6c8b1d86d0460e5cf48cacad0b844dc52b91967791d15fc7a90bb1cc3bc20879",
+	    "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
+	    "929e74c8b5300a1fe90ef7a5a811d84b1d0832f5905d22d01169c5dc72d4885b",
+	    "db4bfcbd4da0cd85a60c3c37d3fbd8805c77f15fc6b1fdfe614ee0a7c8fdb4c0",
+	    "d7c32c78e3517862a0c2823da7927e648ed3f98df2b5acbb281a2ef14718e6f7",
+	    "8182cadb21af0e37c06414ece08e19c65bdb22c396d48ba7341012eea9ffdfdd",
+	    "3af49e9f35df79113cfb77d54a9e90cf486f23d3a28f972d9b948fb239f9b60c",
+	    "f371bc4a311f2b009eef952dd83ca80e2b60026c8e935592d0f9c308453c813e",
+	    "da968265fa7a27806a19c5bc14f62188fd9bed0fd4cedfdaf8ce99192847c6b7",
+	    "0ea705b1a43a896343a017d8f3e18b4276b5a30a0aad847345e2798a3998d070",
+	    "848efe0b37e4bd5e7e0b50fc38263255ad614e560a6b3cd6eedf9a0a0ff565d3",
+	    "e469b91793c029ee897ad1b1e6f047f55a60ebbe59d62262cdb31fcf973d860c",
+	    "8c47d8dbc626b56a6c2aa57818843ee0f78b35e06055972f226ab1a2d92272a8",
+	    "6d5013a9b331929c8c8d81bb4257bcf281a2949b653437a354eacc1a5e98461e",
 	    NULL
 	};
-	char *result_digest384[] = {
-	    (char*)"38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b",
-	    (char*)"54a59b9f22b0b80880d8427e548b7c23abd873486e1f035dce9cd697e85175033caa88e6d57bc35efae0b5afd3145f31",
-	    (char*)"cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7",
-	    (char*)"473ed35167ec1f5d8e550368a3db39be54639f828868e9454c239fc8b52e3c61dbd0d8b4de1390c256dcbb5d5fd99cd5",
-	    (char*)"a4e2e4b1253f340e6543926f994dd950790491acb2d29e1486c3dc7d3a4bb8101455675cfe72e38708255e69fe9c764a",
-	    (char*)"37738fdf836f6c0385498f54dceb21fea733eeb087c29f624e49afe48302d0248add4ca62cdc6e1dd16c7272f62519be",
-	    (char*)"3391fdddfc8dc7393707a65b1b4709397cf8b1d162af05abfe8f450de5f36bc6b0455a8520bc4e6f5fe95b1fe3c8452b",
-	    (char*)"1a05fe50fa0174c49c04ea75cbedaa2daef990f3b78cea6d68e43238e484ad5117529e888f9b28eb6ef196e46fd3428b",
-	    (char*)"1761336e3f7cbfe51deb137f026f89e01a448e3b1fafa64039c1464ee8732f11a5341a6f41e0c202294736ed64db1a84",
-	    (char*)"2551494bf6469c378d6f6f1a529b6e5757a3cb0f8f502b3bd1dc4a5cbd7e08b85e2994aa4cd9c8df72c7d93a9ff48599",
-	    (char*)"72f5893331c249312d3c2b7a9709a7b96908b7769179dd9824ed578669fcc1f1c2de02c03b3d35a467aa0b472c1bb3d1",
-	    (char*)"48e0250f216da181584f433b9a27c6ad31cd5439a4560821b3853ac391ad9c33510e92b40c87146f2bcf0ac6de7a69b0",
-	    (char*)"b12932b0627d1c060942f5447764155655bd4da0c9afa6dd9b9ef53129af1b8fb0195996d2de9ca0df9d821ffee67026",
-	    (char*)"25421d423e6a90a6ba5c114fcb8428a66221f37b34f98e928889d2e6138bcc3492bee42ed2bdb93fa92d18a3b9dc688f",
-	    (char*)"571bd16f36d0c2e7f38ffbc5732e06b2416e005851da3cb6f89767a6ec2b99f07ab58dc974fa0c4a40f2efb65b1617a5",
-	    (char*)"3f294290ed8cf396a68e32da348458f82e112a871626263187e9ba4dd66d23b38ab9212f5cf82e8a6b2c79333b59304c",
-	    (char*)"6bf75d6d0a72e7b7cf02e41ba4491c005b0fa22616e455b87789f72197942bf3cf303b1edd415596c1a3a776d58a1bf2",
-	    (char*)"7f58ec41bf728283cc2bf76e075638693c14188d46e07520f600ce5b6a31ace48f581a2acc62a33abfc6250de088158c",
-	    (char*)"d4fc001ad316f8aec7ebedff72c0650bc843c1c1d6a33c4ba6f81b33579196815ff0d4d190df6f9e1f6b027ddde5299d",
+	const char *result_digest384[] = {
+	    "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b",
+	    "54a59b9f22b0b80880d8427e548b7c23abd873486e1f035dce9cd697e85175033caa88e6d57bc35efae0b5afd3145f31",
+	    "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7",
+	    "473ed35167ec1f5d8e550368a3db39be54639f828868e9454c239fc8b52e3c61dbd0d8b4de1390c256dcbb5d5fd99cd5",
+	    "a4e2e4b1253f340e6543926f994dd950790491acb2d29e1486c3dc7d3a4bb8101455675cfe72e38708255e69fe9c764a",
+	    "37738fdf836f6c0385498f54dceb21fea733eeb087c29f624e49afe48302d0248add4ca62cdc6e1dd16c7272f62519be",
+	    "3391fdddfc8dc7393707a65b1b4709397cf8b1d162af05abfe8f450de5f36bc6b0455a8520bc4e6f5fe95b1fe3c8452b",
+	    "1a05fe50fa0174c49c04ea75cbedaa2daef990f3b78cea6d68e43238e484ad5117529e888f9b28eb6ef196e46fd3428b",
+	    "1761336e3f7cbfe51deb137f026f89e01a448e3b1fafa64039c1464ee8732f11a5341a6f41e0c202294736ed64db1a84",
+	    "2551494bf6469c378d6f6f1a529b6e5757a3cb0f8f502b3bd1dc4a5cbd7e08b85e2994aa4cd9c8df72c7d93a9ff48599",
+	    "72f5893331c249312d3c2b7a9709a7b96908b7769179dd9824ed578669fcc1f1c2de02c03b3d35a467aa0b472c1bb3d1",
+	    "48e0250f216da181584f433b9a27c6ad31cd5439a4560821b3853ac391ad9c33510e92b40c87146f2bcf0ac6de7a69b0",
+	    "b12932b0627d1c060942f5447764155655bd4da0c9afa6dd9b9ef53129af1b8fb0195996d2de9ca0df9d821ffee67026",
+	    "25421d423e6a90a6ba5c114fcb8428a66221f37b34f98e928889d2e6138bcc3492bee42ed2bdb93fa92d18a3b9dc688f",
+	    "571bd16f36d0c2e7f38ffbc5732e06b2416e005851da3cb6f89767a6ec2b99f07ab58dc974fa0c4a40f2efb65b1617a5",
+	    "3f294290ed8cf396a68e32da348458f82e112a871626263187e9ba4dd66d23b38ab9212f5cf82e8a6b2c79333b59304c",
+	    "6bf75d6d0a72e7b7cf02e41ba4491c005b0fa22616e455b87789f72197942bf3cf303b1edd415596c1a3a776d58a1bf2",
+	    "7f58ec41bf728283cc2bf76e075638693c14188d46e07520f600ce5b6a31ace48f581a2acc62a33abfc6250de088158c",
+	    "d4fc001ad316f8aec7ebedff72c0650bc843c1c1d6a33c4ba6f81b33579196815ff0d4d190df6f9e1f6b027ddde5299d",
 	    NULL
 	};
-	char *result_digest512[] = {
-	    (char*)"cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
-	    (char*)"1f40fc92da241694750979ee6cf582f2d5d7d28e18335de05abc54d0560e0f5302860c652bf08d560252aa5e74210546f369fbbbce8c12cfc7957b2652fe9a75",
-	    (char*)"ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f",
-	    (char*)"107dbf389d9e9f71a3a95f6c055b9251bc5268c2be16d6c13492ea45b0199f3309e16455ab1e96118e8a905d5597b72038ddb372a89826046de66687bb420e7c",
-	    (char*)"a615a53d9d84966309a78ba71591f6664f69757464dbc957c1788ab80cba057b7dd52b699d8756573466e244385b2285f5bc56accf6a91f01a3612605821d308",
-	    (char*)"387d57a6c08ae2a2004f7db1bb41a492fd22622c017ba3560b4d0472e11bcf34c0c022b9c2d5c7c01be952eb74af8485a794d6c6f40cee83c8f31388a9d45bd1",
-	    (char*)"204a8fc6dda82f0a0ced7beb8e08a41657c16ef468b228a8279be331a703c33596fd15c13b1b07f9aa1d3bea57789ca031ad85c7a71dd70354ec631238ca3445",
-	    (char*)"7e0fe81c333a3865f6730794d4b653b4b23e60bbacdf8310ac6b65483733aaaa7c3ff3002886a999d17e655e5f3e2cf79e8b286141b24619c77d50f5e61686b8",
-	    (char*)"1e07be23c26a86ea37ea810c8ec7809352515a970e9253c26f536cfc7a9996c45c8370583e0a78fa4a90041d71a4ceab7423f19c71b9d5a3e01249f0bebd5894",
-	    (char*)"a833c259b5ed24eafc9f311f8b625334eda25f396e88dbbc18ab8a6650ca228cfde203b07bf5cd7b631a47df8af6fcb8e546be24edeb315e76be80ffc19dc63c",
-	    (char*)"846e0ef73436438a4acb0ba7078cfe381f10a0f5edebcb985b3790086ef5e7ac5992ac9c23c77761c764bb3b1c25702d06b99955eb197d45b82fb3d124699d78",
-	    (char*)"f8eb0734ab6183cbde1cdcaeb28bd85fb0321a6c6edb6557edf7d681352b924855a59fb93241de3d766fbbd3afcd2634c06a1b3ed688d0019d1945858c50ec62",
-	    (char*)"72ec1ef1124a45b047e8b7c75a932195135bb61de24ec0d1914042246e0aec3a2354e093d76f3048b456764346900cb130d2a4fd5dd16abb5e30bcb850dee843",
-	    (char*)"3a95588c52bb0625acc56ce70181e209c5acc80c527d54d163081275d3f16bb0d50410ee0b69937ee4137b2f57514a22c6bd57234b2ae98dfd552e5d313a0cef",
-	    (char*)"d08cfae8e852207ad472553247f2ce14d5a2159c8b71cc7cfa3b5c79c219a5288625f07d47beee823d32b6d123b210f946e3e57be3404550435ed126f13b5f83",
-	    (char*)"09fc36891cb83e78f840a55a737bccb7b3c5fa52db4259de054287ba866f2ca50a695a26c492230093d5d4dbe68931e708f088ae9a9a3920188583fa61211fa8",
-	    (char*)"f18338812dccb36217675bb27f255d078765749c8df41609d4f5ef355e24dcebfc302c574b29732d52446da53706962551e8f6b81d43358944d6686e378c2d87",
-	    (char*)"0bd3b2de6fabc60af35a8a29b926f40d963264d800be148e64a23efee737849ad6acec96140a2b1c5f11d2d49f1fc3fb2a2c885e4a850729272884ade9e0fe21",
-	    (char*)"74b6814a0a5bc234c7f25507e18c23892f767feda954e12164dc62184eefbdbc281f2ae34b31fb0dad116bd56c113b7bfc4ad88b7bfafcead05e7deac3f3c446",
+	const char *result_digest512[] = {
+	    "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+	    "1f40fc92da241694750979ee6cf582f2d5d7d28e18335de05abc54d0560e0f5302860c652bf08d560252aa5e74210546f369fbbbce8c12cfc7957b2652fe9a75",
+	    "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f",
+	    "107dbf389d9e9f71a3a95f6c055b9251bc5268c2be16d6c13492ea45b0199f3309e16455ab1e96118e8a905d5597b72038ddb372a89826046de66687bb420e7c",
+	    "a615a53d9d84966309a78ba71591f6664f69757464dbc957c1788ab80cba057b7dd52b699d8756573466e244385b2285f5bc56accf6a91f01a3612605821d308",
+	    "387d57a6c08ae2a2004f7db1bb41a492fd22622c017ba3560b4d0472e11bcf34c0c022b9c2d5c7c01be952eb74af8485a794d6c6f40cee83c8f31388a9d45bd1",
+	    "204a8fc6dda82f0a0ced7beb8e08a41657c16ef468b228a8279be331a703c33596fd15c13b1b07f9aa1d3bea57789ca031ad85c7a71dd70354ec631238ca3445",
+	    "7e0fe81c333a3865f6730794d4b653b4b23e60bbacdf8310ac6b65483733aaaa7c3ff3002886a999d17e655e5f3e2cf79e8b286141b24619c77d50f5e61686b8",
+	    "1e07be23c26a86ea37ea810c8ec7809352515a970e9253c26f536cfc7a9996c45c8370583e0a78fa4a90041d71a4ceab7423f19c71b9d5a3e01249f0bebd5894",
+	    "a833c259b5ed24eafc9f311f8b625334eda25f396e88dbbc18ab8a6650ca228cfde203b07bf5cd7b631a47df8af6fcb8e546be24edeb315e76be80ffc19dc63c",
+	    "846e0ef73436438a4acb0ba7078cfe381f10a0f5edebcb985b3790086ef5e7ac5992ac9c23c77761c764bb3b1c25702d06b99955eb197d45b82fb3d124699d78",
+	    "f8eb0734ab6183cbde1cdcaeb28bd85fb0321a6c6edb6557edf7d681352b924855a59fb93241de3d766fbbd3afcd2634c06a1b3ed688d0019d1945858c50ec62",
+	    "72ec1ef1124a45b047e8b7c75a932195135bb61de24ec0d1914042246e0aec3a2354e093d76f3048b456764346900cb130d2a4fd5dd16abb5e30bcb850dee843",
+	    "3a95588c52bb0625acc56ce70181e209c5acc80c527d54d163081275d3f16bb0d50410ee0b69937ee4137b2f57514a22c6bd57234b2ae98dfd552e5d313a0cef",
+	    "d08cfae8e852207ad472553247f2ce14d5a2159c8b71cc7cfa3b5c79c219a5288625f07d47beee823d32b6d123b210f946e3e57be3404550435ed126f13b5f83",
+	    "09fc36891cb83e78f840a55a737bccb7b3c5fa52db4259de054287ba866f2ca50a695a26c492230093d5d4dbe68931e708f088ae9a9a3920188583fa61211fa8",
+	    "f18338812dccb36217675bb27f255d078765749c8df41609d4f5ef355e24dcebfc302c574b29732d52446da53706962551e8f6b81d43358944d6686e378c2d87",
+	    "0bd3b2de6fabc60af35a8a29b926f40d963264d800be148e64a23efee737849ad6acec96140a2b1c5f11d2d49f1fc3fb2a2c885e4a850729272884ade9e0fe21",
+	    "74b6814a0a5bc234c7f25507e18c23892f767feda954e12164dc62184eefbdbc281f2ae34b31fb0dad116bd56c113b7bfc4ad88b7bfafcead05e7deac3f3c446",
 	    NULL
 	};
 
-	char *result_hdigest256[] = {
-	    (char*)"b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad",
-	    (char*)"3ecf5388e220da9e0f919485deb676d8bee3aec046a779353b463418511ee622",
-	    (char*)"2f02e24ae2e1fe880399f27600afa88364e6062bf9bbe114b32fa8f23d03608a",
-	    (char*)"75771da168a235a3a9e18fa7a536ea8c2511b4b16a7b3e2ee5253ef193f522bd",
-	    (char*)"3f077f10f51c27cbc9c5b5bb987263148f5a1ac1d53f264a187f572ebb53bc5f",
-	    (char*)"60c5cfc00f7aba24144e654565433ccf79d6a0f80a99201f746129a82eeee538",
-	    (char*)"29dc3b24e96ab703b3cdad77288ad2d7e4c9129ab46558afe24e23431e436108",
-	    (char*)"b806e3c6174bdcbe7ea8d9d3c0caac6c24f77035b52b6e6b3b5974da32712060",
-	    (char*)"75c7ba6a508100cba27cc531f361e7ea84afbd4ec4eaf9f3d5e25e1b3ea576a0",
-	    (char*)"0e02b710e17e2d316bf9c2bcc2493f221b7ca05da12e133f4023c611a21039bd",
-	    (char*)"de34d55231f0d6508bd99ea30c6c555db399d36ab7ab389c9d521b01326e8554",
-	    (char*)"46edb61899b59ffc44df1079ff0a4cc52c7119fb4b514ee4724dab90d2c8c0a3",
-	    (char*)"2ce14d787b67f396724f2e046073d2ce32e45bc7d66bb7ef955341beaeeebae3",
-	    (char*)"5222dd9cf5b20fd167d1fd93d5a7e23bb12fcd530da76edbd499d72fd2cae075",
-	    (char*)"6091eebdff8034cf6b00104b63bd51c6be5fb8eb4d800f628b8a2d81928e22ac",
-	    (char*)"a796d1087eaaeb1973a0f67029aca75ea7a85612d21e51ef5547358d53166189",
-	    (char*)"ee6f61d125624eb98e6aa60b8b20f302541d85c88e880d345e558b78b20e7424",
-	    (char*)"5976ba6aacf49a9961f4d550da64132881123c087aaf32444700d7cc86fe5e74",
-	    (char*)"bd40323e6e8eab69350cd1d6b45d95d14a2dd120e9245a9231daa54589b12f57",
+	const char *result_hdigest256[] = {
+	    "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad",
+	    "3ecf5388e220da9e0f919485deb676d8bee3aec046a779353b463418511ee622",
+	    "2f02e24ae2e1fe880399f27600afa88364e6062bf9bbe114b32fa8f23d03608a",
+	    "75771da168a235a3a9e18fa7a536ea8c2511b4b16a7b3e2ee5253ef193f522bd",
+	    "3f077f10f51c27cbc9c5b5bb987263148f5a1ac1d53f264a187f572ebb53bc5f",
+	    "60c5cfc00f7aba24144e654565433ccf79d6a0f80a99201f746129a82eeee538",
+	    "29dc3b24e96ab703b3cdad77288ad2d7e4c9129ab46558afe24e23431e436108",
+	    "b806e3c6174bdcbe7ea8d9d3c0caac6c24f77035b52b6e6b3b5974da32712060",
+	    "75c7ba6a508100cba27cc531f361e7ea84afbd4ec4eaf9f3d5e25e1b3ea576a0",
+	    "0e02b710e17e2d316bf9c2bcc2493f221b7ca05da12e133f4023c611a21039bd",
+	    "de34d55231f0d6508bd99ea30c6c555db399d36ab7ab389c9d521b01326e8554",
+	    "46edb61899b59ffc44df1079ff0a4cc52c7119fb4b514ee4724dab90d2c8c0a3",
+	    "2ce14d787b67f396724f2e046073d2ce32e45bc7d66bb7ef955341beaeeebae3",
+	    "5222dd9cf5b20fd167d1fd93d5a7e23bb12fcd530da76edbd499d72fd2cae075",
+	    "6091eebdff8034cf6b00104b63bd51c6be5fb8eb4d800f628b8a2d81928e22ac",
+	    "a796d1087eaaeb1973a0f67029aca75ea7a85612d21e51ef5547358d53166189",
+	    "ee6f61d125624eb98e6aa60b8b20f302541d85c88e880d345e558b78b20e7424",
+	    "5976ba6aacf49a9961f4d550da64132881123c087aaf32444700d7cc86fe5e74",
+	    "bd40323e6e8eab69350cd1d6b45d95d14a2dd120e9245a9231daa54589b12f57",
 	    NULL
 	};
-	char *result_hdigest384[] = {
-	    (char*)"6c1f2ee938fad2e24bd91298474382ca218c75db3d83e114b3d4367776d14d3551289e75e8209cd4b792302840234adc",
-	    (char*)"724c212553f366248bc76017e812c8acc85b94fec2f396c2a925bcc2571f7ab29fedee6b3b3013bbf9de7b89549d5a69",
-	    (char*)"ef38b92496d409ab82a4ebc44724b39c0be52da9805db4605958935dd74f8a16258f403b5572cce139825caec1657893",
-	    (char*)"68adcc18911636ff43bff1d137eb5aebe5989fde70745b7c603786b15251c0c7cf4b5c19e4d0bb0b111ae8c4fb612d3a",
-	    (char*)"58df81f838dcb0677d97fe6ccc0a9a25f2d2749336242f70a4074936c88e5fcea8eadc052c74da43db0ff1ab3ea9f94d",
-	    (char*)"6579f7b73070c0edd8c89dae3b220532b36fde6b1113736260625981a761aa60d08338288ebff4020412aec775a73ccc",
-	    (char*)"58f184a9634abf60a89b822c6a1b0aa9653a309615fc4667e512bbeb9a74a12fca7ccde35bcf7b166e9f4942884a2350",
-	    (char*)"9a8c6888740f0f12c47b55437f5d52d4d28eba1d61e91e4c74d0670e1f514de295f8154aea4ce4135e5e8106cc3fe825",
-	    (char*)"5f3ba5ead75512e2daa8394ebe558995b67a91ac79fd73216fc53b59bde72523221631518e896e9794d01b92829418a5",
-	    (char*)"4a57c867b3b395475e0a9c886d66b2ac37c6c027aad8a0a6478df9238064f1270caf2dc5e372f1908c26a535c16ee08b",
-	    (char*)"827064b749505b49411719b1c16c05b826b6bb7f57c8e747f2a3d2acd36ba1ad39c20ca66f2dbe55afcd1c7fd8012f31",
-	    (char*)"c9efcbaa1ea651763d2d6ac9ca7a76bbd5dc394776293d25a629d0369c415cf1a9326b593687ca56834fa915d7b07c9b",
-	    (char*)"6663167ee505014100c2ebb6c4cc30691c443edef3166e2def9f95f156d50e9925a79eb1d2badb290eb3d4d9b9847cd4",
-	    (char*)"74e179e932a9dbce61e0908e6b218736576eca81cd4566b28852a4052f16697cb68dbdcc44c7f92d5ba4fcc1acb289b2",
-	    (char*)"c435d0db0b67750a29d98b81917eb7835ed9719ad1d019cf80011bf02eed0db7a5db78b7ddbd6272e7e07bb64b3ecc39",
-	    (char*)"84178a39de10fa688c8c8206dee749c9d77654931996341c9a0d9c8f40d3356e9b89d06636f7675ae9f5aa5a36d664fc",
-	    (char*)"c691f50ecdb9cd3fb39b41eb56b0617c0cd5c8675581afbc5c964c59656c990d99bad1cc341096b8281d2568a7d36d7c",
-	    (char*)"fd6425ed1c1022de6d868794e4e0b00e2e984279c9776d3d0916eee000d84977ca218e4c44eb698c8594b00c0686422a",
-	    (char*)"4caa70e6e2c77af98378dc038e8e8af63bc5213d489b148960b372450cca820684811e1319f17e6b40088661ffc4686e",
+	const char *result_hdigest384[] = {
+	    "6c1f2ee938fad2e24bd91298474382ca218c75db3d83e114b3d4367776d14d3551289e75e8209cd4b792302840234adc",
+	    "724c212553f366248bc76017e812c8acc85b94fec2f396c2a925bcc2571f7ab29fedee6b3b3013bbf9de7b89549d5a69",
+	    "ef38b92496d409ab82a4ebc44724b39c0be52da9805db4605958935dd74f8a16258f403b5572cce139825caec1657893",
+	    "68adcc18911636ff43bff1d137eb5aebe5989fde70745b7c603786b15251c0c7cf4b5c19e4d0bb0b111ae8c4fb612d3a",
+	    "58df81f838dcb0677d97fe6ccc0a9a25f2d2749336242f70a4074936c88e5fcea8eadc052c74da43db0ff1ab3ea9f94d",
+	    "6579f7b73070c0edd8c89dae3b220532b36fde6b1113736260625981a761aa60d08338288ebff4020412aec775a73ccc",
+	    "58f184a9634abf60a89b822c6a1b0aa9653a309615fc4667e512bbeb9a74a12fca7ccde35bcf7b166e9f4942884a2350",
+	    "9a8c6888740f0f12c47b55437f5d52d4d28eba1d61e91e4c74d0670e1f514de295f8154aea4ce4135e5e8106cc3fe825",
+	    "5f3ba5ead75512e2daa8394ebe558995b67a91ac79fd73216fc53b59bde72523221631518e896e9794d01b92829418a5",
+	    "4a57c867b3b395475e0a9c886d66b2ac37c6c027aad8a0a6478df9238064f1270caf2dc5e372f1908c26a535c16ee08b",
+	    "827064b749505b49411719b1c16c05b826b6bb7f57c8e747f2a3d2acd36ba1ad39c20ca66f2dbe55afcd1c7fd8012f31",
+	    "c9efcbaa1ea651763d2d6ac9ca7a76bbd5dc394776293d25a629d0369c415cf1a9326b593687ca56834fa915d7b07c9b",
+	    "6663167ee505014100c2ebb6c4cc30691c443edef3166e2def9f95f156d50e9925a79eb1d2badb290eb3d4d9b9847cd4",
+	    "74e179e932a9dbce61e0908e6b218736576eca81cd4566b28852a4052f16697cb68dbdcc44c7f92d5ba4fcc1acb289b2",
+	    "c435d0db0b67750a29d98b81917eb7835ed9719ad1d019cf80011bf02eed0db7a5db78b7ddbd6272e7e07bb64b3ecc39",
+	    "84178a39de10fa688c8c8206dee749c9d77654931996341c9a0d9c8f40d3356e9b89d06636f7675ae9f5aa5a36d664fc",
+	    "c691f50ecdb9cd3fb39b41eb56b0617c0cd5c8675581afbc5c964c59656c990d99bad1cc341096b8281d2568a7d36d7c",
+	    "fd6425ed1c1022de6d868794e4e0b00e2e984279c9776d3d0916eee000d84977ca218e4c44eb698c8594b00c0686422a",
+	    "4caa70e6e2c77af98378dc038e8e8af63bc5213d489b148960b372450cca820684811e1319f17e6b40088661ffc4686e",
 	    NULL
 	};
-	char *result_hdigest512[] = {
-	    (char*)"b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47",
-	    (char*)"fc8c80e6b943cd07eccecf01bc6038bae68ebb6fa2e1e62b44753d7c177af7a46b089df349a19f7622a22312c76906ca9c984e1446d3ab86a98fdfa1425341c5",
-	    (char*)"1a97e05c35e6727690dfdf2e8079b34fefabf15236abc9170dccdcf5623e4c5ce72a446842bd7607186c9e3f21c0a0edf6ab6c5ec8304a1f969c20c1455e9b7c",
-	    (char*)"d976d7606862af60e9818754d563bd63481dcd21ff562318a146865eb188736bf337f0295e81e92268381bccac44381ff8ca9254b3a9451785f5f57a7407aa35",
-	    (char*)"0204fdb2ef5ea614c203f020f6e5d467262f8c382928ede2ab6caf444632951f2472287e2fbf837463771e1641b163dae40ec39078c6c423cac445c3cc52cbce",
-	    (char*)"68aa0817663801d78ff29dd6ad18bf910d8d6eb56e57b1a055e66a29d32af660f80dfab5adc5012b2fb7c3c8fd0a20c7e8bd07fac69089e5795d405bc5b53353",
-	    (char*)"d75a832599900737e1b1ac33a50c2451f00de527256892d451e3e40bab342690a5ae84ba4dc75afaac784e747531627e131dcf83a52f3125885c2f844951eb4d",
-	    (char*)"724a92113a0dea095a688be4b14d26554804a7968c6959ca0cf45bb66ca6804efc8415576e79db69410e39ac7ea0ed41e95557ca6b4183e7f6f0853f5f7a5c86",
-	    (char*)"d2e482f1c83bb765e0015e48a5c6bb495b6e5124d167773df79792a64b0680009e88ac7476066bf3256eacb31d08989a06d4486dd0af1de02a16458a687d2867",
-	    (char*)"66fd04be4cff69141410f3ded6e7962135fa8c3cfce976c236a958ab79b39c76017d63d2aaf5c42ead194bece106ed14b9e4e9717292f7aeeb4a2f6dd97e426c",
-	    (char*)"46c72a64771f5dcdc53d93fbd45564a18e5288ab7dff1d037b82663c3eafb029f002fe6b7bbb52c3ed88d4d143265c6a0741e504674d05b48c32a7b1317b197c",
-	    (char*)"9f2f0fa68aa6561005e91367e532d7ad7be4feded51fc3fdae881b7d5ef86b751e20c433838bf9a118672c3adcb08991d3933dbbdddbc16d4adb5fec77b77806",
-	    (char*)"c07737c5c98a8f27306cd3f79fd8e9f5bc6241448e57333140afd162daca60cd9000af9e706ff315346d644b9b2681d8e4d9363e7c06cbe1537bd8d188b872f2",
-	    (char*)"309fe8aed861ce624895881e337eaf89eb90492d0172b9703f3990f0f19fd079b1bd89ae65e01aaa77613a7bd3ec5e6e936e8d9b60692bec6327ad78dd99f455",
-	    (char*)"bfa479d5ab67ea22c4fbd4c44f65fdcdcea92d6298698eba4f8844e460deb74a45093cd5cf293b1bf779508836eaa46d29852817375bae1bb98c65ecab627759",
-	    (char*)"23668222460425cdf11484c2730683518565f525ff984ab1e184578a19f1bee8af0b491fadaff69edfcf25b90d477272616b551868c7895bf8c289addc7cd905",
-	    (char*)"cb432c15fd4bbc23444b9ba83ce9023fa03de00b539d9e9ae10bbfcedbeae1354cd30dd53f412c1a5874633a6ca573b39f5f800bc5a9599d0b2ed85c3548cee0",
-	    (char*)"38f1c9eab3731f967a4511b166d859dd11a94ad00b0407888ce8a13a617f36b7d75563ac6d25826af184b7f1699efbabfe5525dde4b4effe1fc60e4b05a7da4e",
-	    (char*)"85f64cae9f9c457aa2d921c8d0ebd25f07514d034084ee0c5e937097ef98e697f87083231aa738f378e330ce2d4ff533d31e4ca399f99051acff18b3e2451458",
+	const char *result_hdigest512[] = {
+	    "b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47",
+	    "fc8c80e6b943cd07eccecf01bc6038bae68ebb6fa2e1e62b44753d7c177af7a46b089df349a19f7622a22312c76906ca9c984e1446d3ab86a98fdfa1425341c5",
+	    "1a97e05c35e6727690dfdf2e8079b34fefabf15236abc9170dccdcf5623e4c5ce72a446842bd7607186c9e3f21c0a0edf6ab6c5ec8304a1f969c20c1455e9b7c",
+	    "d976d7606862af60e9818754d563bd63481dcd21ff562318a146865eb188736bf337f0295e81e92268381bccac44381ff8ca9254b3a9451785f5f57a7407aa35",
+	    "0204fdb2ef5ea614c203f020f6e5d467262f8c382928ede2ab6caf444632951f2472287e2fbf837463771e1641b163dae40ec39078c6c423cac445c3cc52cbce",
+	    "68aa0817663801d78ff29dd6ad18bf910d8d6eb56e57b1a055e66a29d32af660f80dfab5adc5012b2fb7c3c8fd0a20c7e8bd07fac69089e5795d405bc5b53353",
+	    "d75a832599900737e1b1ac33a50c2451f00de527256892d451e3e40bab342690a5ae84ba4dc75afaac784e747531627e131dcf83a52f3125885c2f844951eb4d",
+	    "724a92113a0dea095a688be4b14d26554804a7968c6959ca0cf45bb66ca6804efc8415576e79db69410e39ac7ea0ed41e95557ca6b4183e7f6f0853f5f7a5c86",
+	    "d2e482f1c83bb765e0015e48a5c6bb495b6e5124d167773df79792a64b0680009e88ac7476066bf3256eacb31d08989a06d4486dd0af1de02a16458a687d2867",
+	    "66fd04be4cff69141410f3ded6e7962135fa8c3cfce976c236a958ab79b39c76017d63d2aaf5c42ead194bece106ed14b9e4e9717292f7aeeb4a2f6dd97e426c",
+	    "46c72a64771f5dcdc53d93fbd45564a18e5288ab7dff1d037b82663c3eafb029f002fe6b7bbb52c3ed88d4d143265c6a0741e504674d05b48c32a7b1317b197c",
+	    "9f2f0fa68aa6561005e91367e532d7ad7be4feded51fc3fdae881b7d5ef86b751e20c433838bf9a118672c3adcb08991d3933dbbdddbc16d4adb5fec77b77806",
+	    "c07737c5c98a8f27306cd3f79fd8e9f5bc6241448e57333140afd162daca60cd9000af9e706ff315346d644b9b2681d8e4d9363e7c06cbe1537bd8d188b872f2",
+	    "309fe8aed861ce624895881e337eaf89eb90492d0172b9703f3990f0f19fd079b1bd89ae65e01aaa77613a7bd3ec5e6e936e8d9b60692bec6327ad78dd99f455",
+	    "bfa479d5ab67ea22c4fbd4c44f65fdcdcea92d6298698eba4f8844e460deb74a45093cd5cf293b1bf779508836eaa46d29852817375bae1bb98c65ecab627759",
+	    "23668222460425cdf11484c2730683518565f525ff984ab1e184578a19f1bee8af0b491fadaff69edfcf25b90d477272616b551868c7895bf8c289addc7cd905",
+	    "cb432c15fd4bbc23444b9ba83ce9023fa03de00b539d9e9ae10bbfcedbeae1354cd30dd53f412c1a5874633a6ca573b39f5f800bc5a9599d0b2ed85c3548cee0",
+	    "38f1c9eab3731f967a4511b166d859dd11a94ad00b0407888ce8a13a617f36b7d75563ac6d25826af184b7f1699efbabfe5525dde4b4effe1fc60e4b05a7da4e",
+	    "85f64cae9f9c457aa2d921c8d0ebd25f07514d034084ee0c5e937097ef98e697f87083231aa738f378e330ce2d4ff533d31e4ca399f99051acff18b3e2451458",
 	    NULL
 	};
 
@@ -974,4 +1195,4 @@ sha2_self_test(void) {
 #endif
 
 
-#endif // __SHA2_H__INCLUDED__
+#endif /* __SHA2_H__INCLUDED__ */
