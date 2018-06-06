@@ -232,14 +232,15 @@ sha1_transform_generic(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blo
 	register size_t t; /* Loop counter. */
 	register uint32_t temp; /* Temporary word value. */
 	register uint32_t A, B, C, D, E; /* Word buffers. */
-	uint32_t *W; /* Word sequence. */
+	uint32_t *W, *hash; /* Word sequence. */
 
-	A = ctx->hash[0];
-	B = ctx->hash[1];
-	C = ctx->hash[2];
-	D = ctx->hash[3];
-	E = ctx->hash[4];
 	W = ctx->W;
+	hash = ctx->hash;
+	A = hash[0];
+	B = hash[1];
+	C = hash[2];
+	D = hash[3];
+	E = hash[4];
 
 	for (; blocks < blocks_max; blocks += SHA1_MSG_BLK_SIZE) {
 		/* Initialize the first 16 words in the array W */
@@ -290,18 +291,16 @@ sha1_transform_generic(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blo
 			A = temp;
 		}
 
-		A = (ctx->hash[0] += A);
-		B = (ctx->hash[1] += B);
-		C = (ctx->hash[2] += C);
-		D = (ctx->hash[3] += D);
-		E = (ctx->hash[4] += E);
+		A = (hash[0] += A);
+		B = (hash[1] += B);
+		C = (hash[2] += C);
+		D = (hash[3] += D);
+		E = (hash[4] += E);
 	}
 }
 
 
-
 #ifdef __SSE2__
-
 
 #define SHA1_SSE_LOADU(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { 	\
 	__xmm0 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
@@ -332,7 +331,6 @@ sha1_transform_generic(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blo
 	(__x) = _mm_or_si128(_mm_slli_epi16((__x), 8), _mm_srli_epi16((__x), 8)); \
 } while (0)
 #endif
-
 
 /*
  * First 16 bytes just need byte swapping. Preparing just means
@@ -406,6 +404,7 @@ sha1_transform_sse(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks_
 	__m128i W0, W1, W2, W3;
 	__m128i P0, P1, P2, P3;
 	register uint32_t A, B, C, D, E; /* Word buffers. */
+	uint32_t *hash;
 	union sha1_v4si_u {
 		uint32_t u32[4];
 		__m128i u128;
@@ -418,11 +417,12 @@ sha1_transform_sse(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks_
 	//#define SHA1_GET_P_32(__P, __i) ((union sha1_v4si_u)(__P)).u32[(__i)]
 	#define SHA1_GET_P_32(__P, __i) (uint32_t)_mm_extract_epi32((__P), (__i))
 
-	A = ctx->hash[0];
-	B = ctx->hash[1];
-	C = ctx->hash[2];
-	D = ctx->hash[3];
-	E = ctx->hash[4];
+	hash = ctx->hash;
+	A = hash[0];
+	B = hash[1];
+	C = hash[2];
+	D = hash[3];
+	E = hash[4];
 
 	for (; blocks < blocks_max; blocks += SHA1_MSG_BLK_SIZE) {
 #ifdef __SSE4_1__ /* SSE4.1 required. */
@@ -555,11 +555,11 @@ sha1_transform_sse(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks_
 		SHA1_F4(C, D, E, A, B, SHA1_GET_P_32(P3, 2));
 		SHA1_F4(B, C, D, E, A, SHA1_GET_P_32(P3, 3));
 
-		A = (ctx->hash[0] += A);
-		B = (ctx->hash[1] += B);
-		C = (ctx->hash[2] += C);
-		D = (ctx->hash[3] += D);
-		E = (ctx->hash[4] += E);
+		A = (hash[0] += A);
+		B = (hash[1] += B);
+		C = (hash[2] += C);
+		D = (hash[3] += D);
+		E = (hash[4] += E);
 	}
 	/* Restore the Floating-point status on the CPU. */
 	_mm_empty();
@@ -569,12 +569,12 @@ sha1_transform_sse(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks_
 #ifdef SHA1_ENABLE_SIMD
 static inline void
 sha1_transform_simd(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks_max) {
-	const __m128i MASK = _mm_set_epi64x(0x0001020304050607ULL, 0x08090a0b0c0d0e0fULL);
+	const __m128i MASK = _mm_set_epi64x(0x0001020304050607ull, 0x08090a0b0c0d0e0full);
 	__m128i ABCD, ABCD_SAVE, E0, E0_SAVE, E1;
 	__m128i MSG0, MSG1, MSG2, MSG3;
 
 	/* Load initial values. */
-	ABCD = _mm_shuffle_epi32(_mm_loadu_si128((__m128i*)ctx->hash), 0x1b);
+	ABCD = _mm_shuffle_epi32(_mm_loadu_si128((const __m128i*)(const void*)ctx->hash), 0x1b);
 	E0 = (__m128i)_mm_set_epi32((int32_t)ctx->hash[4], 0, 0, 0);
 
 	for (; blocks < blocks_max; blocks += SHA1_MSG_BLK_SIZE) {
@@ -586,6 +586,7 @@ sha1_transform_simd(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks
 		{ /* Unaligned. */
 			SHA1_SSE_LOADU(blocks, MSG0, MSG1, MSG2, MSG3);
 		}
+
 		/* Save current hash. */
 		ABCD_SAVE = ABCD;
 		E0_SAVE = E0;
@@ -714,7 +715,7 @@ sha1_transform_simd(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks
 
 	/* Save state. */
 	ABCD = _mm_shuffle_epi32(ABCD, 0x1b);
-	_mm_storeu_si128((__m128i*)ctx->hash, ABCD);
+	_mm_storeu_si128((__m128i*)(void*)ctx->hash, ABCD);
 	ctx->hash[4] = (uint32_t)_mm_extract_epi32(E0, 3);
 
 	/* Restore the Floating-point status on the CPU. */
