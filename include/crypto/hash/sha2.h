@@ -56,6 +56,12 @@
 
 #if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
 #	include <cpuid.h>
+#	include <xmmintrin.h> /* SSE */
+#	include <emmintrin.h> /* SSE2 */
+#	include <pmmintrin.h> /* SSE3 */
+#	include <tmmintrin.h> /* SSSE3 */
+#	include <smmintrin.h> /* SSE4.1 */
+#	include <nmmintrin.h> /* SSE4.2 */
 #	include <immintrin.h>
 #	include <shaintrin.h>
 #	define SHA2_ENABLE_SIMD	1
@@ -80,10 +86,10 @@
 
 
 /* HASH constants. */
-#define SHA2_224_HASH_SIZE	28
-#define SHA2_256_HASH_SIZE	32
-#define SHA2_384_HASH_SIZE	48
-#define SHA2_512_HASH_SIZE	64
+#define SHA2_224_HASH_SIZE	((size_t)28)
+#define SHA2_256_HASH_SIZE	((size_t)32)
+#define SHA2_384_HASH_SIZE	((size_t)48)
+#define SHA2_512_HASH_SIZE	((size_t)64)
 #define SHA2_HASH_MAX_SIZE	SHA2_512_HASH_SIZE
 
 #define SHA2_224_HASH_STR_SIZE	(SHA2_224_HASH_SIZE * 2)
@@ -92,8 +98,8 @@
 #define SHA2_512_HASH_STR_SIZE	(SHA2_512_HASH_SIZE * 2)
 #define SHA2_HASH_STR_MAX_SIZE	SHA2_512_HASH_STR_SIZE
 
-#define SHA2_256_MSG_BLK_SIZE	64
-#define SHA2_512_MSG_BLK_SIZE	128
+#define SHA2_256_MSG_BLK_SIZE	((size_t)64) /* 256 bit */
+#define SHA2_512_MSG_BLK_SIZE	((size_t)128) /* 512 bit */
 #define SHA2_MSG_BLK_MAX_SIZE	SHA2_512_MSG_BLK_SIZE
 #define SHA2_256_MSG_BLK_64CNT	(SHA2_256_MSG_BLK_SIZE / sizeof(uint64_t)) /* 8 */
 #define SHA2_512_MSG_BLK_64CNT	(SHA2_512_MSG_BLK_SIZE / sizeof(uint64_t)) /* 16 */
@@ -377,6 +383,10 @@ sha2_transform_block64_simd(sha2_ctx_p ctx, const uint8_t *blocks,
 #endif
 		{ /* Unaligned. */
 			SHA1_SSE_LOADU(blocks, TMSG0, TMSG1, TMSG2, TMSG3);
+			/* Shedule to load into cache. */
+			if ((blocks + (SHA2_256_MSG_BLK_SIZE * 8)) < blocks_max) {
+				_mm_prefetch((const char*)(blocks + (SHA2_256_MSG_BLK_SIZE * 8)), _MM_HINT_T0);
+			}
 		}
 
 		/* Save current hash. */

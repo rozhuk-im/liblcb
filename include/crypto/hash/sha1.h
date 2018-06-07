@@ -86,7 +86,12 @@
 
 #ifdef __SSE2__
 #	include <cpuid.h>
-#	include <emmintrin.h>
+#	include <xmmintrin.h> /* SSE */
+#	include <emmintrin.h> /* SSE2 */
+#	include <pmmintrin.h> /* SSE3 */
+#	include <tmmintrin.h> /* SSSE3 */
+#	include <smmintrin.h> /* SSE4.1 */
+#	include <nmmintrin.h> /* SSE4.2 */
 #	include <immintrin.h>
 #endif
 
@@ -432,6 +437,10 @@ sha1_transform_sse(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks_
 #endif
 		{ /* Unaligned. */
 			SHA1_SSE_LOADU(blocks, W0, W1, W2, W3);
+			/* Shedule to load into cache. */
+			if ((blocks + (SHA1_MSG_BLK_SIZE * 8)) < blocks_max) {
+				_mm_prefetch((const char*)(blocks + (SHA1_MSG_BLK_SIZE * 8)), _MM_HINT_T0);
+			}
 		}
 
 		SHA1_PREP00_15(P0, W0, K00_19);
@@ -585,6 +594,10 @@ sha1_transform_simd(sha1_ctx_p ctx, const uint8_t *blocks, const uint8_t *blocks
 #endif
 		{ /* Unaligned. */
 			SHA1_SSE_LOADU(blocks, MSG0, MSG1, MSG2, MSG3);
+			/* Shedule to load into cache. */
+			if ((blocks + (SHA1_MSG_BLK_SIZE * 8)) < blocks_max) {
+				_mm_prefetch((const char*)(blocks + (SHA1_MSG_BLK_SIZE * 8)), _MM_HINT_T0);
+			}
 		}
 
 		/* Save current hash. */
