@@ -211,9 +211,9 @@ int
 inet_mask2len(const in__addr_t *mask) {
 	int i;
 
-	for (i = 32; -1 != i && mask->s_addr < pref_to_mask[i]; i --)
+	for (i = 32; -1 < i && mask->s_addr < pref_to_mask[i]; i --)
 		;
-	if (mask->s_addr == pref_to_mask[i])
+	if (-1 < i && mask->s_addr == pref_to_mask[i])
 		return (i);
 
 	return (0);
@@ -258,7 +258,7 @@ inet6_mask2len(const in6_addr_t *mask) {
 	for (i = 32; -1 != i && mask->s6_addr32[j] < pref_to_mask[i]; i --)
 		;
 
-	if (mask->s6_addr32[j] == pref_to_mask[i])
+	if (-1 < i && mask->s6_addr32[j] == pref_to_mask[i])
 		return (((j * 32) + i));
 
 	return (0);

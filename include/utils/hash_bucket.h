@@ -353,7 +353,7 @@ static inline int
 hbucket_entry_get(hbucket_p hbskt, uint32_t flags, const uint8_t *key,
     size_t key_size, hbucket_zone_p *zone_ret, hbucket_entry_p *entry_ret) {
 	hbucket_zone_p zone;
-	hbucket_entry_p entry;
+	hbucket_entry_p entry = NULL;
 
 	if (NULL == hbskt || NULL == entry_ret)
 		return (EINVAL);

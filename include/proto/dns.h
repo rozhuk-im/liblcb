@@ -1244,7 +1244,7 @@ dns_msg_optrr_add(dns_hdr_p hdr, size_t msg_size, size_t msgbuf_size,
 	dns_opt_rr_p opt_rr;
 	size_t rr_size_tm;
 
-	if (NULL == hdr)
+	if (NULL == hdr || (NULL == data && 0 != data_size))
 		return (EINVAL);
 	if (sizeof(dns_hdr_t) > msg_size)
 		return (EBADMSG);

@@ -51,7 +51,7 @@ sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_si
     uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 	size_t tm;
 
-	if (descr_size >= buf_size)
+	if (NULL == descr || descr_size >= buf_size)
 		return (EINVAL);
 
 	tm = (buf_size - descr_size);

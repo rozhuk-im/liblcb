@@ -591,12 +591,12 @@ skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 int
 skt_snd_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 
-	if (0 == lowat) {
-		lowat ++;
-	}
 	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(int)))
 		return (errno);
 #ifdef BSD /* Linux allways fail on set SO_SNDLOWAT. */
+	if (0 == lowat) {
+		lowat ++;
+	}
 	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_SNDLOWAT, &lowat, sizeof(int)))
 		return (errno);
 #endif /* BSD specific code. */
@@ -777,32 +777,40 @@ skt_enable_recv_ifindex(uintptr_t skt, int enable) {
 
 	switch (ssaddr.ss_family) {
 	case AF_INET:
+#if (defined(IP_RECVIF) || defined(IP_PKTINFO))
 		if (
-#ifdef IP_RECVIF /* FreeBSD */
+#	ifdef IP_RECVIF /* FreeBSD */
 		    0 != setsockopt((int)skt, IPPROTO_IP, IP_RECVIF, &enable, sizeof(int))
-#endif
-#if (defined(IP_RECVIF) && defined(IP_PKTINFO))
+#	endif
+#	if (defined(IP_RECVIF) && defined(IP_PKTINFO))
 		    &&
-#endif
-#ifdef IP_PKTINFO /* Linux/win */
+#	endif
+#	ifdef IP_PKTINFO /* Linux/win */
 		    0 != setsockopt((int)skt, IPPROTO_IP, IP_PKTINFO, &enable, sizeof(int))
-#endif
+#	endif
 		)
 			return (errno);
 		break;
+#else
+		return (ENOTSUP);
+#endif
 	case AF_INET6:
+#if (defined(IPV6_RECVPKTINFO) || defined(IPV6_PKTINFO) || defined(IPV6_2292PKTINFO))
 		if (
-#ifdef IPV6_RECVPKTINFO /* Not exist in old versions. */
+#	ifdef IPV6_RECVPKTINFO /* Not exist in old versions. */
 		    0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_RECVPKTINFO, &enable, sizeof(int))
-#else /* old adv. API */
+#	else /* old adv. API */
 		    0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_PKTINFO, &enable, sizeof(int))
-#endif
-#ifdef IPV6_2292PKTINFO /* "backup", avail in linux. */
+#	endif
+#	ifdef IPV6_2292PKTINFO /* "backup", avail in linux. */
 		    && 0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_2292PKTINFO, &enable, sizeof(int))
-#endif
+#	endif
 		)
 			return (errno);
 		break;
+#else
+		return (ENOTSUP);
+#endif
 	default:
 		return (EAFNOSUPPORT);
 	}

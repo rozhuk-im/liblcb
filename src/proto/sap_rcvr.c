@@ -280,8 +280,6 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 		if (0 == error) {
 			error = EINVAL;
 		}
-	}
-	if (0 != error) {
 		LOG_ERR(error, "recvmsg");
 		goto rcv_next;
 	}

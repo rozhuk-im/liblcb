@@ -209,7 +209,7 @@ int
 data_cache_item_get(data_cache_p dcache, const uint8_t *key, size_t key_size,
     data_cache_item_p *dc_item) {
 	data_cache_bucket_p bucket;
-	data_cache_item_p dc_item_ret;
+	data_cache_item_p dc_item_ret = NULL;
 
 	if (NULL == dcache || NULL == key || 0 == key_size || NULL == dc_item)
 		return (EINVAL);
@@ -237,7 +237,7 @@ int
 data_cache_item_add(data_cache_p dcache, const uint8_t *key, size_t key_size,
     data_cache_item_p *dc_item) {
 	data_cache_bucket_p bucket;
-	data_cache_item_p dc_item_ret;
+	data_cache_item_p dc_item_ret = NULL;
 
 	if (NULL == dc_item)
 		return (EINVAL);

@@ -37,6 +37,8 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <inttypes.h>
+#include "net/socket_address.h"
+
 
 #ifndef TCP_CA_NAME_MAX /* For stupid linux. */
 #define TCP_CA_NAME_MAX 16
@@ -154,27 +156,27 @@ int	skt_set_tcp_nodelay(uintptr_t skt, int val);
 int	skt_set_tcp_nopush(uintptr_t skt, int val);
 int	skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size);
 int	skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
-	    const struct sockaddr_storage *mc_addr);
+	    const sockaddr_storage_t *mc_addr);
 int	skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
-	    size_t ifname_size, const struct sockaddr_storage *mc_addr);
+	    size_t ifname_size, const sockaddr_storage_t *mc_addr);
 
 int	skt_enable_recv_ifindex(uintptr_t skt, int enable);
 
 
 int	skt_create(int domain, int type, int protocol, uint32_t flags,
 	    uintptr_t *skt_ret);
-int	skt_accept(uintptr_t skt, struct sockaddr_storage *addr,
+int	skt_accept(uintptr_t skt, sockaddr_storage_p addr,
 	    socklen_t *addrlen, uint32_t flags, uintptr_t *skt_ret);
 #define SKT_CREATE_FLAG_MASK	(SO_F_NONBLOCK | SO_F_BROADCAST)
 
-int	skt_bind(const struct sockaddr_storage *addr, int type,
-	    int protocol, uint32_t flags, uintptr_t *skt_ret);
+int	skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
+	    uint32_t flags, uintptr_t *skt_ret);
 int	skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
 	    int type, int protocol, uint32_t flags, uintptr_t *skt_ret);
 #define SKT_BIND_FLAG_MASK	(SKT_CREATE_FLAG_MASK | SO_F_REUSEADDR | SO_F_REUSEPORT)
 
 ssize_t	skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
-	    struct sockaddr_storage *from, uint32_t *if_index);
+	    sockaddr_storage_p from, uint32_t *if_index);
 
 int	skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size,
 	    int flags, off_t *transfered_size);
@@ -190,12 +192,12 @@ int	skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size,
 
 int	skt_listen(uintptr_t skt, int backlog);
 
-int	skt_connect(const struct sockaddr_storage *addr,
-	    int type, int protocol, uint32_t flags, uintptr_t *skt_ret);
+int	skt_connect(const sockaddr_storage_t *addr, int type, int protocol,
+	    uint32_t flags, uintptr_t *skt_ret);
 int	skt_is_connect_error(int error);
 
 int	skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
-	    struct sockaddr_storage *addrs, size_t addrs_count,
+	    sockaddr_storage_p addrs, size_t addrs_count,
 	    size_t *addrs_count_ret);
 int	skt_sync_resolv_connect(const char *hname, uint16_t port,
 	    int domain, int type, int protocol, uintptr_t *skt_ret);
