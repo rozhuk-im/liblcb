@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -908,10 +908,18 @@ skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
 	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
 		return (error);
-	
+
 	/* Make reusable: we can fail here, but bind() may success. */
 	if (0 != (SO_F_REUSEADDR & flags)) {
-		setsockopt((int)skt, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+		switch (addr->ss_family) {
+		case AF_LOCAL:
+			unlink(((const sockaddr_un_t*)addr)->sun_path);
+			break;
+		case AF_INET:
+		case AF_INET6:
+			setsockopt((int)skt, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+			break;
+		}
 	}
 #ifdef SO_REUSEPORT
 	if (0 != (SO_F_REUSEPORT & flags)) {
