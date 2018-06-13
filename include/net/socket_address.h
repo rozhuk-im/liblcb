@@ -34,16 +34,19 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <inttypes.h>
 
-#define STR_ADDR_LEN		(56) /* 46(INET6_ADDRSTRLEN) + 2('[]') + 1(':') + 5(port num) + zero */
+/* OLD: (56) = 46(INET6_ADDRSTRLEN) + 2('[]') + 1(':') + 5(port num) + zero */
+#define STR_ADDR_LEN		(((size_t)sizeof(((struct sockaddr_un*)0)->sun_path)) + 4)
 
 typedef struct in_addr		in__addr_t, *in_addr_p;
 typedef struct in6_addr		in6_addr_t, *in6_addr_p;
 typedef struct sockaddr		sockaddr_t, *sockaddr_p;
+typedef struct sockaddr_un	sockaddr_un_t, *sockaddr_un_p;
 typedef struct sockaddr_in	sockaddr_in_t, *sockaddr_in_p;
 typedef struct sockaddr_in6	sockaddr_in6_t, *sockaddr_in6_p;
 typedef struct sockaddr_storage	sockaddr_storage_t, *sockaddr_storage_p;
@@ -56,7 +59,7 @@ sa_family_t sa_family(const sockaddr_storage_t *addr);
 socklen_t sa_size(const sockaddr_storage_t *addr);
 uint16_t sa_port_get(const sockaddr_storage_t *addr);
 int	sa_port_set(sockaddr_storage_p addr, const uint16_t port);
-void 	*sa_addr_get(sockaddr_storage_p addr);
+void 	*sa_addr_get(const sockaddr_storage_t *addr);
 int	sa_addr_set(sockaddr_storage_p addr, const void *sin_addr);
 int	sa_addr_is_specified(const sockaddr_storage_t *addr);
 int	sa_addr_is_loopback(const sockaddr_storage_t *addr);

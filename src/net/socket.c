@@ -728,6 +728,8 @@ skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
 
 	if (NULL == mc_addr)
 		return (EINVAL);
+	if (AF_INET != mc_addr->ss_family && AF_INET6 != mc_addr->ss_family)
+		return (EAFNOSUPPORT);
 
 	/* Join/leave to multicast group. */
 	mem_bzero(&mc_group, sizeof(mc_group));
