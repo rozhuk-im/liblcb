@@ -33,6 +33,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <sys/stat.h>
 #include <netdb.h>
 
 #ifdef BSD /* BSD specific code. */
@@ -901,10 +902,21 @@ skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t skt = (uintptr_t)-1;
 	int error, on = 1;
+	struct stat sb;
 
 	if (NULL == addr || NULL == skt_ret)
 		return (EINVAL);
-		
+
+	/* Make reusable for AF_LOCAL: we can do it before socket create. */
+	if (0 != (SO_F_REUSEADDR & flags) && AF_LOCAL == addr->ss_family) {
+		if (0 != stat(((const sockaddr_un_t*)addr)->sun_path, &sb))
+			return (errno);
+		if (0 == S_ISSOCK(sb.st_mode)) /* Not socket, do not remove. */
+			return (EADDRINUSE);
+		if (0 != unlink(((const sockaddr_un_t*)addr)->sun_path))
+			return (errno);
+	}
+
 	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
 		return (error);
@@ -912,9 +924,6 @@ skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
 	/* Make reusable: we can fail here, but bind() may success. */
 	if (0 != (SO_F_REUSEADDR & flags)) {
 		switch (addr->ss_family) {
-		case AF_LOCAL:
-			unlink(((const sockaddr_un_t*)addr)->sun_path);
-			break;
 		case AF_INET:
 		case AF_INET6:
 			setsockopt((int)skt, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
