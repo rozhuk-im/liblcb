@@ -909,12 +909,12 @@ skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
 
 	/* Make reusable for AF_LOCAL: we can do it before socket create. */
 	if (0 != (SO_F_REUSEADDR & flags) && AF_LOCAL == addr->ss_family) {
-		if (0 != stat(((const sockaddr_un_t*)addr)->sun_path, &sb))
-			return (errno);
-		if (0 == S_ISSOCK(sb.st_mode)) /* Not socket, do not remove. */
-			return (EADDRINUSE);
-		if (0 != unlink(((const sockaddr_un_t*)addr)->sun_path))
-			return (errno);
+		if (0 == stat(((const sockaddr_un_t*)addr)->sun_path, &sb)) {
+			if (0 == S_ISSOCK(sb.st_mode)) /* Not socket, do not remove. */
+				return (EADDRINUSE);
+			if (0 != unlink(((const sockaddr_un_t*)addr)->sun_path))
+				return (errno);
+		}
 	}
 
 	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
