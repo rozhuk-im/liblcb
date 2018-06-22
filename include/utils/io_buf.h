@@ -66,21 +66,21 @@ typedef struct io_buf_s {
  * decrement in range down to zero.
  * Prevent owerflow.
  */
-#define IO_BUF_VALUE_IN_RANGE_INC(__val, __max, __size)	{		\
+#define IO_BUF_VALUE_IN_RANGE_INC(__val, __max, __size)	do {		\
 	if ((__max) > (__val) && ((__max) - (__val)) > (__size)) {	\
 		(__val) += (__size);					\
 	} else {							\
 		(__val) = (__max);					\
 	}								\
-}
+} while (0)
 
-#define IO_BUF_VALUE_IN_RANGE_DEC(__val, __size) {			\
+#define IO_BUF_VALUE_IN_RANGE_DEC(__val, __size) do {			\
 	if ((__val) > (__size)) {					\
 		(__val) -= (__size);					\
 	} else {							\
 		(__val) = 0;						\
 	}								\
-}
+} while (0)
 
 
 /*
@@ -108,26 +108,26 @@ typedef struct io_buf_s {
 
 
 
-#define IO_BUF_BUSY_SIZE_SET(__iobuf, __size) {				\
+#define IO_BUF_BUSY_SIZE_SET(__iobuf, __size) do {			\
 	(__iobuf)->used = (__size);					\
 	(__iobuf)->offset = (__size);					\
-}
+} while (0)
 
-#define IO_BUF_MARK_TRANSFER_ALL_USED(__iobuf) {			\
+#define IO_BUF_MARK_TRANSFER_ALL_USED(__iobuf) do {			\
 	(__iobuf)->offset = 0;						\
 	(__iobuf)->transfer_size = (__iobuf)->used;			\
-}
+} while (0)
 
-#define IO_BUF_MARK_TRANSFER_ALL_FREE(__iobuf) {			\
+#define IO_BUF_MARK_TRANSFER_ALL_FREE(__iobuf) do {			\
 	(__iobuf)->offset = (__iobuf)->used;				\
 	(__iobuf)->transfer_size = IO_BUF_FREE_SIZE((__iobuf));		\
-}
+} while (0)
 
-#define IO_BUF_MARK_AS_EMPTY(__iobuf) {					\
+#define IO_BUF_MARK_AS_EMPTY(__iobuf) do {				\
 	(__iobuf)->used = 0;						\
 	(__iobuf)->offset = 0;						\
 	(__iobuf)->transfer_size = 0;					\
-}
+} while (0)
 
 
 #ifdef DEBUG
@@ -338,6 +338,48 @@ io_buf_copyin_buf(io_buf_p dst, io_buf_p src) {
 	    io_buf_copyin((__iobuf), "\r\n", 2)
 #define IO_BUF_COPYIN_CRLFCRLF(__iobuf)					\
 	    io_buf_copyin((__iobuf), "\r\n\r\n", 4)
+
+
+/* Cut head: move left: dec offset, used size.
+ * On error call IO_BUF_MARK_AS_EMPTY() if you do not need this data. */
+static inline int
+io_buf_cut_head(io_buf_p io_buf, const size_t size) {
+
+	if (0 == size)
+		return (0);
+	if (NULL == io_buf || size > io_buf->used)
+		return (EINVAL);
+	io_buf->used -= size;
+	memmove(io_buf->data, (io_buf->data + size), io_buf->used);
+	IO_BUF_OFFSET_DEC(io_buf, size);
+
+	return (0);
+}
+
+/* Prepend: move right: inc offset, used size. */
+static inline int
+io_buf_prepend(io_buf_p io_buf, const size_t size, const int allow_data_lost) {
+	size_t free_size;
+
+	if (0 == size)
+		return (0);
+	if (NULL == io_buf)
+		return (EINVAL);
+	free_size = IO_BUF_FREE_SIZE(io_buf);
+	if (size > free_size) { /* Some data will lost. */
+		if (0 == allow_data_lost || size > io_buf->size)
+			return (EINVAL);
+		memmove((io_buf->data + size), io_buf->data,
+		    (io_buf->used - (size - free_size)));
+		io_buf->used = io_buf->size;
+	} else {
+		memmove((io_buf->data + size), io_buf->data, io_buf->used);
+		io_buf->used += size;
+	}
+	IO_BUF_OFFSET_INC(io_buf, size);		
+
+	return (0);
+}
 
 
 #endif /* __IO_BUF_H__ */
