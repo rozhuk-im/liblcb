@@ -82,7 +82,7 @@ typedef struct socket_options_s {
 #define SO_F_BACKLOG		(((uint32_t)1) <<  3) /* backlog is readed from config. */
 #define SO_F_BROADCAST		(((uint32_t)1) <<  4) /* SO_BROADCAST */
 #define SO_F_REUSEADDR		(((uint32_t)1) <<  5) /* SO_REUSEADDR */
-#define SO_F_REUSEPORT		(((uint32_t)1) <<  6) /* SO_REUSEPORT */
+#define SO_F_REUSEPORT		(((uint32_t)1) <<  6) /* SO_REUSEPORT / SO_REUSEPORT_LB */
 #define SO_F_KEEPALIVE		(((uint32_t)1) <<  7) /* SO_KEEPALIVE */
 #define SO_F_RCVBUF		(((uint32_t)1) <<  8) /* SO_RCVBUF */
 #define SO_F_RCVLOWAT		(((uint32_t)1) <<  9) /* SO_RCVLOWAT */

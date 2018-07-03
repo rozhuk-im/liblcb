@@ -588,8 +588,8 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 	if (NULL == srv || NULL == s)
 		return (EINVAL);
 
-#ifdef __linux__ /* Linux specific code. */
-	/* Linux can balance incomming connections. */
+#if defined(__linux__) || defined(SO_REUSEPORT_LB)
+	/* Can balance incomming connections. */
 	if (SKT_OPTS_IS_FLAG_ACTIVE(&s->skt_opts, SO_F_REUSEPORT)) { /* listen socket per thread. */
 		max_threads = tp_thread_count_max_get(srv->tp);
 	}
@@ -627,8 +627,8 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 			LOG_ERR(error, "skt_opts_set_ex(SO_F_TCP_LISTEN_AF_MASK) fail, this is not fatal.");
 		}
 		
-#ifdef __linux__ /* Linux specific code. */
-	/* Linux can balance incomming connections. */
+#if defined(__linux__) || defined(SO_REUSEPORT_LB)
+	/* Can balance incomming connections. */
 		if (SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
 			tpt = tp_thread_get(srv->tp, i);
 		} else {

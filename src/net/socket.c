@@ -388,11 +388,16 @@ skt_opts_set_ex(uintptr_t skt, uint32_t mask, skt_opts_p opts,
 				goto err_out;
 		}
 	}
-#ifdef SO_REUSEPORT
 	/* SO_F_REUSEPORT */
+#ifdef SO_REUSEPORT
 	if (0 != (SO_F_REUSEPORT & mask)) {
 		ival = ((SO_F_REUSEPORT & opts->bit_vals) ? 1 : 0);
-		if (0 != setsockopt((int)skt, SOL_SOCKET, SO_REUSEPORT,
+		if (0 != setsockopt((int)skt, SOL_SOCKET,
+#ifdef SO_REUSEPORT_LB
+		    SO_REUSEPORT_LB,
+#else
+		    SO_REUSEPORT,
+#endif
 		    &ival, sizeof(ival))) {
 			error = errno;
 			error_mask |= SO_F_REUSEPORT;
@@ -930,9 +935,15 @@ skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
 			break;
 		}
 	}
-#ifdef SO_REUSEPORT
+#if defined(SO_REUSEPORT) || defined(SO_REUSEPORT_LB)
 	if (0 != (SO_F_REUSEPORT & flags)) {
-		setsockopt((int)skt, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(int));
+		setsockopt((int)skt, SOL_SOCKET,
+#ifdef SO_REUSEPORT_LB
+		    SO_REUSEPORT_LB,
+#else
+		    SO_REUSEPORT,
+#endif
+		    &on, sizeof(int));
 	}
 #endif
 	if (-1 == bind((int)skt, (const sockaddr_t*)addr, sa_size(addr))) { /* Error. */
