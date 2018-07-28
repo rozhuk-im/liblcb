@@ -38,6 +38,7 @@
 #include <inttypes.h>
 
 #include "utils/io_buf.h"
+#include "net/socket.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
@@ -291,6 +292,20 @@ int	tp_task_create_accept(tpt_p tpt, uintptr_t ident,
 	    tp_task_p *tptask_ret);
 /* Valid flags: TP_TASK_F_CLOSE_ON_DESTROY */
 
+int	tp_task_create_multi_bind_accept(tp_p tp,
+	    const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
+	    uint32_t flags, uint64_t timeout,
+	    tp_task_accept_cb cb_func, void *udata,
+	    size_t *tptasks_count_ret, tp_task_p **tptasks_ret);
+/* Creates and bind() + listen() sockets, one per thread if SO_F_REUSEPORT
+ * is set in skt_opts and OS support SO_REUSEPORT to load balance
+ * incomming traffic (linux and BSD with SO_REUSEPORT_LB).
+ * listen() call only if type == SOCK_STREAM.
+ * If SO_F_REUSEPORT not set or not supported then only one socket will
+ * be created, task will be assosiated with thread returned by
+ * tp_thread_get_rr().
+ * Returns pointer to array of tp_task_p and array size (elems count).
+ */
 
 int	tp_task_create_connect(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint64_t timeout, tp_task_connect_cb cb_func,

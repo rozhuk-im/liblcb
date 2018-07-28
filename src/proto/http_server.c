@@ -70,8 +70,8 @@
 
 
 typedef struct http_srv_bind_s {
-	tp_task_p	*tptask;	/* Accept incomming task. */
-	size_t		tptask_cnt;
+	tp_task_p	*tptasks;	/* Accept incomming task. */
+	size_t		tptasks_cnt;
 	http_srv_p	srv;		/* HTTP server */
 	void		*udata;		/* Acceptor associated data. */
 	hostname_list_t	hst_name_lst;	/* List of host names on this bind. */
@@ -577,27 +577,15 @@ int
 http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
     hostname_list_p hst_name_lst, void *udata, http_srv_bind_p *bind_ret) {
 	int error;
-	uint32_t err_mask;
 	http_srv_bind_p bnd = NULL;
-	uintptr_t skt = (uintptr_t)-1;
-	size_t i, max_threads = 1;
-	tpt_p tpt;
-
 
 	LOGD_EV("...");
 	if (NULL == srv || NULL == s)
 		return (EINVAL);
 
-#if defined(__linux__) || defined(SO_REUSEPORT_LB)
-	/* Can balance incomming connections. */
-	if (SKT_OPTS_IS_FLAG_ACTIVE(&s->skt_opts, SO_F_REUSEPORT)) { /* listen socket per thread. */
-		max_threads = tp_thread_count_max_get(srv->tp);
-	}
-#endif
-	bnd = zalloc(sizeof(http_srv_bind_t) + (sizeof(tp_task_p) * max_threads));
+	bnd = zalloc(sizeof(http_srv_bind_t));
 	if (NULL == bnd)
 		return (ENOMEM);
-	bnd->tptask = (tp_task_p*)(bnd + 1);
 	bnd->srv = srv;
 	memcpy(&bnd->s, s, sizeof(http_srv_bind_settings_t));
 	bnd->udata = udata;
@@ -608,43 +596,12 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 	skt_opts_cvt(SKT_OPTS_MULT_K, &bnd->s.skt_opts);
 
 	/* Create listen sockets per thread or on one on rand thread. */
-	for (i = 0; i < max_threads; i ++) {
-		error = skt_bind(&bnd->s.addr, SOCK_STREAM, IPPROTO_TCP,
-		    (SO_F_NONBLOCK | SKT_OPTS_GET_FLAGS_VALS(&bnd->s.skt_opts, SKT_BIND_FLAG_MASK)),
-		    &skt);
-		if (0 != error) {
-			skt = (uintptr_t)-1;
-			goto err_out;
-		}
-		error = skt_listen(skt, bnd->s.skt_opts.backlog);
-		if (0 != error)
-			goto err_out;
-		/* Tune socket. */
-		error = skt_opts_set_ex(skt, SO_F_TCP_LISTEN_AF_MASK,
-		    &bnd->s.skt_opts, &err_mask);
-		if (0 != error) {
-			bnd->s.skt_opts.bit_vals &= ~(err_mask & SO_F_ACC_FILTER);
-			LOG_ERR(error, "skt_opts_set_ex(SO_F_TCP_LISTEN_AF_MASK) fail, this is not fatal.");
-		}
-		
-#if defined(__linux__) || defined(SO_REUSEPORT_LB)
-	/* Can balance incomming connections. */
-		if (SKT_OPTS_IS_FLAG_ACTIVE(&bnd->s.skt_opts, SO_F_REUSEPORT)) {
-			tpt = tp_thread_get(srv->tp, i);
-		} else {
-			tpt = tp_thread_get_rr(srv->tp);
-		}
-#else
-		tpt = tp_thread_get_rr(srv->tp);
-#endif
-		error = tp_task_create_accept(tpt, skt,
-		    TP_TASK_F_CLOSE_ON_DESTROY, 0, http_srv_new_conn_cb,
-		    bnd, &bnd->tptask[bnd->tptask_cnt]);
-		if (0 != error)
-			goto err_out;
-		LOGD_INFO_FMT("Acceptor: %zu started on thread %zu", bnd->tptask_cnt, i);
-		bnd->tptask_cnt ++;
-	}
+	error = tp_task_create_multi_bind_accept(srv->tp,
+	    &bnd->s.addr, SOCK_STREAM, IPPROTO_TCP, &bnd->s.skt_opts,
+	    TP_TASK_F_CLOSE_ON_DESTROY, 0, http_srv_new_conn_cb, bnd,
+	    &bnd->tptasks_cnt, &bnd->tptasks);
+	if (0 != error)
+		goto err_out;
 
 	/* Link server and acceptor. */
 	error = realloc_items((void**)&srv->bnd, sizeof(http_srv_bind_p),
@@ -660,7 +617,6 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 
 err_out:
 	/* Error. */
-	close((int)skt);
 	bnd->srv = NULL;
 	http_srv_bind_remove(bnd);
 	LOG_ERR(error, "err_out");
@@ -674,9 +630,8 @@ http_srv_bind_shutdown(http_srv_bind_p bnd) {
 	LOGD_EV("...");
 	if (NULL == bnd)
 		return;
-	for (i = 0; i < bnd->tptask_cnt; i ++) {
-		tp_task_destroy(bnd->tptask[i]);
-		bnd->tptask[i] = NULL;
+	for (i = 0; i < bnd->tptasks_cnt; i ++) {
+		tp_task_ident_close(bnd->tptasks[i]);
 	}
 }
 
@@ -693,18 +648,20 @@ http_srv_bind_remove(http_srv_bind_p bnd) {
 		for (i = 0; i < srv->bind_count; i ++) {
 			if (srv->bnd[i] != bnd)
 				continue;
-			srv->bnd[i] = NULL;
-			if (i == srv->bind_count) {
-				srv->bind_count --;
-			}
+			memmove(&srv->bnd[i], &srv->bnd[(i + 1)],
+			    (sizeof(http_srv_bind_p) * (srv->bind_count - (i + 1))));
+			srv->bind_count --;
 			break;
 		}
 	}
 
-	for (i = 0; i < bnd->tptask_cnt; i ++) {
-		tp_task_destroy(bnd->tptask[i]);
-		bnd->tptask[i] = NULL;
+	for (i = 0; i < bnd->tptasks_cnt; i ++) {
+		tp_task_destroy(bnd->tptasks[i]);
+		bnd->tptasks[i] = NULL;
 	}
+	free(bnd->tptasks);
+	bnd->tptasks = NULL;
+	bnd->tptasks_cnt = 0;
 	hostname_list_deinit(&bnd->hst_name_lst);
 	mem_filld(bnd, sizeof(http_srv_bind_t));
 	free(bnd);
