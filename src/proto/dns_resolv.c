@@ -573,10 +573,8 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 
 	error = skt_create(AF_INET, SOCK_DGRAM, IPPROTO_UDP,
 	    SO_F_NONBLOCK, &rslvr->sktv4);
-	if (0 != error) {
-		rslvr->sktv4 = (uintptr_t)-1;
+	if (0 != error)
 		goto err_out;
-	}
 	/* Tune socket. */
 	error = skt_snd_tune(rslvr->sktv4, buf, 1);
 	if (0 != error)

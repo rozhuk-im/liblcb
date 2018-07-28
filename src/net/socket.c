@@ -844,8 +844,10 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 	}
 #endif
 	skt = (uintptr_t)socket(domain, type, protocol);
-	if ((uintptr_t)-1 == skt)
-		return (errno);
+	if ((uintptr_t)-1 == skt) {
+		error = errno;
+		goto err_out;
+	}
 #ifndef HAVE_SOCK_NONBLOCK
 	error = fd_set_nonblocking(skt, (0 != (SO_F_NONBLOCK & flags)));
 	if (0 != error)
@@ -873,6 +875,7 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 err_out:
 	/* Error. */
 	close((int)skt);
+	(*skt_ret) = (uintptr_t)-1;
 
 	return (error);
 }
@@ -905,7 +908,7 @@ skt_accept(uintptr_t skt, sockaddr_storage_t *addr, socklen_t *addrlen,
 int
 skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
     uint32_t flags, uintptr_t *skt_ret) {
-	uintptr_t skt = (uintptr_t)-1;
+	uintptr_t skt;
 	int error, on = 1;
 	struct stat sb;
 
@@ -924,7 +927,7 @@ skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
 
 	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
-		return (error);
+		goto err_out;
 
 	/* Make reusable: we can fail here, but bind() may success. */
 	if (0 != (SO_F_REUSEADDR & flags)) {
@@ -949,12 +952,13 @@ skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
 	if (-1 == bind((int)skt, (const sockaddr_t*)addr, sa_size(addr))) { /* Error. */
 		error = errno;
 		close((int)skt);
-		return (error);
+		skt = (uintptr_t)-1;
 	}
 
+err_out: /* Error. */
 	(*skt_ret) = skt;
 
-	return (0);
+	return (error);
 }
 
 int
@@ -1100,18 +1104,21 @@ skt_connect(const sockaddr_storage_t *addr, int type, int protocol,
 
 	error = skt_create(addr->ss_family, type, protocol, flags, &skt);
 	if (0 != error)
-		return (error);
+		goto err_out;
 	if (-1 == connect((int)skt, (const sockaddr_t*)addr, sa_size(addr))) {
 		error = errno;
 		if (EINPROGRESS != error && EINTR != error) { /* Error. */
 			close((int)skt);
-			return (error);
+			skt = (uintptr_t)-1;
+			goto err_out;
 		}
+		error = 0;
 	}
 
+err_out: /* Error. */
 	(*skt_ret) = skt;
 
-	return (0);
+	return (error);
 }
 
 int
@@ -1192,26 +1199,24 @@ skt_sync_resolv_connect(const char *hname, uint16_t port,
 	snprintf(servname, sizeof(servname), "%hu", port);
 	error = getaddrinfo(hname, servname, &hints, &res0);
 	if (0 != error)  /* NOTREACHED */
-		return (error);
+		goto err_out;
 	for (res = res0; NULL != res; res = res->ai_next) {
-		error = skt_create(res->ai_family, res->ai_socktype,
+		error = skt_connect((sockaddr_storage_p)res->ai_addr, res->ai_socktype,
 		    res->ai_protocol, 0, &skt);
-		if (0 != error)
-			continue;
-		if (connect((int)skt, res->ai_addr, res->ai_addrlen) < 0) {
-			error = errno;
-			close((int)skt);
-			skt = (uintptr_t)-1;
-			continue;
-		}
-		break;  /* okay we got one */
+		if (0 == error)
+			break; /* okay we got one */
 	}
 	freeaddrinfo(res0);
-	if ((uintptr_t)-1 == skt)
-		return (error);
-	(*skt_ret) = skt;
+	if ((uintptr_t)-1 != skt) {
+		(*skt_ret) = skt;
+		return (0);
+	}
 
-	return (0);
+err_out: /* Error. */
+	close((int)skt);
+	(*skt_ret) = (uintptr_t)-1;
+
+	return (error);
 }
 
 

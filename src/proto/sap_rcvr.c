@@ -179,10 +179,8 @@ sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
 	    SOCK_DGRAM, IPPROTO_UDP,
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &srcvr->sktv4);
-	if (0 != error) {
-		srcvr->sktv4 = (uintptr_t)-1;
+	if (0 != error)
 		goto err_out;
-	}
 	/* Tune socket. */
 	/* kb -> bytes */
 	skt_recv_buf_size *= 1024;

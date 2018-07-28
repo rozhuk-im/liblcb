@@ -539,10 +539,8 @@ radius_client_socket_alloc(uint16_t family, radius_cli_thr_p thr) {
 		return (ENOMEM);
 	error = skt_create(family, SOCK_DGRAM, IPPROTO_UDP,
 	    SO_F_NONBLOCK, &skt->ident);
-	if (0 != error) {
-		skt->ident = (uintptr_t)-1;
+	if (0 != error)
 		goto err_out;
-	}
 	/* Tune socket. */
 	error = skt_snd_tune(skt->ident, thr->rad_cli->s.skt_snd_buf, 1);
 	if (0 != error)

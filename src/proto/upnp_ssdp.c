@@ -306,7 +306,6 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &skt);
 	if (0 != error) {
-		skt = (uintptr_t)-1;
 		LOG_ERR(error, "skt_bind_ap");
 		goto err_out;
 	}
@@ -347,7 +346,6 @@ skip_ipv4:
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &skt);
 	if (0 != error) {
-		skt = (uintptr_t)-1;
 		LOG_ERR(error, "skt_bind_ap");
 		goto err_out;
 	}
