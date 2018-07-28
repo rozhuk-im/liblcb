@@ -41,16 +41,16 @@
 
 
 #ifndef TCP_CA_NAME_MAX /* For stupid linux. */
-#define TCP_CA_NAME_MAX 16
+#	define TCP_CA_NAME_MAX		((size_t)16)
 #endif
 
 /* EBUSY - for sendfile() */
-#define SKT_ERR_FILTER(error)						\
-    ((EAGAIN == error ||						\
-      EWOULDBLOCK == error ||						\
-      EBUSY == error ||							\
-      EINTR == error) ?							\
-     0 : error)
+#define SKT_ERR_FILTER(__error)						\
+    ((EAGAIN == (__error) ||						\
+      EWOULDBLOCK == (__error) ||					\
+      EBUSY == (__error) ||						\
+      EINTR == (__error)) ?						\
+     0 : (__error))
 
 
 typedef struct socket_options_s {
@@ -140,10 +140,10 @@ int	skt_opts_set_ex(uintptr_t skt, uint32_t mask,
 int	skt_opts_set(uintptr_t skt, uint32_t mask, uint32_t bit_vals);
 /* Set only SO_F_BIT_VALS_MASK. */
 
-#define SKT_OPTS_GET_FLAGS_VALS(opts, fmask)				\
-	    ((fmask) & SO_F_BIT_VALS_MASK & (opts)->mask & (opts)->bit_vals)
-#define SKT_OPTS_IS_FLAG_ACTIVE(opts, flag)				\
-	    (0 != ((flag) & (opts)->mask & (opts)->bit_vals))
+#define SKT_OPTS_GET_FLAGS_VALS(__opts, __fmask)			\
+	    ((__fmask) & SO_F_BIT_VALS_MASK & (__opts)->mask & (__opts)->bit_vals)
+#define SKT_OPTS_IS_FLAG_ACTIVE(__opts, __flag)				\
+	    (0 != ((__flag) & (__opts)->mask & (__opts)->bit_vals))
 
 
 int	skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat);
