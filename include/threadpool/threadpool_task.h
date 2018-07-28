@@ -292,6 +292,13 @@ int	tp_task_create_accept(tpt_p tpt, uintptr_t ident,
 	    tp_task_p *tptask_ret);
 /* Valid flags: TP_TASK_F_CLOSE_ON_DESTROY */
 
+int	tp_task_create_bind_accept(tpt_p tpt,
+	    const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
+	    uint32_t flags, uint64_t timeout,
+	    tp_task_accept_cb cb_func, void *udata,
+	    tp_task_p *tptask_ret);
+/* Valid flags: TP_TASK_F_CLOSE_ON_DESTROY */
+
 int	tp_task_create_multi_bind_accept(tp_p tp,
 	    const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
 	    uint32_t flags, uint64_t timeout,

@@ -871,13 +871,51 @@ tp_task_create_accept(tpt_p tpt, uintptr_t ident, uint32_t flags,
 }
 
 int
+tp_task_create_bind_accept(tpt_p tpt,
+    const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
+    uint32_t flags, uint64_t timeout, tp_task_accept_cb cb_func, void *udata,
+    tp_task_p *tptask_ret) {
+	int error;
+	uint32_t err_mask;
+	uintptr_t skt = (uintptr_t)-1;
+
+	if (NULL == tpt || NULL == addr || NULL == skt_opts || NULL == tptask_ret)
+		return (EINVAL);
+
+	error = skt_bind(addr, type, protocol,
+	    (SO_F_NONBLOCK | SKT_OPTS_GET_FLAGS_VALS(skt_opts, SKT_BIND_FLAG_MASK)),
+	    &skt);
+	if (0 != error)
+		goto err_out;
+	if (SOCK_STREAM == type) {
+		error = skt_listen(skt, skt_opts->backlog);
+		if (0 != error)
+			goto err_out;
+	}
+	/* Tune socket. */
+	error = skt_opts_set_ex(skt, SO_F_TCP_LISTEN_AF_MASK,
+	    skt_opts, &err_mask);
+	if (0 != error) { /* Non fatal error. */
+		skt_opts->bit_vals &= ~(err_mask & SO_F_ACC_FILTER);
+	}
+	error = tp_task_create_accept(tpt, skt, flags, timeout,
+	    cb_func, udata, tptask_ret);
+	if (0 == error)
+		return (0);
+
+err_out: /* Error. */
+	close((int)skt);
+	(*tptask_ret) = NULL;
+
+	return (error);
+}
+
+int
 tp_task_create_multi_bind_accept(tp_p tp,
     const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
     uint32_t flags, uint64_t timeout, tp_task_accept_cb cb_func, void *udata,
     size_t *tptasks_count_ret, tp_task_p **tptasks_ret) {
 	int error;
-	uint32_t err_mask;
-	uintptr_t skt = (uintptr_t)-1;
 	size_t i, max_threads = 1, tptasks_cnt = 0;
 	tp_task_p *tptasks;
 	tpt_p tpt;
@@ -900,22 +938,6 @@ tp_task_create_multi_bind_accept(tp_p tp,
 
 	/* Create listen sockets per thread or on one on rand thread. */
 	for (i = 0; i < max_threads; i ++) {
-		error = skt_bind(addr, type, protocol,
-		    (SO_F_NONBLOCK | SKT_OPTS_GET_FLAGS_VALS(skt_opts, SKT_BIND_FLAG_MASK)),
-		    &skt);
-		if (0 != error)
-			goto err_out;
-		if (SOCK_STREAM == type) {
-			error = skt_listen(skt, skt_opts->backlog);
-			if (0 != error)
-				goto err_out;
-		}
-		/* Tune socket. */
-		error = skt_opts_set_ex(skt, SO_F_TCP_LISTEN_AF_MASK,
-		    skt_opts, &err_mask);
-		if (0 != error) { /* Non fatal error. */
-			skt_opts->bit_vals &= ~(err_mask & SO_F_ACC_FILTER);
-		}
 #if defined(__linux__) || defined(SO_REUSEPORT_LB)
 		/* Can balance incomming connections. */
 		if (SKT_OPTS_IS_FLAG_ACTIVE(skt_opts, SO_F_REUSEPORT)) {
@@ -925,8 +947,9 @@ tp_task_create_multi_bind_accept(tp_p tp,
 		{
 			tpt = tp_thread_get_rr(tp);
 		}
-		error = tp_task_create_accept(tpt, skt, flags, timeout,
-		    cb_func, udata, &tptasks[tptasks_cnt]);
+		error = tp_task_create_bind_accept(tpt,
+		    addr, type, protocol, skt_opts,
+		    flags, timeout, cb_func, udata, &tptasks[tptasks_cnt]);
 		if (0 != error)
 			goto err_out;
 		tptasks_cnt ++;
@@ -938,8 +961,10 @@ tp_task_create_multi_bind_accept(tp_p tp,
 	return (0);
 
 err_out: /* Error. */
-	close((int)skt);
 	for (i = 0; i < tptasks_cnt; i ++) {
+		if (0 == (TP_TASK_F_CLOSE_ON_DESTROY & flags)) {
+			tp_task_ident_close(tptasks[i]);
+		}
 		tp_task_destroy(tptasks[i]);
 	}
 	free(tptasks);
