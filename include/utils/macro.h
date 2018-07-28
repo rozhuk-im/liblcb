@@ -92,17 +92,17 @@
 
 
 #ifndef __unused
-#	define	__unused		__attribute__((__unused__))
+#	define __unused		__attribute__((__unused__))
 #endif
 
 
 #ifndef MK_RW_PTR
-#	define	MK_RW_PTR(__ptr)	((void*)(size_t)(__ptr))
+#	define MK_RW_PTR(__ptr)	((void*)(size_t)(__ptr))
 #endif
 
 
 #ifndef TAILQ_FOREACH_SAFE /* Linux does not have this macro. */
-#	define	TAILQ_FOREACH_SAFE(__var, __head, __field, __tvar)	\
+#	define TAILQ_FOREACH_SAFE(__var, __head, __field, __tvar)	\
 		for ((__var) = TAILQ_FIRST((__head));			\
 		    (__var) && ((__tvar) = TAILQ_NEXT((__var), __field), 1); \
 		    (__var) = (__tvar))
@@ -159,7 +159,7 @@
 #endif
 
 
-#define is_space(__c)	(' ' == (__c) || ('\t' <= (__c) && '\r' >= (__c)))
+#define is_space(__c)		(' ' == (__c) || ('\t' <= (__c) && '\r' >= (__c)))
 
 #define IS_NAME_DOTS(__name)	('.' == (__name)[0] &&			\
 				 (0 == (__name)[1] || 			\
