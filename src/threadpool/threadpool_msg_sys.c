@@ -84,6 +84,18 @@ typedef struct tpt_msg_data_s { /* thread message sync data. */
 } tpt_msg_data_t, *tpt_msg_data_p;
 
 
+typedef struct thread_pool_thread_msg_async_operation_s {
+	void		*ctx;
+	void		*op;
+	size_t		op_sz;
+	tpt_p		tpt;	/* Caller context, for op_cb. */
+	tpt_msg_async_op_cb op_cb;
+	void		*result;
+	size_t		result_sz;
+	int		error;
+} tpt_msg_async_op_t;
+
+
 size_t	tpt_msg_broadcast_send__int(tp_p tp, tpt_p src,
 	    tpt_msg_data_p msg_data, uint32_t flags, tpt_msg_cb msg_cb,
 	    void *udata, volatile size_t *send_msg_cnt,
@@ -150,8 +162,12 @@ tpt_msg_recv_and_process(tp_event_p ev, tp_udata_p tp_udata) {
 
 static void
 tpt_msg_cb_done_proxy_cb(tpt_p tpt, void *udata) {
-	tpt_msg_data_p msg_data = udata;
+	tpt_msg_data_p msg_data;
 
+	debugd_break_if(NULL == tpt);
+	debugd_break_if(NULL == udata);
+
+	msg_data = udata;
 	msg_data->done_cb(tpt, msg_data->send_msg_cnt,
 	    msg_data->error_cnt, msg_data->udata);
 	if (0 == (TP_CBMSG_F_ONE_BY_ONE & msg_data->flags)) {
@@ -183,16 +199,24 @@ tpt_msg_active_thr_count_dec(tpt_msg_data_p msg_data, tpt_p src,
 
 static void
 tpt_msg_sync_proxy_cb(tpt_p tpt, void *udata) {
-	tpt_msg_data_p msg_data = udata;
+	tpt_msg_data_p msg_data;
 
+	debugd_break_if(NULL == tpt);
+	debugd_break_if(NULL == udata);
+
+	msg_data = udata;
 	msg_data->msg_cb(tpt, msg_data->udata);
 	tpt_msg_active_thr_count_dec(msg_data, tpt, 1);
 }
 
 static void
 tpt_msg_one_by_one_proxy_cb(tpt_p tpt, void *udata) {
-	tpt_msg_data_p msg_data = udata;
+	tpt_msg_data_p msg_data;
 
+	debugd_break_if(NULL == tpt);
+	debugd_break_if(NULL == udata);
+
+	msg_data = udata;
 	msg_data->msg_cb(tpt, msg_data->udata);
 	/* Send to next thread. */
 	msg_data->cur_thr_idx ++;
@@ -454,7 +478,6 @@ tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
 	size_t tm_cnt, send_msg_cnt, threads_max;
 	tpt_msg_data_p msg_data;
 
-
 	if (NULL == tp || NULL == msg_cb || NULL == done_cb ||
 	    0 != ((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP) & flags))
 		return (EINVAL);
@@ -518,3 +541,125 @@ tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
 	return (0);
 }
 
+
+tpt_msg_async_op_p
+tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb, void *ctx,
+    void *op, size_t op_sz) {
+	tpt_msg_async_op_p aop;
+
+	if (NULL == dst || NULL == op_cb)
+		return (NULL);
+	aop = malloc(sizeof(tpt_msg_async_op_t));
+	if (NULL == aop)
+		return (NULL);
+	aop->ctx = ctx;
+	aop->op = op;
+	aop->op_sz = op_sz;
+	aop->tpt = dst;
+	aop->op_cb = op_cb;
+	aop->result = NULL;
+	aop->result_sz = 0;
+	aop->error = 0;
+
+	return (aop);
+}
+
+static void
+tpt_msg_async_op_cb_free_cb(tpt_p tpt, void *udata) {
+	tpt_msg_async_op_p aop = udata;
+
+	debugd_break_if(tpt != aop->tpt);
+
+	aop->op_cb(aop->tpt, aop->ctx, aop->op, aop->op_sz,
+	    aop->result, aop->result_sz, aop->error);
+	free(aop);
+}
+void
+tpt_msg_async_op_cb_free(tpt_msg_async_op_p aop, tpt_p src) {
+
+	if (NULL == aop)
+		return;
+	tpt_msg_send(aop->tpt, src,
+	    (TP_MSG_F_SELF_DIRECT | TP_MSG_F_FORCE | TP_MSG_F_FAIL_DIRECT),
+	    tpt_msg_async_op_cb_free_cb, aop);
+}
+void
+tpt_msg_async_op_cb_free2(tpt_msg_async_op_p aop, tpt_p src,
+    void *result, size_t result_sz, int error) {
+
+	if (NULL == aop)
+		return;
+	aop->result = result;
+	aop->result_sz = result_sz;
+	aop->error = error;
+	tpt_msg_async_op_cb_free(aop, src);
+}
+
+
+void **
+tpt_msg_async_op_result(tpt_msg_async_op_p aop) {
+
+	if (NULL == aop)
+		return (NULL);
+	return (&aop->result);
+}
+void *
+tpt_msg_async_op_result_get(tpt_msg_async_op_p aop) {
+
+	if (NULL == aop)
+		return (NULL);
+	return (aop->result);
+}
+void
+tpt_msg_async_op_result_set(tpt_msg_async_op_p aop, void *result) {
+
+	if (NULL == aop)
+		return;
+	aop->result = result;
+}
+
+
+size_t *
+tpt_msg_async_op_result_sz(tpt_msg_async_op_p aop) {
+
+	if (NULL == aop)
+		return (NULL);
+	return (&aop->result_sz);
+}
+size_t
+tpt_msg_async_op_result_sz_get(tpt_msg_async_op_p aop) {
+
+	if (NULL == aop)
+		return (0);
+	return (aop->result_sz);
+}
+void
+tpt_msg_async_op_result_sz_set(tpt_msg_async_op_p aop, size_t result_sz) {
+
+	if (NULL == aop)
+		return;
+	aop->result_sz = result_sz;
+}
+
+
+int *
+tpt_msg_async_op_error(tpt_msg_async_op_p aop) {
+
+	if (NULL == aop)
+		return (NULL);
+	return (&aop->error);
+}
+int
+tpt_msg_async_op_error_get(tpt_msg_async_op_p aop) {
+
+	if (NULL == aop)
+		return (0);
+	return (aop->error);
+}
+void
+tpt_msg_async_op_error_set(tpt_msg_async_op_p aop, int error) {
+
+	if (NULL == aop)
+		return;
+	aop->error = error;
+}

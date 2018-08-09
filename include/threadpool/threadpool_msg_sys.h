@@ -41,10 +41,14 @@
 
 
 typedef struct thread_pool_thread_msg_queue_s	*tpt_msg_queue_p;	/* Thread pool thread message queue. */
+typedef struct thread_pool_thread_msg_async_operation_s	*tpt_msg_async_op_p;
 
 typedef void (*tpt_msg_cb)(tpt_p tpt, void *udata);
 typedef void (*tpt_msg_done_cb)(tpt_p tpt, size_t send_msg_cnt,
     size_t error_cnt, void *udata);
+typedef void (*tpt_msg_async_op_cb)(tpt_p tpt, void *ctx,
+    void *op, size_t op_sz,
+    void *result, size_t result_sz, int error);
 
 
 tpt_msg_queue_p tpt_msg_queue_create(tpt_p tpt);
@@ -63,8 +67,8 @@ int	tpt_msg_send(tpt_p dst, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
  */
 int	tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
 	    void *udata, size_t *send_msg_cnt, size_t *error_cnt);
-#define tpt_msg_bsend(__tp, __src, __flags, __msg_cb, __udata)	\
-	    tpt_msg_bsend_ex(__tp, __src, __flags, __msg_cb, __udata, NULL, NULL)
+#define tpt_msg_bsend(__tp, __src, __flags, __msg_cb, __udata)		\
+	    tpt_msg_bsend_ex((__tp), (__src), (__flags), (__msg_cb), (__udata), NULL, NULL)
 /* tpt_msg_bsend_ex() return:
  * 0 = no errors, at least 1 message sended
  * EINVAL - on invalid arg
@@ -92,6 +96,27 @@ int	tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
 #define TP_CBMSG_F_SELF_SKIP	TP_BMSG_F_SELF_SKIP
 #define TP_CBMSG_F_ONE_BY_ONE	(((uint32_t)1) << 16) /* Send message to next thread after current thread process message. */
 #define TP_CBMSG__ALL__		(TP_CBMSG_F_SELF_SKIP | TP_CBMSG_F_ONE_BY_ONE)
+
+
+/* Functions set for async callback with some additional params. */
+tpt_msg_async_op_p tpt_msg_async_op_alloc(tpt_p dst,
+	    tpt_msg_async_op_cb op_cb, void *ctx, void *op, size_t op_sz);
+void	tpt_msg_async_op_cb_free(tpt_msg_async_op_p aop, tpt_p src);
+void	tpt_msg_async_op_cb_free2(tpt_msg_async_op_p aop, tpt_p src,
+	    void *result, size_t result_sz, int error);
+
+void **	tpt_msg_async_op_result(tpt_msg_async_op_p aop);
+void *	tpt_msg_async_op_result_get(tpt_msg_async_op_p aop);
+void	tpt_msg_async_op_result_set(tpt_msg_async_op_p aop, void *result);
+
+size_t *tpt_msg_async_op_result_sz(tpt_msg_async_op_p aop);
+size_t	tpt_msg_async_op_result_sz_get(tpt_msg_async_op_p aop);
+void	tpt_msg_async_op_result_sz_set(tpt_msg_async_op_p aop, size_t result_sz);
+
+int *	tpt_msg_async_op_error(tpt_msg_async_op_p aop);
+int	tpt_msg_async_op_error_get(tpt_msg_async_op_p aop);
+void	tpt_msg_async_op_error_set(tpt_msg_async_op_p aop, int error);
+
 
 
 #endif /* __THREAD_POOL_MESSAGE_SYSTEM_H__ */
