@@ -1201,8 +1201,8 @@ skt_sync_resolv_connect(const char *hname, uint16_t port,
 	if (0 != error)  /* NOTREACHED */
 		goto err_out;
 	for (res = res0; NULL != res; res = res->ai_next) {
-		error = skt_connect((sockaddr_storage_p)res->ai_addr, res->ai_socktype,
-		    res->ai_protocol, 0, &skt);
+		error = skt_connect((sockaddr_storage_p)(void*)res->ai_addr,
+		    res->ai_socktype, res->ai_protocol, 0, &skt);
 		if (0 == error)
 			break; /* okay we got one */
 	}
