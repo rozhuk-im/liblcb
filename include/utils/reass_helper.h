@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,9 +86,9 @@ typedef struct reasseble_helper_s {
 static inline void
 reass_hlp_reset(reass_hlp_p reass_hlp) {
 
-	if (NULL == reass_hlp) {
+	if (NULL == reass_hlp)
 		return;
-	}
+
 	reass_hlp->recv_cnt = 0;
 	reass_hlp->blk_cnt = 0;
 	reass_hlp->blk_size = 0;
@@ -106,9 +106,9 @@ static inline int
 reass_hlp_init(reass_hlp_p reass_hlp, void *buf, size_t buf_size,
     uint8_t *bitmap, size_t bitmap_size) {
 
-	if (NULL == reass_hlp || NULL == buf || 0 == buf_size) {
+	if (NULL == reass_hlp || NULL == buf || 0 == buf_size)
 		return (EINVAL);
-	}
+
 	reass_hlp->buf = buf;
 	reass_hlp->buf_size = buf_size;
 	reass_hlp->bitmap = bitmap;
@@ -121,9 +121,8 @@ reass_hlp_init(reass_hlp_p reass_hlp, void *buf, size_t buf_size,
 static inline void
 reass_hlp_free(reass_hlp_p reass_hlp) {
 
-	if (NULL == reass_hlp) {
+	if (NULL == reass_hlp)
 		return;
-	}
 	free(reass_hlp);
 }
 
@@ -161,6 +160,7 @@ reass_hlp_seq_calc_diff(uint64_t first_seq_no, uint64_t last_seq_no) {
 	}
 	if (SIZE_T_MAX < last_seq_no)
 		return (SIZE_T_MAX); /* sizeof(uint64_t) > sizeof(size_t) */
+
 	return (last_seq_no);
 }
 
@@ -169,25 +169,22 @@ reass_hlp_handle_frag(reass_hlp_p reass_hlp, uint64_t seq_no, int is_first,
     int is_last, void *data, size_t data_size) {
 	size_t blk_idx, offset;
 
-	if (NULL == reass_hlp || (NULL == data && 0 != data_size)) {
+	if (NULL == reass_hlp || (NULL == data && 0 != data_size))
 		return (EINVAL);
-	}
+
 	if (is_first) { /* Reset on first packet or do it by hand before and never set this flag. */
-		if (0 == data_size) {
+		if (0 == data_size)
 			return (EINVAL); /* Bad block size. */
-		}
 		reass_hlp_reset(reass_hlp);
 		reass_hlp->blk_size = data_size;
 		reass_hlp->first_seq_no = seq_no;
-		if (NULL != reass_hlp->bitmap) {
-			if ((reass_hlp->buf_size / reass_hlp->blk_size) > (reass_hlp->bitmap_size * 8)) {
-				return (ENOBUFS); /* Not enought bitmap space. */
-			}
-		}
+		if (NULL != reass_hlp->bitmap &&
+		    (reass_hlp->buf_size / reass_hlp->blk_size) > (reass_hlp->bitmap_size * 8))
+			return (ENOBUFS); /* Not enought bitmap space. */
 	} else {
-		if (0 == is_last && reass_hlp->blk_size != data_size) {
+		if (0 == is_last &&
+		    reass_hlp->blk_size != data_size)
 			return (EINVAL); /* Fragment size is wierd and it is not last frag. */
-		}
 		if ((reass_hlp->cur_seq_no + 1) != seq_no) { /* Sequence not OK. */
 			reass_hlp->reorders_cnt ++;
 		}
@@ -197,13 +194,11 @@ reass_hlp_handle_frag(reass_hlp_p reass_hlp, uint64_t seq_no, int is_first,
 	offset = (blk_idx * reass_hlp->blk_size);
 	/* Check for mult overflow. */
 	if (((blk_idx | reass_hlp->blk_size) & (SIZE_T_MAX << (sizeof(size_t) * 4))) &&
-	    (offset / reass_hlp->blk_size) != blk_idx) {
+	    (offset / reass_hlp->blk_size) != blk_idx)
 		return (EINVAL); /* size_t overflow. */
-	}
 	/* Check: in buf range. */
-	if ((offset + data_size) > reass_hlp->buf_size) {
+	if ((offset + data_size) > reass_hlp->buf_size)
 		return (EINVAL); /* Not enought buf space, assume that it is frag with bad seqno. */
-	}
 	/* Check by bitmap: is block already received? */
 	if (NULL != reass_hlp->bitmap) { /* Using bitmap. */
 		if (reass_hlp->bitmap_size <= blk_idx)
@@ -219,9 +214,8 @@ reass_hlp_handle_frag(reass_hlp_p reass_hlp, uint64_t seq_no, int is_first,
 	if (is_last && 0 == reass_hlp->sequence_size) {
 		reass_hlp->sequence_size = (offset + data_size); /* Cant be zero, so use as marker that last frag received. */
 		reass_hlp->last_seq_no = seq_no;
-		if (reass_hlp->sequence_size > reass_hlp->buf_size) {
+		if (reass_hlp->sequence_size > reass_hlp->buf_size)
 			return (ENOBUFS); /* Not enought buf space, realloc() required. */
-		}
 	}
 	memcpy((reass_hlp->buf + offset), data, data_size);
 	reass_hlp->recv_cnt += data_size;
@@ -229,12 +223,11 @@ reass_hlp_handle_frag(reass_hlp_p reass_hlp, uint64_t seq_no, int is_first,
 	reass_hlp->cur_seq_no = seq_no;
 
 	if (0 == reass_hlp->sequence_size || /* We dont know sequence size, no last frag received. */
-	    (reass_hlp_seq_calc_diff(reass_hlp->first_seq_no, reass_hlp->last_seq_no) + 1) > reass_hlp->blk_cnt) {
+	    (reass_hlp_seq_calc_diff(reass_hlp->first_seq_no, reass_hlp->last_seq_no) + 1) > reass_hlp->blk_cnt)
 		return (EAGAIN); /* Require more data. */
-	}
-	if (reass_hlp->sequence_size != reass_hlp->recv_cnt) { /* Is all OK? */
+	if (reass_hlp->sequence_size != reass_hlp->recv_cnt) /* Is all OK? */
 		return (EBADMSG); /* Lost some fragments/data? */
-	}
+
 	return (0); /* All fragments received!. */
 }
 
