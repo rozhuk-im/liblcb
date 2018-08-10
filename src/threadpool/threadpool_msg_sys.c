@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,14 +85,9 @@ typedef struct tpt_msg_data_s { /* thread message sync data. */
 
 
 typedef struct thread_pool_thread_msg_async_operation_s {
-	void		*ctx;
-	void		*op;
-	size_t		op_sz;
 	tpt_p		tpt;	/* Caller context, for op_cb. */
 	tpt_msg_async_op_cb op_cb;
-	void		*result;
-	size_t		result_sz;
-	int		error;
+	void		*udata[TP_MSG_AOP_UDATA_CNT];
 } tpt_msg_async_op_t;
 
 
@@ -543,8 +538,7 @@ tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
 
 
 tpt_msg_async_op_p
-tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb, void *ctx,
-    void *op, size_t op_sz) {
+tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
 	tpt_msg_async_op_p aop;
 
 	if (NULL == dst || NULL == op_cb)
@@ -552,14 +546,9 @@ tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb, void *ctx,
 	aop = malloc(sizeof(tpt_msg_async_op_t));
 	if (NULL == aop)
 		return (NULL);
-	aop->ctx = ctx;
-	aop->op = op;
-	aop->op_sz = op_sz;
 	aop->tpt = dst;
 	aop->op_cb = op_cb;
-	aop->result = NULL;
-	aop->result_sz = 0;
-	aop->error = 0;
+	mem_bzero(&aop->udata, sizeof(aop->udata));
 
 	return (aop);
 }
@@ -570,8 +559,7 @@ tpt_msg_async_op_cb_free_cb(tpt_p tpt, void *udata) {
 
 	debugd_break_if(tpt != aop->tpt);
 
-	aop->op_cb(aop->tpt, aop->ctx, aop->op, aop->op_sz,
-	    aop->result, aop->result_sz, aop->error);
+	aop->op_cb(aop->tpt, aop->udata);
 	free(aop);
 }
 void
@@ -583,83 +571,72 @@ tpt_msg_async_op_cb_free(tpt_msg_async_op_p aop, tpt_p src) {
 	    (TP_MSG_F_SELF_DIRECT | TP_MSG_F_FORCE | TP_MSG_F_FAIL_DIRECT),
 	    tpt_msg_async_op_cb_free_cb, aop);
 }
-void
-tpt_msg_async_op_cb_free2(tpt_msg_async_op_p aop, tpt_p src,
-    void *result, size_t result_sz, int error) {
-
-	if (NULL == aop)
-		return;
-	aop->result = result;
-	aop->result_sz = result_sz;
-	aop->error = error;
-	tpt_msg_async_op_cb_free(aop, src);
-}
 
 
 void **
-tpt_msg_async_op_result(tpt_msg_async_op_p aop) {
+tpt_msg_async_op_udata(tpt_msg_async_op_p aop) {
 
 	if (NULL == aop)
 		return (NULL);
-	return (&aop->result);
+	return (aop->udata);
 }
 void *
-tpt_msg_async_op_result_get(tpt_msg_async_op_p aop) {
+tpt_msg_async_op_udata_get(tpt_msg_async_op_p aop, size_t index) {
 
-	if (NULL == aop)
+	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return (NULL);
-	return (aop->result);
+	return (aop->udata[index]);
 }
 void
-tpt_msg_async_op_result_set(tpt_msg_async_op_p aop, void *result) {
+tpt_msg_async_op_udata_set(tpt_msg_async_op_p aop, size_t index, void *udata) {
 
-	if (NULL == aop)
+	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return;
-	aop->result = result;
+	aop->udata[index] = udata;
 }
 
 
 size_t *
-tpt_msg_async_op_result_sz(tpt_msg_async_op_p aop) {
+tpt_msg_async_op_udata_sz(tpt_msg_async_op_p aop) {
 
 	if (NULL == aop)
 		return (NULL);
-	return (&aop->result_sz);
+	return ((size_t*)aop->udata);
 }
 size_t
-tpt_msg_async_op_result_sz_get(tpt_msg_async_op_p aop) {
+tpt_msg_async_op_udata_sz_get(tpt_msg_async_op_p aop, size_t index) {
 
-	if (NULL == aop)
+	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return (0);
-	return (aop->result_sz);
+	return ((size_t)aop->udata[index]);
 }
 void
-tpt_msg_async_op_result_sz_set(tpt_msg_async_op_p aop, size_t result_sz) {
+tpt_msg_async_op_udata_sz_set(tpt_msg_async_op_p aop, size_t index, size_t udata) {
 
-	if (NULL == aop)
+	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return;
-	aop->result_sz = result_sz;
+	aop->udata[index] = (void*)udata;
 }
 
 
-int *
-tpt_msg_async_op_error(tpt_msg_async_op_p aop) {
+ssize_t *
+tpt_msg_async_op_udata_ssz(tpt_msg_async_op_p aop) {
 
 	if (NULL == aop)
 		return (NULL);
-	return (&aop->error);
+	return ((ssize_t*)aop->udata);
 }
-int
-tpt_msg_async_op_error_get(tpt_msg_async_op_p aop) {
+ssize_t
+tpt_msg_async_op_udata_ssz_get(tpt_msg_async_op_p aop, size_t index) {
 
-	if (NULL == aop)
+	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return (0);
-	return (aop->error);
+	return ((ssize_t)aop->udata[index]);
 }
 void
-tpt_msg_async_op_error_set(tpt_msg_async_op_p aop, int error) {
+tpt_msg_async_op_udata_ssz_set(tpt_msg_async_op_p aop, size_t index, ssize_t udata) {
 
-	if (NULL == aop)
+	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return;
-	aop->error = error;
+	aop->udata[index] = (void*)udata;
 }

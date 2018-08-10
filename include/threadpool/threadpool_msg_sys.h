@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,9 +46,7 @@ typedef struct thread_pool_thread_msg_async_operation_s	*tpt_msg_async_op_p;
 typedef void (*tpt_msg_cb)(tpt_p tpt, void *udata);
 typedef void (*tpt_msg_done_cb)(tpt_p tpt, size_t send_msg_cnt,
     size_t error_cnt, void *udata);
-typedef void (*tpt_msg_async_op_cb)(tpt_p tpt, void *ctx,
-    void *op, size_t op_sz,
-    void *result, size_t result_sz, int error);
+typedef void (*tpt_msg_async_op_cb)(tpt_p tpt, void **udata);
 
 
 tpt_msg_queue_p tpt_msg_queue_create(tpt_p tpt);
@@ -99,24 +97,29 @@ int	tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
 
 
 /* Functions set for async callback with some additional params. */
-tpt_msg_async_op_p tpt_msg_async_op_alloc(tpt_p dst,
-	    tpt_msg_async_op_cb op_cb, void *ctx, void *op, size_t op_sz);
+#define TP_MSG_AOP_UDATA_CNT	((size_t)6)
+/* Typical names */
+#define TP_MSG_AOP_ARG0		((size_t)0)
+#define TP_MSG_AOP_ARG1		((size_t)1)
+#define TP_MSG_AOP_ARG2		((size_t)2)
+#define TP_MSG_AOP_ARG3		((size_t)3)
+#define TP_MSG_AOP_ARG4		((size_t)4)
+#define TP_MSG_AOP_ARG_ERR	(TP_MSG_AOP_UDATA_CNT - 1)
+
+tpt_msg_async_op_p tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb);
 void	tpt_msg_async_op_cb_free(tpt_msg_async_op_p aop, tpt_p src);
-void	tpt_msg_async_op_cb_free2(tpt_msg_async_op_p aop, tpt_p src,
-	    void *result, size_t result_sz, int error);
 
-void **	tpt_msg_async_op_result(tpt_msg_async_op_p aop);
-void *	tpt_msg_async_op_result_get(tpt_msg_async_op_p aop);
-void	tpt_msg_async_op_result_set(tpt_msg_async_op_p aop, void *result);
+void **	tpt_msg_async_op_udata(tpt_msg_async_op_p aop);
+void *	tpt_msg_async_op_udata_get(tpt_msg_async_op_p aop, size_t index);
+void	tpt_msg_async_op_udata_set(tpt_msg_async_op_p aop, size_t index, void *udata);
 
-size_t *tpt_msg_async_op_result_sz(tpt_msg_async_op_p aop);
-size_t	tpt_msg_async_op_result_sz_get(tpt_msg_async_op_p aop);
-void	tpt_msg_async_op_result_sz_set(tpt_msg_async_op_p aop, size_t result_sz);
+size_t *tpt_msg_async_op_udata_sz(tpt_msg_async_op_p aop);
+size_t	tpt_msg_async_op_udata_sz_get(tpt_msg_async_op_p aop, size_t index);
+void	tpt_msg_async_op_udata_sz_set(tpt_msg_async_op_p aop, size_t index, size_t udata);
 
-int *	tpt_msg_async_op_error(tpt_msg_async_op_p aop);
-int	tpt_msg_async_op_error_get(tpt_msg_async_op_p aop);
-void	tpt_msg_async_op_error_set(tpt_msg_async_op_p aop, int error);
-
+ssize_t *tpt_msg_async_op_udata_ssz(tpt_msg_async_op_p aop);
+ssize_t	tpt_msg_async_op_udata_ssz_get(tpt_msg_async_op_p aop, size_t index);
+void	tpt_msg_async_op_udata_ssz_set(tpt_msg_async_op_p aop, size_t index, ssize_t udata);
 
 
 #endif /* __THREAD_POOL_MESSAGE_SYSTEM_H__ */
