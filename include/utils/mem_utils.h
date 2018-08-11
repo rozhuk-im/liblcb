@@ -503,10 +503,23 @@ memset_s(void *dest, size_t destsz, int c, size_t len) {
 
 /* Debug memory fill. */
 #ifdef DEBUG
-#define mem_filld(__buf, __size)	mem_set((__buf), (size_t)(__size), 0xab)
+#	define mem_filld(__buf, __size)	mem_set((__buf), (size_t)(__size), 0xab)
 #else
-#define mem_filld(__buf, __size)
+#	define mem_filld(__buf, __size)
 #endif
+
+
+static inline void *
+mem_dup(const void *buf, const size_t size) {
+	void *ret;
+
+	ret = malloc(roundup2(size, sizeof(void*)));
+	if (NULL == ret)
+		return (ret);
+	memcpy(ret, buf, size);
+
+	return (ret);
+}
 
 
 /* Allocate and zero memory. */
