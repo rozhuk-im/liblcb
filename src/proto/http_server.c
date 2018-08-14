@@ -1133,6 +1133,7 @@ err_out:
 		if (TP_TASK_CB_CONTINUE == action &&
 		    0 != IO_BUF_TR_SIZE_GET(buf))
 			goto continue_recv; /* Continue receive request data. */
+		tp_task_flags_add(tptask, TP_TASK_F_CB_AFTER_EVERY_READ);
 		goto req_received; /* Have HTTP headers and (all data / OEF). */
 	}
 
@@ -1477,6 +1478,7 @@ http_srv_send_responce(http_srv_cli_p cli, const uint8_t **delimiter) {
 		}
 		/* Need receive more data. */
 		IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
+		tp_task_flags_add(cli->tptask, TP_TASK_F_CB_AFTER_EVERY_READ);
 		error = tp_task_restart(cli->tptask);
 	}
 	if (0 != error) { /* Error. */
@@ -1504,6 +1506,7 @@ http_srv_resume_responce(http_srv_cli_p cli) {
 		return (0);
 	/* Need receive more data. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
+	tp_task_flags_add(cli->tptask, TP_TASK_F_CB_AFTER_EVERY_READ);
 	error = tp_task_restart(cli->tptask);
 	if (0 != error) { /* Error. */
 		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
