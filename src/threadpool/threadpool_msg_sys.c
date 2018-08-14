@@ -541,11 +541,14 @@ tpt_msg_async_op_p
 tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
 	tpt_msg_async_op_p aop;
 
-	if (NULL == dst || NULL == op_cb)
+	if (NULL == op_cb)
 		return (NULL);
 	aop = malloc(sizeof(tpt_msg_async_op_t));
 	if (NULL == aop)
 		return (NULL);
+	if (NULL == dst) {
+		dst = tp_thread_get_current();
+	}
 	aop->tpt = dst;
 	aop->op_cb = op_cb;
 	mem_bzero(&aop->udata, sizeof(aop->udata));
