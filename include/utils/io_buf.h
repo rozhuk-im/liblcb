@@ -137,6 +137,9 @@ static inline void
 io_buf_sign_set__int(io_buf_p io_buf) {
 
 	/* Set magic number. */
+	if (NULL == io_buf->data ||
+	    0 == (io_buf->flags & (IO_BUF_F_DATA_SHARED | IO_BUF_F_DATA_ALLOC)))
+		return;
 	io_buf->data[(io_buf->size + 0)] = 0x00; /* String end marker. */
 	io_buf->data[(io_buf->size + 1)] = 0x12;
 	io_buf->data[(io_buf->size + 2)] = 0xfe;
@@ -145,6 +148,9 @@ io_buf_sign_set__int(io_buf_p io_buf) {
 static inline void
 io_buf_sign_check__int(io_buf_p io_buf) {
 
+	if (NULL == io_buf->data ||
+	    0 == (io_buf->flags & (IO_BUF_F_DATA_SHARED | IO_BUF_F_DATA_ALLOC)))
+		return;
 	if (0x00 != io_buf->data[(io_buf->size + 0)] ||
 	    0x12 != io_buf->data[(io_buf->size + 1)] ||
 	    0xfe != io_buf->data[(io_buf->size + 2)] ||
@@ -156,6 +162,9 @@ io_buf_sign_check__int(io_buf_p io_buf) {
 static inline void
 io_buf_sign_set__int(io_buf_p io_buf) {
 
+	if (NULL == io_buf->data ||
+	    0 == (io_buf->flags & (IO_BUF_F_DATA_SHARED | IO_BUF_F_DATA_ALLOC)))
+		return;
 	/* Set magic number. */
 	io_buf->data[(io_buf->size + 0)] = 0x00; /* String end marker. */
 }
@@ -178,7 +187,11 @@ io_buf_init(io_buf_p io_buf, uint32_t flags, uint8_t *data, size_t size) {
 	} else {
 		io_buf->data = data;
 	}
-	io_buf->size = size;
+	if (NULL == io_buf->data) {
+		io_buf->size = 0; /* Buf not allocated, cant set size. */
+	} else {
+		io_buf->size = size;
+	}
 	IO_BUF_MARK_AS_EMPTY(io_buf);
 	io_buf->flags = (flags & ~IO_BUF_F_ALLOC_BUF__INT);
 
@@ -201,15 +214,12 @@ io_buf_alloc(uint32_t flags, size_t size) {
 		io_buf = malloc(sizeof(io_buf_t));
 		if (NULL == io_buf)
 			return (NULL);
-		if (0 != (flags & IO_BUF_F_DATA_ALLOC) &&
-		    0 != size) {
+		if (0 != (flags & IO_BUF_F_DATA_ALLOC)) {
 			data = malloc((size + sizeof(uint32_t)));
 			if (NULL == data) {
 				free(io_buf);
 				return (NULL);
 			}
-		} else {
-			size = 0;
 		}
 	}
 
