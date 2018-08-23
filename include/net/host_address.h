@@ -93,7 +93,7 @@ host_addr_clone(host_addr_p src) {
 	if (NULL == src)
 		return (NULL);
 
-	haddr = zalloc((sizeof(sockaddr_storage_t) * src->allocated));
+	haddr = zallocarray(src->allocated, sizeof(sockaddr_storage_t));
 	if (NULL == haddr)
 		return (haddr);
 	haddr->addrs = zalloc((sizeof(host_addr_t) + src->name_size + sizeof(void*)));

@@ -932,7 +932,7 @@ tp_task_create_multi_bind_accept(tp_p tp,
 	}
 #endif
 
-	tptasks = zalloc((sizeof(tp_task_p) * max_threads));
+	tptasks = zallocarray(max_threads, sizeof(tp_task_p));
 	if (NULL == tptasks)
 		return (ENOMEM);
 

@@ -563,7 +563,7 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	rslvr = zalloc(sizeof(dns_rslvr_t));
 	if (NULL == rslvr)
 		return (ENOMEM);
-	rslvr->dns_addrs = zalloc((sizeof(sockaddr_storage_t) * dns_addrs_count));
+	rslvr->dns_addrs = zallocarray(dns_addrs_count, sizeof(sockaddr_storage_t));
 	if (NULL == rslvr->dns_addrs) {
 		error = ENOMEM;
 		goto err_out;

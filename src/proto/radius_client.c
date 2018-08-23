@@ -362,7 +362,7 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 	rad_cli->s.servers_max &= ~((size_t)(RADIUS_CLIENT_ALLOC_CNT - 1));
 	/* Per threads sockets. */
 	rad_cli->thr_count = tp_thread_count_max_get(tp);
-	rad_cli->thr = zalloc(sizeof(radius_cli_thr_t) * rad_cli->thr_count);
+	rad_cli->thr = zallocarray(rad_cli->thr_count, sizeof(radius_cli_thr_t));
 	if (NULL == rad_cli->thr) {
 		error = ENOMEM;
 		goto err_out;
@@ -370,10 +370,10 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 	for (i = 0; i < rad_cli->thr_count; i ++) {
 		rad_cli->thr[i].tpt = tp_thread_get(tp, i);
 		rad_cli->thr[i].rad_cli = rad_cli;
-		rad_cli->thr[i].skts4.skt = zalloc(sizeof(radius_cli_skt_p) *
-		    rad_cli->s.thr_sockets_max);
-		rad_cli->thr[i].skts6.skt = zalloc(sizeof(radius_cli_skt_p) *
-		    rad_cli->s.thr_sockets_max);
+		rad_cli->thr[i].skts4.skt = zallocarray(rad_cli->s.thr_sockets_max,
+		    sizeof(radius_cli_skt_p));
+		rad_cli->thr[i].skts6.skt = zallocarray(rad_cli->s.thr_sockets_max,
+		    sizeof(radius_cli_skt_p));
 		if (NULL == rad_cli->thr[i].skts4.skt ||
 		    NULL == rad_cli->thr[i].skts6.skt) {
 			error = ENOMEM;
@@ -383,7 +383,7 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 	MTX_INIT(&rad_cli->cli_srv_mtx);
 	//rad_cli->cli_srv_count = 0;
 	//rad_cli->cli_srv_allocated = 0;
-	rad_cli->srv = zalloc(sizeof(radius_cli_srv_t) * rad_cli->s.servers_max);
+	rad_cli->srv = zallocarray(rad_cli->s.servers_max, sizeof(radius_cli_srv_t));
 	if (NULL == rad_cli->srv) {
 		error = ENOMEM;
 		goto err_out;
