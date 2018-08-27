@@ -55,12 +55,11 @@ typedef struct tp_task_s *tp_task_p;
 
 /* Replace 'io_buf_p' for connect_ex(). */
 typedef struct tp_task_connect_params_s {
-	struct timespec	time_limit;	/* Time limit for all retries / max connect time. 0 - no limit. */
-	uint64_t	retry_delay;	/* Wait before retry / time before try connect to next addr. */
+	uint64_t	time_limit;	/* Time limit for all retries / max connect time. 0 - no limit. ms from system up time (MONOTONIC). */
+	uint64_t	retry_delay;	/* Wait before retry / time before try connect to next addr. ms. */
 	uint64_t	max_tries;	/* Num tries to connect. 0 - no limit, also set TP_TASK_CONNECT_F_ROUND_ROBIN. */
 	uint32_t	flags;		/* Flags. */
-	int		type;		/* Socket type. */
-	int		protocol;	/* Socket proto. */
+	int		protocol;	/* Socket proto. 0 - os auto = IPPROTO_TCP in most cases. */
 	size_t		addrs_count;	/* Addresses count. */
 	struct sockaddr_storage *addrs;	/* Addresses connect to. */
 } tp_task_conn_prms_t, *tp_task_conn_prms_p;
@@ -342,7 +341,7 @@ int	tp_task_create_connect_ex(tpt_p tpt, uint32_t flags,
  * Pseudo code:
  * for (i = 0; i < max_tries; i ++) {
  * 	for (j = 0; j < addrs_count; j ++) {
- * 		if (ok == connect(addrs[j], timeout))
+ * 		if (ok == connect(SOCK_STREAM, conn_prms->protocol, addrs[j], timeout))
  * 			return (OK);
  * 	}
  * 	if (time_limit < retry_delay)

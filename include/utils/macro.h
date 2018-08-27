@@ -91,6 +91,10 @@
 #define UINT64_BIT_IS_SET(__mask, __bit) (0 != ((__mask) & UINT64_BIT((__bit))))
 
 
+#define TIMESPEC_TO_MS(__ts)						\
+    ((((uint64_t)(__ts)->tv_sec) * 1000) + (((uint64_t)(__ts)->tv_nsec) / 1000000))
+
+
 #ifndef __unused
 #	define __unused		__attribute__((__unused__))
 #endif

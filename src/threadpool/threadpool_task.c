@@ -58,16 +58,11 @@ typedef struct tp_task_s {
 	off_t		offset;	/* Read/write offset for tp_task_rw_handler() / try_no for connect_ex(). */
 	io_buf_p	buf;	/* Buffer to read/write / send/recv / tp_task_conn_prms_p for connect_ex(). */
 	size_t		tot_transfered_size; /* Total transfered size between calls of cb func / addrs_cur for connect_ex(). */
-	struct timespec	start_time; /* Task start time. Used in connect_ex for time_limit work. */
+	uint64_t	start_time; /* Task start time. Used in connect_ex for time_limit work. ms from system up time (MONOTONIC).*/
 	tp_task_cb	cb_func;/* Called after check return TP_TASK_DONE. */
 	void		*udata;	/* Passed as arg to check and done funcs. */
 	tpt_p		tpt;	/* Need for free and enable function */
 } tp_task_t;
-
-
-
-#define TIMESPEC_TO_MS(__ts)						\
-    ((((uint64_t)(__ts)->tv_sec) * 1000) + (((uint64_t)(__ts)->tv_nsec) / 1000000))
 
 
 static void	tp_task_handler(int type, tp_event_p ev,
@@ -1078,12 +1073,11 @@ tp_task_connect_ex_start(tp_task_p tptask, int do_connect) {
 		    0 != conn_prms->retry_delay)
 			goto shedule_delay_timer;
 	} else {
-		if (0 != conn_prms->time_limit.tv_sec ||
-		    0 != conn_prms->time_limit.tv_nsec) { /* time limit checks. */
+		if (0 != conn_prms->time_limit) { /* time limit checks. */
 			tpt_gettimev(tptask->tpt, 0, &time_now);
 			time_run_ms = (TIMESPEC_TO_MS(&time_now) -
-			    TIMESPEC_TO_MS(&tptask->start_time)); /* Task run time. */
-			time_limit_ms = TIMESPEC_TO_MS(&conn_prms->time_limit);
+			    tptask->start_time); /* Task run time. */
+			time_limit_ms = conn_prms->time_limit;
 			if (time_limit_ms <= time_run_ms)
 				return (-1); /* No more tries. */
 			time_limit_ms -= time_run_ms; /* Time to end task. */
@@ -1118,7 +1112,7 @@ tp_task_connect_ex_start(tp_task_p tptask, int do_connect) {
 try_connect:
 	/* Create socket, try to connect, start IO task with created socket. */
 	error = skt_connect(&conn_prms->addrs[tptask->tot_transfered_size],
-	    conn_prms->type, conn_prms->protocol,
+	    SOCK_STREAM, conn_prms->protocol,
 	    SO_F_NONBLOCK, &tptask->tp_data.ident);
 	if (0 != error) /* Cant create socket. */
 		return (error);
@@ -1147,21 +1141,19 @@ tp_task_create_connect_ex(tpt_p tpt, uint32_t flags,
     uint64_t timeout, tp_task_conn_prms_p conn_prms,
     tp_task_connect_ex_cb cb_func, void *udata, tp_task_p *tptask_ret) {
 	int error;
-	uint64_t time_limit_ms = 0;
 	tp_task_p tptask;
+	struct timespec	time_now;
 
 	if (NULL == conn_prms || NULL == tptask_ret)
 		return (EINVAL);
 	if (0 != (conn_prms->flags & TP_TASK_CONNECT_F_INITIAL_DELAY) &&
 	    0 == conn_prms->retry_delay)
 		return (EINVAL);
-	if (0 != conn_prms->time_limit.tv_sec ||
-	    0 != conn_prms->time_limit.tv_nsec) {
-		time_limit_ms = TIMESPEC_TO_MS(&conn_prms->time_limit);
+	if (0 != conn_prms->time_limit) {
 		if (0 == timeout ||
-		    timeout >= time_limit_ms)
+		    timeout >= conn_prms->time_limit)
 			return (EINVAL);
-		if (conn_prms->retry_delay >= time_limit_ms)
+		if (conn_prms->retry_delay >= conn_prms->time_limit)
 			return (EINVAL);
 	}
 	flags &= (TP_TASK_F_CLOSE_ON_DESTROY | TP_TASK_F_CB_AFTER_EVERY_READ); /* Filter out flags. */
@@ -1175,8 +1167,9 @@ tp_task_create_connect_ex(tpt_p tpt, uint32_t flags,
 	tptask->buf = (io_buf_p)conn_prms;
 	//tptask->tot_transfered_size = 0; /* addrs_cur */
 	tptask->cb_func = (tp_task_cb)cb_func;
-	if (0 != time_limit_ms) {
-		tpt_gettimev(tpt, 0, &tptask->start_time);
+	if (0 != conn_prms->time_limit) {
+		tpt_gettimev(tpt, 0, &time_now);
+		tptask->start_time = TIMESPEC_TO_MS(&time_now);
 	}
 
 	/* Try to shedule IO for connect. */
