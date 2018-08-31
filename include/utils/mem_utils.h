@@ -510,16 +510,20 @@ memset_s(void *dest, size_t destsz, int c, size_t len) {
 
 
 static inline void *
-mem_dup(const void *buf, const size_t size) {
+mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
 	void *ret;
+	size_t alloc_sz = roundup2((size + pad_size), sizeof(void*));
 
-	ret = malloc(roundup2(size, sizeof(void*)));
+	ret = malloc(alloc_sz);
 	if (NULL == ret)
 		return (ret);
 	memcpy(ret, buf, size);
+	mem_bzero((((uint8_t*)ret) + size), (alloc_sz - size));
 
 	return (ret);
 }
+
+#define mem_dup(__buf, __size)		mem_dup2((__buf), (__size), 0)
 
 
 /* Allocate and zero memory. */
