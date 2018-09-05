@@ -50,58 +50,59 @@ int
 sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_size,
     uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 	size_t tm;
+#ifdef __linux__
+	int error;
+	const char *l1, *l2;
+	char path[1024];
+	size_t path_size;
+#endif
 
 	if (NULL == descr || descr_size >= buf_size)
 		return (EINVAL);
 
 	tm = (buf_size - descr_size);
-	if (0 != sysctl(mib, mib_cnt, (buf + descr_size), &tm, NULL, 0)) {
 #ifdef BSD /* BSD specific code. */
+	if (0 != sysctl(mib, mib_cnt, (buf + descr_size), &tm, NULL, 0))
 		return (errno);
 #endif /* BSD specific code. */
 #ifdef __linux__ /* Linux specific code. */
-		/* If sysctl not implemented or fail try read from: /proc/sys */
-		int error;
-		const char *l1, *l2;
-		char path[1024];
-		size_t path_size;
-
-		if (2 != mib_cnt)
-			return (EINVAL);
-		switch (mib[0]) {
-		case CTL_KERN:
-			l1 = "kernel";
-			break;
-		default:
-			return (EINVAL);
-		}
-
-		switch (mib[1]) {
-		case KERN_OSTYPE:
-			l2 = "ostype";
-			break;
-		case KERN_OSRELEASE:
-			l2 = "osrelease";
-			break;
-		case KERN_NODENAME:
-			l2 = "hostname";
-			break;
-		case KERN_DOMAINNAME:
-			l2 = "domainname";
-			break;
-		case KERN_VERSION:
-			l2 = "version";
-			break;
-		default:
-			return (EINVAL);
-		}
-
-		path_size = (size_t)snprintf(path, sizeof(path), "/proc/sys/%s/%s", l1, l2);
-		error = read_file_buf(path, path_size, (buf + descr_size), tm, &tm);
-		if (0 != error)
-			return (error);
-#endif /* Linux specific code. */
+	/* sysctl() not implemented, read from: /proc/sys */
+	if (2 != mib_cnt)
+		return (EINVAL);
+	switch (mib[0]) {
+	case CTL_KERN:
+		l1 = "kernel";
+		break;
+	default:
+		return (EINVAL);
 	}
+
+	switch (mib[1]) {
+	case KERN_OSTYPE:
+		l2 = "ostype";
+		break;
+	case KERN_OSRELEASE:
+		l2 = "osrelease";
+		break;
+	case KERN_NODENAME:
+		l2 = "hostname";
+		break;
+	case KERN_DOMAINNAME:
+		l2 = "domainname";
+		break;
+	case KERN_VERSION:
+		l2 = "version";
+		break;
+	default:
+		return (EINVAL);
+	}
+
+	path_size = (size_t)snprintf(path, sizeof(path), "/proc/sys/%s/%s", l1, l2);
+	error = read_file_buf(path, path_size, (buf + descr_size), tm, &tm);
+	if (0 != error)
+		return (error);
+#endif /* Linux specific code. */
+
 	memcpy(buf, descr, descr_size);
 	/* Remove CR, LF, TAB, SP, NUL... from end. */
 	tm += descr_size;
