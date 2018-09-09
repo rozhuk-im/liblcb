@@ -58,6 +58,9 @@
 #ifndef RSIZE_MAX
 #	define RSIZE_MAX	(SIZE_T_MAX >> 1)
 #endif
+#ifndef roundup2
+#	define roundup2(x, y)	(((x) + ((y) - 1)) & (~((y) - 1)))
+#endif
 
 /* Secure version of memset(). */
 static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
