@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <sys/sysctl.h>
 //#include <netinet/in.h>
 
 #include <inttypes.h>
