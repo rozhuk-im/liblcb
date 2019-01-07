@@ -345,14 +345,14 @@ sha2_transform_block64_generic(sha2_ctx_p ctx, const uint8_t *blocks,
 
 #ifdef SHA2_ENABLE_SIMD
 
-#define SHA1_SSE_LOADU(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { 	\
+#define SHA2_SSE_LOADU(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { 	\
 	__xmm0 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
 	__xmm1 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
 	__xmm2 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
 	__xmm3 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
 } while (0)
 #ifdef __SSE4_1__ /* SSE4.1 required. */
-#define SHA1_SSE_STREAM_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
+#define SHA2_SSE_STREAM_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
 	__xmm0 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
 	__xmm1 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
 	__xmm2 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
@@ -378,11 +378,11 @@ sha2_transform_block64_simd(sha2_ctx_p ctx, const uint8_t *blocks,
 	for (; blocks < blocks_max; blocks += SHA2_256_MSG_BLK_SIZE) {
 #ifdef __SSE4_1__ /* SSE4.1 required. */
 		if (0 == (((size_t)blocks) & 15)) { /* 16 byte alligned. */
-			SHA1_SSE_STREAM_LOAD(blocks, TMSG0, TMSG1, TMSG2, TMSG3);
+			SHA2_SSE_STREAM_LOAD(blocks, TMSG0, TMSG1, TMSG2, TMSG3);
 		} else 
 #endif
 		{ /* Unaligned. */
-			SHA1_SSE_LOADU(blocks, TMSG0, TMSG1, TMSG2, TMSG3);
+			SHA2_SSE_LOADU(blocks, TMSG0, TMSG1, TMSG2, TMSG3);
 			/* Shedule to load into cache. */
 			if ((blocks + (SHA2_256_MSG_BLK_SIZE * 8)) < blocks_max) {
 				_mm_prefetch((const char*)(blocks + (SHA2_256_MSG_BLK_SIZE * 8)), _MM_HINT_T0);
