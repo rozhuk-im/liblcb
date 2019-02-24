@@ -98,7 +98,7 @@ host_addr_clone(host_addr_p src) {
 		return (haddr);
 	haddr->addrs = zalloc((sizeof(host_addr_t) + src->name_size + sizeof(void*)));
 	if (NULL == haddr->addrs) {
-		free(haddr)
+		free(haddr);
 		return (NULL);
 	}
 	memcpy(haddr->addrs, src->addrs,
