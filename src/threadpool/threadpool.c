@@ -239,12 +239,9 @@ tpt_data_event_init(tpt_p tpt) {
 	if (NULL != tpt->tp->pvt &&
 	    tpt != tpt->tp->pvt) {
 		/* Add pool virtual thread to normal thread. */
-		kev.ident = tpt->tp->pvt->io_fd;
-		kev.filter = EVFILT_READ;
-		kev.flags = (EV_ADD | EV_ENABLE | EV_CLEAR); /* Auto clear event. */
-		kev.fflags = 0;
-		kev.data = 0;
-		kev.udata = NULL;
+		EV_SET(&kev, tpt->tp->pvt->io_fd,
+		    EVFILT_READ, (EV_ADD | EV_ENABLE | EV_CLEAR),
+		    0, 0, NULL);
 		if (-1 == kevent((int)tpt->io_fd, &kev, 1, NULL, 0, NULL))
 			return (errno);
 		if (0 != (EV_ERROR & kev.flags))
@@ -263,6 +260,8 @@ static int
 tpt_ev_post(int op, uint16_t event, uint16_t flags, tp_event_p ev,
     tp_udata_p tp_udata) {
 	struct kevent kev;
+	uint32_t fflags;
+	uint64_t data;
 
 	if (TP_CTL_LAST < op ||
 	    NULL == tp_udata ||
@@ -272,18 +271,19 @@ tpt_ev_post(int op, uint16_t event, uint16_t flags, tp_event_p ev,
 	if (NULL != ev) {
 		event = ev->event;
 		flags = ev->flags;
-		kev.fflags = (u_int)ev->fflags;
-		kev.data = (intptr_t)ev->data;
+		fflags = ev->fflags;
+		data = ev->data;
 	} else {
-		kev.fflags = 0;
-		kev.data = 0;
+		fflags = 0;
+		data = 0;
 	}
 	if (TP_EV_LAST < event)
 		return (EINVAL); /* Bad event. */
-	kev.ident = tp_udata->ident;
-	kev.filter = tp_event_to_kq_map[event];
-	kev.flags = (tp_op_to_flags_kq_map[op] | tp_flags_to_kq(flags));
-	kev.udata = (void*)tp_udata;
+	EV_SET(&kev,
+	    tp_udata->ident,
+	    tp_event_to_kq_map[event],
+	    (tp_op_to_flags_kq_map[op] | tp_flags_to_kq(flags)),
+	    fflags, data, (void*)tp_udata);
 	if (TP_EV_TIMER == event) { /* Timer: force update. */
 		if (0 != ((EV_ADD | EV_ENABLE) & kev.flags)) {
 			if (NULL == ev) /* Params required for add/mod. */
@@ -412,9 +412,8 @@ tpt_loop(tpt_p tpt) {
 		if (pvt->io_fd == kev.ident) { /* Pool virtual thread */
 			//memcpy(&tpt->ev_changelist[tpt->ev_nchanges], &kev,
 			//    sizeof(kev));
-			tpt->ev_changelist[tpt->ev_nchanges].ident = kev.ident;
-			tpt->ev_changelist[tpt->ev_nchanges].filter = EVFILT_READ;
-			tpt->ev_changelist[tpt->ev_nchanges].flags = EV_CLEAR;
+			EV_SET(&tpt->ev_changelist[tpt->ev_nchanges],
+			    kev.ident, EVFILT_READ, EV_CLEAR, 0, 0, NULL);
 			tpt->ev_nchanges ++;
 
 			cnt = kevent((int)pvt->io_fd, NULL, 0, &kev, 1, &ke_timeout);
