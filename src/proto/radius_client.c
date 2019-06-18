@@ -654,9 +654,7 @@ radius_client_query_free(radius_cli_query_p query) {
 	LOGD_EV("...");
 	if (NULL == query)
 		return;
-	mem_bzero(query, sizeof(radius_cli_query_t));
-	mem_filld(query, sizeof(radius_cli_query_t));
-	free(query);
+	freezero(query, sizeof(radius_cli_query_t));
 }
 
 void

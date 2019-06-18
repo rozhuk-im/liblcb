@@ -538,7 +538,7 @@ mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
 
 #ifndef HAVE_REALLOCARRAY
 static inline void *
-reallocarray(void *buf, const size_t nmemb, const size_t size) {
+reallocarray(void *ptr, const size_t nmemb, const size_t size) {
 	size_t nmemb_size;
 
 	nmemb_size = (nmemb * size);
@@ -555,7 +555,20 @@ reallocarray(void *buf, const size_t nmemb, const size_t size) {
 		return (NULL);
 	}
 
-	return (realloc(buf, nmemb_size));
+	return (realloc(ptr, nmemb_size));
+}
+#endif
+
+#ifndef HAVE_FREEZERO
+static inline void
+freezero(void *ptr, const size_t size) {
+
+	if (NULL == ptr)
+		return;
+	if (0 != size) {
+		mem_bzero(ptr, size);
+	}
+	free(ptr);
 }
 #endif
 
