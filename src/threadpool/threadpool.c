@@ -190,9 +190,9 @@ static int	tpt_data_event_init(tpt_p tpt);
 static void	tpt_data_event_destroy(tpt_p tpt);
 static void	tpt_loop(tpt_p tpt);
 
-int		tpt_data_create(tp_p tp, int cpu_id, size_t thread_num,
+int		tpt_data_init(tp_p tp, int cpu_id, size_t thread_num,
 		    tpt_p tpt);
-void		tpt_data_destroy(tpt_p tpt);
+void		tpt_data_uninit(tpt_p tpt);
 
 static void	*tp_thread_proc(void *data);
 
@@ -896,9 +896,9 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 	tp->threads_max = s->threads_max;
 	tp->fd_count = fd_max_count;
 	tp->pvt = &tp->threads[s->threads_max];
-	error = tpt_data_create(tp, -1, (size_t)~0, &tp->threads[s->threads_max]);
+	error = tpt_data_init(tp, -1, (size_t)~0, &tp->threads[s->threads_max]);
 	if (0 != error) {
-		LOGD_ERR(error, "tpt_data_create() - pvt");
+		LOGD_ERR(error, "tpt_data_init() - pvt");
 		goto err_out;
 	}
 	for (i = 0, cur_cpu = 0; i < s->threads_max; i ++, cur_cpu ++) {
@@ -909,9 +909,9 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 		} else {
 			cur_cpu = -1;
 		}
-		error = tpt_data_create(tp, cur_cpu, i, &tp->threads[i]);
+		error = tpt_data_init(tp, cur_cpu, i, &tp->threads[i]);
 		if (0 != error) {
-			LOGD_ERR(error, "tpt_data_create() - threads");
+			LOGD_ERR(error, "tpt_data_init() - threads");
 			goto err_out;
 		}
 	}
@@ -987,9 +987,9 @@ tp_destroy(tp_p tp) {
 	/* Wait all threads before free mem. */
 	tp_shutdown_wait(tp);
 	/* Free resources. */
-	tpt_data_destroy(tp->pvt);
+	tpt_data_uninit(tp->pvt);
 	for (i = 0; i < tp->threads_max; i ++) {
-		tpt_data_destroy(&tp->threads[i]);
+		tpt_data_uninit(&tp->threads[i]);
 	}
 	mem_filld(tp, sizeof(tp_t));
 	free(tp);
@@ -1191,7 +1191,7 @@ tpt_get_msg_queue(tpt_p tpt) {
 
 
 int
-tpt_data_create(tp_p tp, int cpu_id, size_t thread_num, tpt_p tpt) {
+tpt_data_init(tp_p tp, int cpu_id, size_t thread_num, tpt_p tpt) {
 	int error;
 
 	if (NULL == tp || NULL == tpt)
@@ -1202,14 +1202,14 @@ tpt_data_create(tp_p tp, int cpu_id, size_t thread_num, tpt_p tpt) {
 	tpt->thread_num = thread_num;
 	error = tpt_data_event_init(tpt);
 	if (0 != error) {
-		tpt_data_destroy(tpt);
+		tpt_data_uninit(tpt);
 		return (error);
 	}
 	return (0);
 }
 
 void
-tpt_data_destroy(tpt_p tpt) {
+tpt_data_uninit(tpt_p tpt) {
 
 	if (NULL == tpt || NULL == tpt->tp)
 		return;
