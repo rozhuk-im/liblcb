@@ -147,12 +147,13 @@ int
 buf_get_next_line(const uint8_t *buf, size_t buf_size,
     const uint8_t *line, size_t line_size,
     const uint8_t **next_line, size_t *next_line_size) {
-	const uint8_t *ptr, *end, *buf_end = (buf + buf_size);
+	const uint8_t *ptr, *end, *buf_end;
 
 	if (NULL == buf || 0 == buf_size ||
 	    NULL == next_line || NULL == next_line_size)
 		return (EINVAL);
 
+	buf_end = (buf + buf_size);
 	if (NULL != line) {
 		ptr = (line + line_size);
 		if (ptr < buf) {

@@ -223,48 +223,43 @@ http_get_err_descr(uint32_t status_code, size_t *descr_size_ret) {
 	if (100 > status_code) { /* 0 - 99 */
 	} else if (200 > status_code) { /* 100 - 199 */
 		status_code -= 100;
-		if (sizeof(reason_phrase_1xx) > status_code) {
+		if (SIZEOF(reason_phrase_1xx) > status_code) {
 			reason_phrase = reason_phrase_1xx[status_code];
-		}
-		if (NULL != reason_phrase &&
-		    NULL != descr_size_ret) {
-			(*descr_size_ret) = reason_phrase_size_1xx[status_code];
+			if (NULL != descr_size_ret) {
+				(*descr_size_ret) = reason_phrase_size_1xx[status_code];
+			}
 		}
 	} else if (300 > status_code) { /* 200 - 299 */
 		status_code -= 200;
-		if (sizeof(reason_phrase_2xx) > status_code) {
+		if (SIZEOF(reason_phrase_2xx) > status_code) {
 			reason_phrase = reason_phrase_2xx[status_code];
-		}
-		if (NULL != reason_phrase &&
-		    NULL != descr_size_ret) {
-			(*descr_size_ret) = reason_phrase_size_2xx[status_code];
+			if (NULL != descr_size_ret) {
+				(*descr_size_ret) = reason_phrase_size_2xx[status_code];
+			}
 		}
 	} else if (400 > status_code) { /* 300 - 399 */
 		status_code -= 300;
-		if (sizeof(reason_phrase_3xx) > status_code) {
+		if (SIZEOF(reason_phrase_3xx) > status_code) {
 			reason_phrase = reason_phrase_3xx[status_code];
-		}
-		if (NULL != reason_phrase &&
-		    NULL != descr_size_ret) {
-			(*descr_size_ret) = reason_phrase_size_3xx[status_code];
+			if (NULL != descr_size_ret) {
+				(*descr_size_ret) = reason_phrase_size_3xx[status_code];
+			}
 		}
 	} else if (500 > status_code) { /* 400 - 499 */
 		status_code -= 400;
-		if (sizeof(reason_phrase_4xx) > status_code) {
+		if (SIZEOF(reason_phrase_4xx) > status_code) {
 			reason_phrase = reason_phrase_4xx[status_code];
-		}
-		if (NULL != reason_phrase &&
-		    NULL != descr_size_ret) {
-			(*descr_size_ret) = reason_phrase_size_4xx[status_code];
+			if (NULL != descr_size_ret) {
+				(*descr_size_ret) = reason_phrase_size_4xx[status_code];
+			}
 		}
 	} else if (600 > status_code) { /* 500 - 599 */
 		status_code -= 500;
-		if (sizeof(reason_phrase_5xx) > status_code) {
+		if (SIZEOF(reason_phrase_5xx) > status_code) {
 			reason_phrase = reason_phrase_5xx[status_code];
-		}
-		if (NULL != reason_phrase &&
-		    NULL != descr_size_ret) {
-			(*descr_size_ret) = reason_phrase_size_5xx[status_code];
+			if (NULL != descr_size_ret) {
+				(*descr_size_ret) = reason_phrase_size_5xx[status_code];
+			}
 		}
 	}
 	if (NULL == reason_phrase) {
@@ -1029,12 +1024,13 @@ http_url_encode(int enc_all, uint8_t *url, size_t url_size, uint8_t *buf,
 
 size_t
 http_url_decode(uint8_t *url, size_t url_size, uint8_t *buf, size_t buf_size) {
-	uint8_t *url_max = (url + url_size);
-	uint8_t *buf_pos = buf, *buf_max = (buf + (buf_size - 1));
+	uint8_t *url_max, *buf_pos = buf, *buf_max;
 
 	if (NULL == url || 0 == url_size || NULL == buf || 0 == buf_size)
 		return (0);
 
+	url_max = (url + url_size);
+	buf_max = (buf + (buf_size - 1));
 	for (; url < url_max && buf_pos < buf_max; url ++, buf_pos ++) {
 		switch (url[0]) {
 		case '%':

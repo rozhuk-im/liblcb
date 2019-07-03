@@ -645,21 +645,20 @@ skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 /* Check is congestion control algorithm avaible. */
 int
 skt_is_tcp_cc_avail(const char *cc, size_t cc_size) {
-	uintptr_t skt;
-	int res = 0;
+	int skt, res = 0;
 
 	if (NULL == cc || 0 == cc_size || TCP_CA_NAME_MAX <= cc_size)
 		return (0);
 
-	skt = (uintptr_t)socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if ((uintptr_t)-1 == skt) {
-		skt = (uintptr_t)socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP); /* Re try with IPv6 socket. */
+	skt = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (-1 == skt) {
+		skt = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP); /* Re try with IPv6 socket. */
 	}
-	if ((uintptr_t)-1 == skt)
+	if (-1 == skt)
 		return (0);
-	res = (0 == setsockopt((int)skt, IPPROTO_TCP, TCP_CONGESTION,
+	res = (0 == setsockopt(skt, IPPROTO_TCP, TCP_CONGESTION,
 	    cc, (socklen_t)cc_size));
-	close((int)skt);
+	close(skt);
 
 	return (res);
 }

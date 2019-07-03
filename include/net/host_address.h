@@ -162,16 +162,15 @@ host_addr_is_host_addr(host_addr_p haddr, const sockaddr_storage_p addr) {
 static inline int
 host_addr_add_addr(host_addr_p haddr, const sockaddr_storage_p addr) {
 	int error;
-	sockaddr_storage_p addr_new;
 
 	if (NULL == haddr)
 		return (EINVAL);
 
-	// is we need to add ?
+	/* Is we need to add? */
 	if (0 != host_addr_is_host_soaddr(haddr, addr))
 		return (0);
 
-	// need more space?
+	/* Need more space? */
 	error = realloc_items((void**)&haddr->addrs,
 	    sizeof(sockaddr_storage_t), &haddr->allocated,
 	    HOST_ADDR_PREALLOC, haddr->count);

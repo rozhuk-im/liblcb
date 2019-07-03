@@ -49,11 +49,10 @@ uintptr_t g_log_fd = (uintptr_t)-1;
 
 void
 log_write_fd(uintptr_t fd, const char *data, size_t data_size) {
-	ssize_t ios;
 
 	if ((uintptr_t)-1 == fd || NULL == data || 0 == data_size)
 		return;
-	ios = write((int)fd, data, data_size);
+	(void)write((int)fd, data, data_size);
 }
 
 void
