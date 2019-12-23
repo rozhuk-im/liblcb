@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -230,6 +230,79 @@ mem_find_ptr(const void *ptr, const void *buf, const size_t buf_size,
 }
 
 
+////////////////////////////////////////////////////////////////////////
+///////////////// Find bytes array in memory stream. ///////////////////
+////////////////////////////////////////////////////////////////////////
+static inline int
+mem_find_stream(const uint8_t *buf, const size_t buf_size,
+    const uint8_t *what, const size_t what_size,
+    size_t *state, size_t *off_end) {
+	register const uint8_t *ptr, *ptr_max, *wptr, *wptr_max;
+	register size_t off, buf_off;
+
+	if (NULL == buf || 0 == buf_size ||
+	    NULL == what || 0 == what_size ||
+	    NULL == state || what_size <= (*state))
+		return (EINVAL); /* Bad args. */
+
+	ptr = buf;
+	ptr_max = (ptr + buf_size);
+	off = (*state);
+	/* Do we found 'what' start? */
+	if (0 == off) {
+re_search:
+		ptr = mem_chr_ptr(ptr, buf, buf_size, what[0]);
+		if (NULL == ptr) {
+			off = 0;
+			goto not_found;
+		}
+		/* Move to next byte. */
+		ptr ++;
+		off = 1;
+	}
+
+cmp_loop:
+	/* Continue cmp. */
+	for (; ptr < ptr_max && off < what_size; ptr ++, off ++) {
+		if ((*ptr) == what[off])
+			continue;
+		/* Missmatch, try search for new 'what' start. */
+		buf_off = (size_t)(ptr - buf);
+		if (buf_off >= off) {
+			/* Re search in this buf. */
+			ptr -= (off - 1); /* New search pos. */
+			goto re_search;
+		}
+		/* Start of 'what' was in past packets.
+		 * Try to find new 'what' start in 'what' to handle
+		 * case like: what = "aaab"; buffers: "aaa" + "ab". */
+		/* On success will continue cmp/search from buf start. */
+		ptr = buf;
+		/* Try to search in past. */
+		wptr_max = (what + off - buf_off);
+		for (wptr = (what + 1); wptr < wptr_max; wptr ++) {
+			off = (size_t)(wptr_max - wptr);
+			wptr = memchr(wptr, what[0], off);
+			if (NULL == wptr)
+				goto re_search;
+			if (0 == memcmp(wptr, what, off))
+				goto cmp_loop; /* Found, continue cmp. */
+		}
+		/* Not found, restart search with current buf. */
+		goto re_search;
+	}
+
+	if (off == what_size) {
+		(*state) = 0;
+		if (NULL != off_end) { /* Offset to data after 'what' in buf. */
+			(*off_end) = (size_t)(ptr - buf);
+		}
+		return (0); /* Found. */
+	}
+not_found:
+	(*state) = off;
+	return (ENOENT); /* Not found. */
+}
 ////////////////////////////////////////////////////////////////////////
 /////// Replace items from src_repl array to items from dst_repl. //////
 ////////////////////////////////////////////////////////////////////////
