@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
  *
  */
 
- 
+
 #ifndef __SOCKET_H__
 #define __SOCKET_H__
 
@@ -53,97 +53,11 @@
      0 : (__error))
 
 
-typedef struct socket_options_s {
-	uint32_t	mask;		/* Flags: mask to set */
-	uint32_t	bit_vals;	/* Bitmask values for: SO_F_BIT_VAL_MASK */
-	int		backlog;	/* Listen queue len. */
-	uint32_t	rcv_buf;	/* SO_RCVBUF kb */
-	uint32_t	rcv_lowat;	/* SO_RCVLOWAT kb */
-	uint64_t	rcv_timeout;	/* SO_RCVTIMEO sec */
-	uint32_t	snd_buf;	/* SO_SNDBUF kb */
-	uint32_t	snd_lowat;	/* SO_SNDLOWAT kb */
-	uint64_t	snd_timeout;	/* SO_SNDTIMEO sec */
-#ifdef SO_ACCEPTFILTER
-	struct accept_filter_arg tcp_acc_filter; /* SO_ACCEPTFILTER */
-#elif defined(TCP_DEFER_ACCEPT)
-	uint32_t	tcp_acc_defer;	/* TCP_DEFER_ACCEPT sec */
-#endif
-	uint32_t	tcp_keep_idle;	/* TCP_KEEPIDLE only if SO_KEEPALIVE set */
-	uint32_t	tcp_keep_intvl;	/* TCP_KEEPINTVL only if SO_KEEPALIVE set */
-	uint32_t	tcp_keep_cnt;	/* TCP_KEEPCNT only if SO_KEEPALIVE set */
-	char 		tcp_cc[TCP_CA_NAME_MAX]; /* TCP congestion control TCP_CONGESTION. */
-	socklen_t	tcp_cc_size;
-} skt_opts_t, *skt_opts_p;
-
 #define SO_F_NONBLOCK		(((uint32_t)1) <<  0) /* SOCK_NONBLOCK */
-#define SO_F_HALFCLOSE_RD	(((uint32_t)1) <<  1) /* shutdown(SHUT_RD) */
-#define SO_F_HALFCLOSE_WR	(((uint32_t)1) <<  2) /* shutdown(SHUT_WR) */
-#define SO_F_HALFCLOSE_RDWR	(SO_F_HALFCLOSE_RD | SO_F_HALFCLOSE_WR) /* shutdown(SHUT_RDWR) */
-#define SO_F_BACKLOG		(((uint32_t)1) <<  3) /* backlog is readed from config. */
-#define SO_F_BROADCAST		(((uint32_t)1) <<  4) /* SO_BROADCAST */
-#define SO_F_REUSEADDR		(((uint32_t)1) <<  5) /* SO_REUSEADDR */
-#define SO_F_REUSEPORT		(((uint32_t)1) <<  6) /* SO_REUSEPORT / SO_REUSEPORT_LB */
-#define SO_F_KEEPALIVE		(((uint32_t)1) <<  7) /* SO_KEEPALIVE */
-#define SO_F_RCVBUF		(((uint32_t)1) <<  8) /* SO_RCVBUF */
-#define SO_F_RCVLOWAT		(((uint32_t)1) <<  9) /* SO_RCVLOWAT */
-#define SO_F_RCVTIMEO		(((uint32_t)1) << 10) /* SO_RCVTIMEO - no set to skt */
-#define SO_F_SNDBUF		(((uint32_t)1) << 11) /* SO_SNDBUF */
-#define SO_F_SNDLOWAT		(((uint32_t)1) << 12) /* SO_SNDLOWAT */
-#define SO_F_SNDTIMEO		(((uint32_t)1) << 13) /* SO_SNDTIMEO - no set to skt */
-
-#define SO_F_ACC_FILTER		(((uint32_t)1) << 15) /* SO_ACCEPTFILTER(httpready) / TCP_DEFER_ACCEPT */
-#define SO_F_TCP_KEEPIDLE	(((uint32_t)1) << 16) /* TCP_KEEPIDLE only if SO_KEEPALIVE set */
-#define SO_F_TCP_KEEPINTVL	(((uint32_t)1) << 17) /* TCP_KEEPINTVL only if SO_KEEPALIVE set */
-#define SO_F_TCP_KEEPCNT	(((uint32_t)1) << 18) /* TCP_KEEPCNT only if SO_KEEPALIVE set */
-#define SO_F_TCP_NODELAY	(((uint32_t)1) << 19) /* TCP_NODELAY */
-#define SO_F_TCP_NOPUSH		(((uint32_t)1) << 20) /* TCP_NOPUSH / TCP_CORK */
-#define SO_F_TCP_CONGESTION	(((uint32_t)1) << 21) /* TCP_CONGESTION */
-
-#define SO_F_FAIL_ON_ERR	(((uint32_t)1) << 31) /* Return on first set error. */
-
-#define SO_F_KEEPALIVE_MASK	(SO_F_KEEPALIVE | SO_F_TCP_KEEPIDLE |	\
-				SO_F_TCP_KEEPINTVL | SO_F_TCP_KEEPCNT)
-
-#define SO_F_BIT_VALS_MASK	(SO_F_NONBLOCK | SO_F_BROADCAST |	\
-				SO_F_REUSEADDR | SO_F_REUSEPORT | 	\
-				SO_F_KEEPALIVE | SO_F_ACC_FILTER |	\
-				SO_F_TCP_NODELAY | SO_F_TCP_NOPUSH)
-#define SO_F_ALL_MASK		(0xffffffff & ~SO_F_FAIL_ON_ERR)
-/* Apply masks. */
-/* AF = after bind */
-#define SO_F_RCV_MASK		(SO_F_RCVBUF | SO_F_RCVLOWAT | SO_F_RCVTIMEO)
-#define SO_F_SND_MASK		(SO_F_SNDBUF | SO_F_SNDLOWAT | SO_F_SNDTIMEO)
-#define SO_F_UDP_BIND_AF_MASK	(SO_F_RCV_MASK | SO_F_SND_MASK)
-#define SO_F_TCP_ES_CONN_MASK	(SO_F_HALFCLOSE_RDWR |			\
-				SO_F_KEEPALIVE_MASK |			\
-				SO_F_RCV_MASK |				\
-				SO_F_SND_MASK |				\
-				SO_F_TCP_NODELAY |			\
-				SO_F_TCP_NOPUSH |			\
-				SO_F_TCP_CONGESTION)
-/* AF = after listen */
-#define SO_F_TCP_LISTEN_AF_MASK	(SO_F_ACC_FILTER | SO_F_KEEPALIVE_MASK)
-
-#ifdef SOCKET_XML_CONFIG
-int	skt_opts_xml_load(const uint8_t *buf, size_t buf_size,
-	    uint32_t mask, skt_opts_p opts);
-#endif
-void	skt_opts_init(uint32_t mask, uint32_t bit_vals, skt_opts_p opts);
-void	skt_opts_cvt(int mult, skt_opts_p opts);
-#define SKT_OPTS_MULT_NONE	0
-#define SKT_OPTS_MULT_K		1
-#define SKT_OPTS_MULT_M		2
-#define SKT_OPTS_MULT_G		3
-
-int	skt_opts_set_ex(uintptr_t skt, uint32_t mask,
-	    skt_opts_p opts, uint32_t *err_mask);
-int	skt_opts_set(uintptr_t skt, uint32_t mask, uint32_t bit_vals);
-/* Set only SO_F_BIT_VALS_MASK. */
-
-#define SKT_OPTS_GET_FLAGS_VALS(__opts, __fmask)			\
-	    ((__fmask) & SO_F_BIT_VALS_MASK & (__opts)->mask & (__opts)->bit_vals)
-#define SKT_OPTS_IS_FLAG_ACTIVE(__opts, __flag)				\
-	    (0 != ((__flag) & (__opts)->mask & (__opts)->bit_vals))
+#define SO_F_BROADCAST		(((uint32_t)1) <<  1) /* SO_BROADCAST */
+#define SO_F_REUSEADDR		(((uint32_t)1) <<  2) /* SO_REUSEADDR */
+#define SO_F_REUSEPORT		(((uint32_t)1) <<  3) /* SO_REUSEPORT / SO_REUSEPORT_LB */
+/* Other flags in net/socket_options.h. */
 
 
 int	skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat);

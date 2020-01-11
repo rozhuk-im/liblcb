@@ -39,6 +39,7 @@
 
 #include "utils/io_buf.h"
 #include "net/socket.h"
+#include "net/socket_options.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
