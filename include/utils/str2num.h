@@ -68,21 +68,23 @@
 		(__res) += __cval;					\
 	}
 
-#define STR2UNUM(__str, __len, __type)					\
-	__type __res = 0;						\
-	if (NULL == (__str) || 0 == (__len))				\
-		return (0);						\
-	STR2NUM((__str), (__len), __res);				\
-	return (__res);
+#define STR2UNUM(__str, __len, __type) do {				\
+		__type __res = 0;					\
+		if (NULL == (__str) || 0 == (__len))			\
+			return (0);					\
+		STR2NUM((__str), (__len), __res);			\
+		return (__res);						\
+} while (0)
 
-#define STR2SNUM(__str, __len, __type)					\
-	__type __res = 0, __sign = 1;					\
-	if (NULL == (__str) || 0 == (__len))				\
-		return (0);						\
-	STR2NUM_SIGN((__str), (__len), __sign);				\
-	STR2NUM((__str), (__len), __res);				\
-	__res *= __sign;						\
-	return (__res);
+#define STR2SNUM(__str, __len, __type) do {				\
+		__type __res = 0, __sign = 1;				\
+		if (NULL == (__str) || 0 == (__len))			\
+			return (0);					\
+		STR2NUM_SIGN((__str), (__len), __sign);			\
+		STR2NUM((__str), (__len), __res);			\
+		__res *= __sign;					\
+		return (__res);						\
+} while (0)
 
 
 static inline size_t

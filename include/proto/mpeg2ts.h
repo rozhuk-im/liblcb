@@ -88,7 +88,7 @@ typedef struct mpeg2_ts_hdr_s {
 	#define MPEG2_TS_PID(hdr)					\
 	    (((uint16_t)(hdr)->pid_lo) | ((uint16_t)((hdr)->pid_hi << 8)))
 	#define MPEG2_TS_PID_SET(hdr, pid)				\
-	    { (hdr)->pid_lo = ((pid) & 0xff); (hdr)->pid_hi = (((pid) >> 8) & 0x1f); }
+	    do { (hdr)->pid_lo = ((pid) & 0xff); (hdr)->pid_hi = (((pid) >> 8) & 0x1f); } while (0)
 #endif
 
 #define MPEG2_TS_PID_PAT	0x0000	/* Program Association Table. */

@@ -605,7 +605,7 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	    dns_resolver_data_cache_cmp_data, &rslvr->hbskt);
 	if (0 != error)
 		goto err_out;
-	rslvr->next_clean_time = (time(NULL) + (neg_cache * 2));;
+	rslvr->next_clean_time = (time(NULL) + (neg_cache * 2));
 	rslvr->clean_interval = (neg_cache * 2);
 
 	(*dns_rslvr_ret) = rslvr;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,8 +82,8 @@
 
 
 /* HASH constants. */
-#define GOST3411_2012_256_HASH_SIZE	32
-#define GOST3411_2012_512_HASH_SIZE	64
+#define GOST3411_2012_256_HASH_SIZE	((size_t)32)
+#define GOST3411_2012_512_HASH_SIZE	((size_t)64)
 #define GOST3411_2012_HASH_MAX_SIZE	GOST3411_2012_512_HASH_SIZE
 #define GOST3411_2012_HASH_MAX_64CNT	(GOST3411_2012_HASH_MAX_SIZE / sizeof(uint64_t)) /* 8 */
 
@@ -91,11 +91,11 @@
 #define GOST3411_2012_512_HASH_STR_SIZE	(GOST3411_2012_512_HASH_SIZE * 2)
 #define GOST3411_2012_HASH_STR_MAX_SIZE	GOST3411_2012_512_HASH_STR_SIZE
 
-#define GOST3411_2012_MSG_BLK_SIZE	64
+#define GOST3411_2012_MSG_BLK_SIZE	((size_t)64)
 #define GOST3411_2012_MSG_BLK_SIZE_MASK	(GOST3411_2012_MSG_BLK_SIZE - 1) /* 63 */
 #define GOST3411_2012_MSG_BLK_BITS	(GOST3411_2012_MSG_BLK_SIZE * 8) /* 512 */
 #define GOST3411_2012_MSG_BLK_64CNT	(GOST3411_2012_MSG_BLK_SIZE / sizeof(uint64_t)) /* 8 */
-#define GOST3411_2012_ROUNDS_COUNT	12
+#define GOST3411_2012_ROUNDS_COUNT	((size_t)12)
 
 
 /* Constants and tables. */
@@ -968,7 +968,7 @@ typedef struct hmac_gost3411_2012_ctx_s {
 #if !defined(GOST3411_2012_SSE) && !defined(GOST3411_2012_AVX256)
 
 /* Macro. */
-#define GOST3411_2012_XOR2_512(__dst, __a, __b) {			\
+#define GOST3411_2012_XOR2_512(__dst, __a, __b) do {			\
 	((uint64_t*)(__dst))[0] = (((const uint64_t*)(__a))[0] ^ ((const uint64_t*)(__b))[0]); \
 	((uint64_t*)(__dst))[1] = (((const uint64_t*)(__a))[1] ^ ((const uint64_t*)(__b))[1]); \
 	((uint64_t*)(__dst))[2] = (((const uint64_t*)(__a))[2] ^ ((const uint64_t*)(__b))[2]); \
@@ -977,8 +977,8 @@ typedef struct hmac_gost3411_2012_ctx_s {
 	((uint64_t*)(__dst))[5] = (((const uint64_t*)(__a))[5] ^ ((const uint64_t*)(__b))[5]); \
 	((uint64_t*)(__dst))[6] = (((const uint64_t*)(__a))[6] ^ ((const uint64_t*)(__b))[6]); \
 	((uint64_t*)(__dst))[7] = (((const uint64_t*)(__a))[7] ^ ((const uint64_t*)(__b))[7]); \
-}
-#define GOST3411_2012_XOR4_512(__dst, __a, __b, __c) {			\
+} while (0)
+#define GOST3411_2012_XOR4_512(__dst, __a, __b, __c) do {		\
 	((uint64_t*)(__dst))[0] ^= (((const uint64_t*)(__a))[0] ^ ((const uint64_t*)(__b))[0] ^ ((const uint64_t*)(__c))[0]); \
 	((uint64_t*)(__dst))[1] ^= (((const uint64_t*)(__a))[1] ^ ((const uint64_t*)(__b))[1] ^ ((const uint64_t*)(__c))[1]); \
 	((uint64_t*)(__dst))[2] ^= (((const uint64_t*)(__a))[2] ^ ((const uint64_t*)(__b))[2] ^ ((const uint64_t*)(__c))[2]); \
@@ -987,7 +987,7 @@ typedef struct hmac_gost3411_2012_ctx_s {
 	((uint64_t*)(__dst))[5] ^= (((const uint64_t*)(__a))[5] ^ ((const uint64_t*)(__b))[5] ^ ((const uint64_t*)(__c))[5]); \
 	((uint64_t*)(__dst))[6] ^= (((const uint64_t*)(__a))[6] ^ ((const uint64_t*)(__b))[6] ^ ((const uint64_t*)(__c))[6]); \
 	((uint64_t*)(__dst))[7] ^= (((const uint64_t*)(__a))[7] ^ ((const uint64_t*)(__b))[7] ^ ((const uint64_t*)(__c))[7]); \
-}
+} while (0)
 
 static inline void
 gost3411_2012_addmod512(uint64_t *a, const uint64_t *b) {
@@ -1191,7 +1191,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 
 
 /* Staff for old SSE. */
-#ifdef _mm_testz_si128 /* SSE4.1 required. */
+#ifdef __SSE4_1__ /* SSE4.1 required. */
 #define _mm_is_zero(__axmm)		_mm_testz_si128(__axmm, __axmm)
 #define _mm_is_zero2(__axmm, __bxmm)	_mm_testz_si128(__axmm, __bxmm)
 #else
@@ -1221,7 +1221,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	    _mm_xor_si128(__bxmm,					\
 	        _mm_set1_epi64x(0x8000000000000000ull)))
 
-#define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) {			\
+#define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) do {		\
 	__m128i carry_ret;						\
 									\
 	carry_ret = _mm_setzero_si128();				\
@@ -1236,8 +1236,8 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 		__crrxmm = _mm_and_si128(_mm_set_epi64x(1, 0), __crrxmm); \
 	}								\
 	__crrxmm = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
-}
-#define GOST3411_2012_SSE_ADD_CARRY_LAST_(__dxmm, __crrxmm) {		\
+} while (0)
+#define GOST3411_2012_SSE_ADD_CARRY_LAST_(__dxmm, __crrxmm) do {	\
 									\
 	__dxmm = _mm_add_epi64(__dxmm, __crrxmm);			\
 	__dxmm = _mm_add_epi64(__dxmm,					\
@@ -1246,8 +1246,8 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 		    _mm_cmpgt_epi64u(__crrxmm, __dxmm),			\
 		    _mm_set_epi64x(0, 0xffffffffffffffffull))),		\
 		0));							\
-}
-#define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) {		\
+} while (0)
+#define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) do {		\
 									\
 	__dxmm = _mm_add_epi64(__dxmm, __crrxmm);			\
 	__dxmm = _mm_add_epi64(__dxmm,					\
@@ -1256,14 +1256,14 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 		_mm_shuffle_epi32(					\
 		    _mm_cmpgt_epi64u(__crrxmm, __dxmm),			\
 		    _MM_SHUFFLE(1, 0, 3, 2))));				\
-}
+} while (0)
 #else
 #define _mm_cmpgt_epi32u(__axmm, __bxmm)				\
 	_mm_cmpgt_epi32(						\
 	    _mm_xor_si128(__axmm, _mm_set1_epi32(0x80000000)),		\
 	    _mm_xor_si128(__bxmm, _mm_set1_epi32(0x80000000)))
 
-#define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) {			\
+#define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) do {		\
 	__m128i carry_ret;						\
 									\
 	carry_ret = _mm_setzero_si128();				\
@@ -1279,8 +1279,8 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 		    _mm_set_epi32(1, 1, 1, 0));				\
 	}								\
 	__crrxmm = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
-}
-#define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) {		\
+} while (0)
+#define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) do {		\
 									\
 	for (;;) {							\
 		__dxmm = _mm_add_epi32(__dxmm, __crrxmm);		\
@@ -1292,53 +1292,53 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 		    _mm_shuffle_epi32(__crrxmm,				\
 		        _MM_SHUFFLE(2, 1, 0, 3)));			\
 	}								\
-}
+} while (0)
 #endif
 
 
-#define GOST3411_2012_SSE_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) {	\
+#define GOST3411_2012_SSE_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
 	__xmm0 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
 	__xmm1 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
 	__xmm2 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
 	__xmm3 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
-}
+} while (0)
 
-#define GOST3411_2012_SSE_LOADU(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) { \
+#define GOST3411_2012_SSE_LOADU(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
 	__xmm0 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
 	__xmm1 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
 	__xmm2 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
 	__xmm3 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
-}
+} while (0)
 
-#ifdef _mm_stream_load_si128 /* SSSE3 required. */
-#define GOST3411_2012_SSE_STREAM_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) {	\
+#ifdef __SSE4_1__ /* SSE4.1 required. */
+#define GOST3411_2012_SSE_STREAM_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
 	__xmm0 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
 	__xmm1 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
 	__xmm2 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
 	__xmm3 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
-}
+} while (0)
 #else
 #define GOST3411_2012_SSE_STREAM_LOAD	GOST3411_2012_SSE_LOADU
 #endif
 
-#define GOST3411_2012_SSE_STORE(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) { \
+#define GOST3411_2012_SSE_STORE(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
 	_mm_store_si128(&((__m128i*)(void*)(__ptr))[0], __xmm0);	\
 	_mm_store_si128(&((__m128i*)(void*)(__ptr))[1], __xmm1);	\
 	_mm_store_si128(&((__m128i*)(void*)(__ptr))[2], __xmm2);	\
 	_mm_store_si128(&((__m128i*)(void*)(__ptr))[3], __xmm3);	\
-}
+} while (0)
 
 #define GOST3411_2012_SSE_XOR2_512(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
     __axmm0, __axmm1, __axmm2, __axmm3,					\
-    __bxmm0, __bxmm1, __bxmm2, __bxmm3) { 				\
+    __bxmm0, __bxmm1, __bxmm2, __bxmm3) do { 				\
 	__dxmm0 = _mm_xor_si128(__axmm0, __bxmm0);			\
 	__dxmm1 = _mm_xor_si128(__axmm1, __bxmm1);			\
 	__dxmm2 = _mm_xor_si128(__axmm2, __bxmm2);			\
 	__dxmm3 = _mm_xor_si128(__axmm3, __bxmm3);			\
-}
+} while (0)
 
 #define GOST3411_2012_SSE_ADDMOD512(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __xmm0, __xmm1, __xmm2, __xmm3) {					\
+    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
 	__m128i carry;							\
 									\
 	carry = __xmm0;							\
@@ -1368,9 +1368,9 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 									\
 	carry = __xmm3;							\
 	GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm3, carry);		\
-}
+} while (0)
 #define GOST3411_2012_SSE_ADDMOD512_DIGIT(__dxmm0, __dxmm1,		\
-    __dxmm2, __dxmm3, __digit) {					\
+    __dxmm2, __dxmm3, __digit) do {					\
 	__m128i carry;							\
 									\
 	carry = _mm_set_epi64x(0, (__digit));				\
@@ -1382,11 +1382,11 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 		GOST3411_2012_SSE_ADD_CARRY(__dxmm2, carry);		\
 		GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm3, carry);	\
 	} while (0);							\
-}
+} while (0)
 
 
 #define GOST3411_2012_SSE_SLP_ROUND2(__dxmm, row,			\
-    __xmm0, __xmm1, __xmm2, __xmm3) {					\
+    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
 	register uint64_t r0, r1;					\
 									\
 	r0  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0, (row + 0))]; \
@@ -1414,7 +1414,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	r1 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, (row + 9))]; \
 									\
 	__dxmm = _mm_set_epi64x(r1, r0);				\
-}
+} while (0)
 
 /* i7-4770K CPU @ 3.50GHz
  * GCC:		
@@ -1438,7 +1438,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  * clang 3.4:	24012229000 / 23846450000 (SSE4.2) / 23684031000 (SSE4.1) /  25914115000 (SSE2)
  */
 #define GOST3411_2012_SSE_SLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __xmm0, __xmm1, __xmm2, __xmm3) {					\
+    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
 	GOST3411_2012_SSE_SLP_ROUND2(__dxmm0, 0,			\
 	    __xmm0, __xmm1, __xmm2, __xmm3);				\
 	GOST3411_2012_SSE_SLP_ROUND2(__dxmm1, 2,			\
@@ -1447,7 +1447,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	    __xmm0, __xmm1, __xmm2, __xmm3);				\
 	GOST3411_2012_SSE_SLP_ROUND2(__dxmm3, 6,			\
 	    __xmm0, __xmm1, __xmm2, __xmm3);				\
-}
+} while (0)
 
 /* i7-4770K CPU @ 3.50GHz
  * GCC:		
@@ -1471,7 +1471,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  * clang 3.4:	23659133000 / 23140891000 (SSE4.2) / 20975080000 (SSE4.1) / 24980611000 (SSE2)
  */
 #define GOST3411_2012_SSE_SLP__(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __xmm0, __xmm1, __xmm2, __xmm3) {					\
+    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
 	register uint64_t r0, r1;					\
 	register uint64_t t0, t1;					\
 	register uint64_t y0, y1;					\
@@ -1553,7 +1553,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	__dxmm1 = _mm_set_epi64x(t1, t0);				\
 	__dxmm2 = _mm_set_epi64x(y1, y0);				\
 	__dxmm3 = _mm_set_epi64x(v1, v0);				\
-}
+} while (0)
 
 /* i7-4770K CPU @ 3.50GHz
  * GCC:		
@@ -1577,7 +1577,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  * clang 3.4:	28546238000 / 28084639000 (SSE4.2) / 28509100000 (SSE4.1) / 28155419000 (SSE2)
  */
 #define GOST3411_2012_SSE_SLP_(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __xmm0, __xmm1, __xmm2, __xmm3) {					\
+    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
 	register uint64_t r0, r1;					\
 	register uint64_t t0, t1;					\
 	register uint64_t y0, y1;					\
@@ -1665,11 +1665,11 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	__dxmm1 = _mm_set_epi64x(t1, t0);				\
 	__dxmm2 = _mm_set_epi64x(y1, y0);				\
 	__dxmm3 = _mm_set_epi64x(v1, v0);				\
-}
+} while (0)
 
 #define GOST3411_2012_SSE_XSLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
     __axmm0, __axmm1, __axmm2, __axmm3,					\
-    __bxmm0, __bxmm1, __bxmm2, __bxmm3) {				\
+    __bxmm0, __bxmm1, __bxmm2, __bxmm3) do {				\
 	__m128i sxmm0, sxmm1, sxmm2, sxmm3;				\
 									\
 	GOST3411_2012_SSE_XOR2_512(sxmm0, sxmm1, sxmm2, sxmm3,		\
@@ -1677,10 +1677,10 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	    __bxmm0, __bxmm1, __bxmm2, __bxmm3);			\
 	GOST3411_2012_SSE_SLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
 	    sxmm0, sxmm1, sxmm2, sxmm3);				\
-}
+} while (0)
 
 #define GOST3411_2012_SSE_LXSLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __axmm0, __axmm1, __axmm2, __axmm3, __ptr) {			\
+    __axmm0, __axmm1, __axmm2, __axmm3, __ptr) do {			\
 	__m128i sxmm0, sxmm1, sxmm2, sxmm3;				\
 									\
 	GOST3411_2012_SSE_LOAD(__ptr, sxmm0, sxmm1, sxmm2, sxmm3);	\
@@ -1689,7 +1689,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	    __axmm0, __axmm1, __axmm2, __axmm3);			\
 	GOST3411_2012_SSE_SLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
 	    sxmm0, sxmm1, sxmm2, sxmm3);				\
-}
+} while (0)
 
 /*
  * gost3411_2012_transform
@@ -1823,34 +1823,34 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	    _mm256_xor_si256(__bxmm,					\
 	        _mm256_set1_epi64x(0x8000000000000000ull)))
 
-#define GOST3411_2012_AVX256_LOAD(__ptr, __ymm0, __ymm1) {		\
+#define GOST3411_2012_AVX256_LOAD(__ptr, __ymm0, __ymm1) do {		\
 	__ymm0 = _mm256_load_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
 	__ymm1 = _mm256_load_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
-}
+} while (0)
 
-#define GOST3411_2012_AVX256_STREAM_LOAD(__ptr, __ymm0, __ymm1) {	\
+#define GOST3411_2012_AVX256_STREAM_LOAD(__ptr, __ymm0, __ymm1) do {	\
 	__ymm0 = _mm256_stream_load_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
 	__ymm1 = _mm256_stream_load_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
-}
+} while (0)
 
-#define GOST3411_2012_AVX256_LOADU(__ptr, __ymm0, __ymm1) {		\
+#define GOST3411_2012_AVX256_LOADU(__ptr, __ymm0, __ymm1) do {		\
 	__ymm0 = _mm256_loadu_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
 	__ymm1 = _mm256_loadu_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
-}
+} while (0)
 
-#define GOST3411_2012_AVX256_STORE(__ptr, __ymm0, __ymm1) {		\
+#define GOST3411_2012_AVX256_STORE(__ptr, __ymm0, __ymm1) do {		\
 	_mm256_store_si256(&((__m256i*)(void*)(__ptr))[0], __ymm0);	\
 	_mm256_store_si256(&((__m256i*)(void*)(__ptr))[1], __ymm1);	\
-}
+} while (0)
 
 #define GOST3411_2012_AVX256_XOR2_512(__dymm0, __dymm1,			\
-    __aymm0, __aymm1, __bymm0, __bymm1) { 				\
+    __aymm0, __aymm1, __bymm0, __bymm1) do { 				\
 	__dymm0 = _mm256_xor_si256(__aymm0, __bymm0);			\
 	__dymm1 = _mm256_xor_si256(__aymm1, __bymm1);			\
-}
+} while (0)
 
 
-#define GOST3411_2012_AVX256_ADD_CARRY(__dymm, __crrymm) {		\
+#define GOST3411_2012_AVX256_ADD_CARRY(__dymm, __crrymm) do {		\
 	__m256i carry_ret;						\
 									\
 	carry_ret = _mm256_setzero_si256();				\
@@ -1867,8 +1867,8 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	}								\
 	__crrymm = _mm256_and_si256(carry_ret,				\
 	    _mm256_set_epi64x(0, 0, 0, 1));				\
-}
-#define GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm, __crrymm) {		\
+} while (0)
+#define GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm, __crrymm) do {	\
 									\
 	for (;;) {							\
 		__dymm = _mm256_add_epi64(__dymm, __crrymm);		\
@@ -1881,10 +1881,10 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 		    _mm256_permute4x64_epi64(__crrymm,			\
 			_MM_SHUFFLE(2, 1, 0, 3)));			\
 	}								\
-}
+} while (0)
 
 
-#define GOST3411_2012_AVX256_ADDMOD512(__dymm0, __dymm1, __ymm0, __ymm1) { \
+#define GOST3411_2012_AVX256_ADDMOD512(__dymm0, __dymm1, __ymm0, __ymm1) do { \
 	__m256i carry;							\
 									\
 	carry = __ymm0;							\
@@ -1892,15 +1892,15 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm1, carry);		\
 	carry = __ymm1;							\
 	GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm1, carry);		\
-}
+} while (0)
 
-#define GOST3411_2012_AVX256_ADDMOD512_DIGIT(__dymm0, __dymm1, __digit) { \
+#define GOST3411_2012_AVX256_ADDMOD512_DIGIT(__dymm0, __dymm1, __digit) do { \
 	__m256i carry;							\
 									\
 	carry = _mm256_set_epi64x(0, 0, 0, (__digit));			\
 	GOST3411_2012_AVX256_ADD_CARRY(__dymm0, carry);			\
 	GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm1, carry);		\
-}
+} while (0)
 
 
 #ifdef __clang__ /* Fix for clang. */
@@ -1923,7 +1923,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  * clang 3.7:	
  * clang 3.4:	
  */
-#define GOST3411_2012_AVX256_SLP(__dymm0, __dymm1, __ymm0, __ymm1) {	\
+#define GOST3411_2012_AVX256_SLP(__dymm0, __dymm1, __ymm0, __ymm1) do {	\
 	register uint64_t r0, r1, r2, r3;				\
 	register uint64_t s0, s1, s2, s3;				\
 									\
@@ -2001,7 +2001,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 									\
 	__dymm0 = _mm256_set_epi64x(r3, r2, r1, r0);			\
 	__dymm1 = _mm256_set_epi64x(s3, s2, s1, s0);			\
-}
+} while (0)
 
 /* i7-4770K CPU @ 3.50GHz
  * GCC:		
@@ -2015,7 +2015,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  * clang 3.7:	
  * clang 3.4:	
  */
-#define GOST3411_2012_AVX256_SLP_(__dymm0, __dymm1, __ymm0, __ymm1) {	\
+#define GOST3411_2012_AVX256_SLP_(__dymm0, __dymm1, __ymm0, __ymm1) do { \
 	register uint64_t r0, r1, r2, r3;				\
 	register uint64_t s0, s1, s2, s3;				\
 	GOST3411_2012_ALIGN(32) uint8_t idxarr[64];			\
@@ -2096,19 +2096,19 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 									\
 	__dymm0 = _mm256_set_epi64x(r3, r2, r1, r0);			\
 	__dymm1 = _mm256_set_epi64x(s3, s2, s1, s0);			\
-}
+} while (0)
 
 
 #define GOST3411_2012_AVX256_XSLP(__dymm0, __dymm1, __aymm0, __aymm1,	\
-    __bymm0, __bymm1) {							\
+    __bymm0, __bymm1) do {						\
 									\
 	GOST3411_2012_AVX256_XOR2_512(__dymm0, __dymm1,			\
 	    __aymm0, __aymm1,						\
 	    __bymm0, __bymm1);						\
 	GOST3411_2012_AVX256_SLP(__dymm0, __dymm1, __dymm0, __dymm1);	\
-}
+} while (0)
 
-#define GOST3411_2012_AVX256_LXSLP(__dymm0, __dymm1, __aymm0, __aymm1, __ptr) { \
+#define GOST3411_2012_AVX256_LXSLP(__dymm0, __dymm1, __aymm0, __aymm1, __ptr) do { \
 	__m256i symm0, symm1;						\
 									\
 	GOST3411_2012_AVX256_LOAD(__ptr, symm0, symm1);			\
@@ -2116,7 +2116,7 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	    symm0, symm1,						\
 	    __aymm0, __aymm1);						\
 	GOST3411_2012_AVX256_SLP(__dymm0, __dymm1, __dymm0, __dymm1);	\
-}
+} while (0)
 
 /*
  * gost3411_2012_transform

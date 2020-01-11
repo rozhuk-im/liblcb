@@ -68,7 +68,7 @@ extern uintptr_t g_log_fd;
 #define log_write_ev(fname, line, descr)				\
     log_write_ev_fd(g_log_fd, fname, line, descr)
 #define log_write_ev_fmt(fname, line, fmt, args...)			\
-    log_write_ev_fmt_fd(g_log_fd, fname, line, fmt, ##args);
+    log_write_ev_fmt_fd(g_log_fd, fname, line, fmt, ##args)
 
 
 #define LOG_IS_ENABLED()	((uintptr_t)-1 != g_log_fd)

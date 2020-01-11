@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,26 +100,26 @@
 #define MD5_ROTATE_LEFT(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
 /* FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
  * Rotation is separate from addition to prevent recomputation. */
-#define MD5_FF(a, b, c, d, x, s, ac) {					\
+#define MD5_FF(a, b, c, d, x, s, ac) do {				\
 	(a) += MD5_F((b), (c), (d)) + (x) + (uint32_t)(ac);		\
 	(a) = MD5_ROTATE_LEFT((a), (s));				\
 	(a) += (b);							\
-}
-#define MD5_GG(a, b, c, d, x, s, ac) {					\
+} while (0)
+#define MD5_GG(a, b, c, d, x, s, ac) do {				\
 	(a) += MD5_G((b), (c), (d)) + (x) + (uint32_t)(ac);		\
 	(a) = MD5_ROTATE_LEFT((a), (s));				\
 	(a) += (b);							\
-}
-#define MD5_HH(a, b, c, d, x, s, ac) {					\
+} while (0)
+#define MD5_HH(a, b, c, d, x, s, ac) do {				\
 	(a) += MD5_H((b), (c), (d)) + (x) + (uint32_t)(ac);		\
 	(a) = MD5_ROTATE_LEFT((a), (s));				\
 	(a) += (b);							\
-}
-#define MD5_II(a, b, c, d, x, s, ac) {					\
+} while (0)
+#define MD5_II(a, b, c, d, x, s, ac) do {				\
 	(a) += MD5_I((b), (c), (d)) + (x) + (uint32_t)(ac);		\
 	(a) = MD5_ROTATE_LEFT((a), (s));				\
 	(a) += (b);							\
-}
+} while (0)
 
 /* MD5 context. */
 typedef struct md5_ctx_s {

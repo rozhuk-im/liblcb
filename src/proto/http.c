@@ -573,7 +573,7 @@ http_parse_resp_line(const uint8_t *http_hdr, size_t hdr_size,
 	if (NULL == ptm) {
 		ptm = (http_hdr + hdr_size);
 	}
-	resp_data->line_size = (size_t)(ptm - http_hdr); /* RESP_SIZE */;
+	resp_data->line_size = (size_t)(ptm - http_hdr); /* RESP_SIZE */
 	/* HTTP/H.L */
 	resp_data->proto_ver = MAKEDWORD((http_hdr[7] - '0'), (http_hdr[5] - '0'));
 	/* Status-Code. */
