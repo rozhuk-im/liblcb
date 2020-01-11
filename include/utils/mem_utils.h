@@ -48,9 +48,6 @@
 #endif
 #include <stdlib.h>
 #include <string.h> /* memcpy, memmove, memset... */
-#ifdef HAVE_CONFIG_H
-#	include "config.h"
-#endif
 
 #ifndef SIZE_T_MAX
 #	define SIZE_T_MAX	((size_t)~0)

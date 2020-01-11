@@ -34,9 +34,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <inttypes.h>
-#ifdef HAVE_CONFIG_H
-#	include "config.h"
-#endif
 
 
 #ifndef HAVE_PIPE2
