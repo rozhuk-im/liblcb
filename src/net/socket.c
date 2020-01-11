@@ -58,7 +58,6 @@
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
 
-#include "utils/sys.h"
 #include "al/os.h"
 #include "net/socket_address.h"
 #include "net/socket.h"
@@ -332,9 +331,12 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 		goto err_out;
 	}
 #ifndef HAVE_SOCK_NONBLOCK
-	error = fd_set_nonblocking(skt, (0 != (SO_F_NONBLOCK & flags)));
-	if (0 != error)
-		goto err_out;
+	if (0 != (SO_F_NONBLOCK & flags)) {
+		if (-1 == fcntl((int)skt, F_SETFL, O_NONBLOCK)) {
+			error = errno;
+			goto err_out;
+		}
+	}
 #endif
 	/* Tune socket. */
 	if (0 != (SO_F_BROADCAST & flags)) {

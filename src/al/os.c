@@ -36,7 +36,6 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #include <unistd.h> /* close, write, sysconf */
 
-#include "utils/sys.h"
 #include "al/os.h"
 
 
@@ -49,12 +48,14 @@ pipe2(int fildes[2], int flags) {
 	if (0 != error)
 		return (error);
 	if (0 != (O_NONBLOCK & flags)) {
-		error = fd_set_nonblocking((uintptr_t)fildes[0], 1);
-		if (0 != error)
+		if (-1 == fcntl((int)fildes[0], F_SETFL, O_NONBLOCK)) {
+			error = errno;
 			goto err_out;
-		error = fd_set_nonblocking((uintptr_t)fildes[1], 1);
-		if (0 != error)
+		}
+		if (-1 == fcntl((int)fildes[1], F_SETFL, O_NONBLOCK)) {
+			error = errno;
 			goto err_out;
+		}
 	}
 
 	return (0);
@@ -78,9 +79,11 @@ accept4(int skt, struct sockaddr *addr, socklen_t *addrlen, int flags) {
 	s = accept(skt, addr, addrlen);
 	if (-1 == s)
 		return (-1);
-	if (0 != fd_set_nonblocking((uintptr_t)s, (0 != (SOCK_NONBLOCK & flags)))) {
-		close(s);
-		return (-1);
+	if (0 != (SOCK_NONBLOCK & flags)) {
+		if (-1 == fcntl((int)s, F_SETFL, O_NONBLOCK)) {
+			close(s);
+			return (-1);
+		}
 	}
 
 	return (s);
