@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,10 @@
 #ifdef THREAD_POOL_XML_CONFIG
 #	include "utils/buf_str.h"
 #	include "utils/xml.h"
+#endif
+#ifdef THREAD_POOL_INI_CONFIG
+#	include "utils/buf_str.h"
+#	include "utils/ini.h"
 #endif
 
 
@@ -740,6 +744,7 @@ tpt_loop(tpt_p tpt) {
 		}
 		/* Read/write. */
 		ev.data = UINT64_MAX; /* Transfer as many as you can. */
+		//ioctl((int)tp_udata->ident, FIONREAD, &ev.data);
 		if (0 != (EPOLL_HUP & epev.events)) {
 			ev.flags |= TP_F_EOF;
 		}
@@ -841,6 +846,35 @@ tp_xml_load_settings(const uint8_t *buf, size_t buf_size, tp_settings_p s) {
 	    (const uint8_t*)"threadsCountMax", NULL);
 	xml_get_val_uint64_args(buf, buf_size, NULL, &s->tick_time,
 	    (const uint8_t*)"timerGranularity", NULL);
+
+	return (0);
+}
+#endif
+#ifdef THREAD_POOL_INI_CONFIG
+int
+tp_ini_load_settings(const ini_p ini, const uint8_t *sect_name,
+    const size_t sect_name_size, tp_settings_p s) {
+	const uint8_t *data;
+	size_t data_size;
+
+	if (NULL == ini || NULL == sect_name || 0 == sect_name_size || NULL == s)
+		return (EINVAL);
+	/* Read from config. */
+	/* Flags. */
+	if (0 == ini_vali_get(ini, sect_name, sect_name_size,
+	    (const uint8_t*)"fBindToCPU", 0, &data, &data_size)) {
+		yn_set_flag32(data, data_size, TP_S_F_BIND2CPU, &s->flags);
+	}
+	if (0 == ini_vali_get(ini, sect_name, sect_name_size,
+	    (const uint8_t*)"fCacheGetTimeSyscall", 0, &data, &data_size)) {
+		yn_set_flag32(data, data_size, TP_S_F_CACHE_TIME_SYSC, &s->flags);
+	}
+
+	/* Other. */
+	ini_vali_get_uint(ini, sect_name, sect_name_size,
+	    (const uint8_t*)"threadsCountMax", 0, &s->threads_max);
+	ini_vali_get_uint(ini, sect_name, sect_name_size,
+	    (const uint8_t*)"timerGranularity", 0, &s->tick_time);
 
 	return (0);
 }

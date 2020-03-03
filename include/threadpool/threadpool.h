@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,9 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <time.h>
+#ifdef THREAD_POOL_INI_CONFIG
+#	include "utils/ini.h"
+#endif
 
 
 typedef struct thread_pool_s		*tp_p;		/* Thread pool. */
@@ -110,6 +113,10 @@ void	tp_def_settings(tp_settings_p s_ret);
 #ifdef THREAD_POOL_XML_CONFIG
 int	tp_xml_load_settings(const uint8_t *buf, size_t buf_size,
 	    tp_settings_p s);
+#endif
+#ifdef THREAD_POOL_INI_CONFIG
+int	tp_ini_load_settings(const ini_p ini, const uint8_t *sect_name,
+	    const size_t sect_name_size, tp_settings_p s);
 #endif
 
 
