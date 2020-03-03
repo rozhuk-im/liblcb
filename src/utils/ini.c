@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ typedef struct ini_s {
 
 
 static ini_line_p
-ini_line_alloc__int(size_t size) {
+ini_line_alloc__int(const size_t size) {
 	size_t tm;
 	ini_line_p line;
 
@@ -104,7 +104,7 @@ ini_create(ini_p *ini_ret) {
 }
 
 void
-ini_destroy(ini_p ini) {
+ini_destroy(const ini_p ini) {
 	size_t i;
 
 	if (NULL == ini)
@@ -122,7 +122,7 @@ ini_destroy(ini_p ini) {
 
 
 int
-ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
+ini_buf_parse(const ini_p ini, const uint8_t *buf, const size_t buf_size) {
 	int error;
 	uint8_t *ptr;
 	const uint8_t *pline;
@@ -142,10 +142,10 @@ ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
 		line = ini_line_alloc__int(line_size);
 		if (NULL == line)
 			return (errno);
-		memcpy(line->data, pline, line_size);
 		if (0 == line_size) {
 			line->type = INI_LINE_TYPE_EMPTY_LINE;
 		} else {
+			memcpy(line->data, pline, line_size);
 			switch (line->data[0]) {
 			case ';':
 			case '#':
@@ -194,7 +194,7 @@ ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size) {
 }
 
 int
-ini_buf_calc_size(ini_p ini, size_t *file_size) {
+ini_buf_calc_size(const ini_p ini, size_t *file_size) {
 	size_t i, tm;
 
 	if (NULL == ini || NULL == file_size)
@@ -212,7 +212,7 @@ ini_buf_calc_size(ini_p ini, size_t *file_size) {
 }
 
 int
-ini_buf_gen(ini_p ini, uint8_t *buf, size_t buf_size,
+ini_buf_gen(const ini_p ini, uint8_t *buf, const size_t buf_size,
     size_t *buf_size_ret) {
 	int error = 0;
 	size_t i, off, tm;
@@ -242,8 +242,8 @@ ini_buf_gen(ini_p ini, uint8_t *buf, size_t buf_size,
 
 
 int
-ini_sect_enum(ini_p ini, size_t *sect_off, const uint8_t **sect_name,
-    size_t *sect_name_size) {
+ini_sect_enum(const ini_p ini, size_t *sect_off,
+    const uint8_t **sect_name, size_t *sect_name_size) {
 	size_t i;
 
 	if (NULL == ini || NULL == sect_off)
@@ -275,15 +275,15 @@ ini_sect_enum(ini_p ini, size_t *sect_off, const uint8_t **sect_name,
 }
 
 size_t
-ini_sect_find(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size) {
+ini_sect_find(const ini_p ini, const uint8_t *sect_name,
+    const size_t sect_name_size) {
 	size_t i = 0, name_size;
 	const uint8_t *name;
 
 	if (NULL == ini || (NULL != sect_name && 0 == sect_name_size))
-		return ((size_t)~0);
+		return (INI_OFFSET_INVALID);
 	if (NULL == ini->lines)
-		return ((size_t)~0);
+		return (INI_OFFSET_INVALID);
 
 	/* Look for section. */
 	while (0 == ini_sect_enum(ini, &i, &name, &name_size)) {
@@ -292,19 +292,19 @@ ini_sect_find(ini_p ini, const uint8_t *sect_name,
 		i ++;
 	}
 
-	return ((size_t)~0);
+	return (INI_OFFSET_INVALID);
 }
 
 size_t
-ini_sect_findi(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size) {
+ini_sect_findi(const ini_p ini, const uint8_t *sect_name,
+    const size_t sect_name_size) {
 	size_t i = 0, name_size;
 	const uint8_t *name;
 
 	if (NULL == ini || (NULL != sect_name && 0 == sect_name_size))
-		return ((size_t)~0);
+		return (INI_OFFSET_INVALID);
 	if (NULL == ini->lines)
-		return ((size_t)~0);
+		return (INI_OFFSET_INVALID);
 
 	/* Look for section. */
 	while (0 == ini_sect_enum(ini, &i, &name, &name_size)) {
@@ -313,11 +313,11 @@ ini_sect_findi(ini_p ini, const uint8_t *sect_name,
 		i ++;
 	}
 
-	return ((size_t)~0);
+	return (INI_OFFSET_INVALID);
 }
 
 int
-ini_sect_val_enum(ini_p ini, size_t sect_off, size_t *val_off,
+ini_sect_val_enum(const ini_p ini, const size_t sect_off, size_t *val_off,
     const uint8_t **val_name, size_t *val_name_size,
     const uint8_t **val, size_t *val_size) {
 	size_t i;
@@ -359,16 +359,16 @@ ini_sect_val_enum(ini_p ini, size_t sect_off, size_t *val_off,
 }
 
 size_t
-ini_sect_val_find(ini_p ini, size_t sect_off, const uint8_t *val_name,
-    size_t val_name_size) {
+ini_sect_val_find(const ini_p ini, const size_t sect_off,
+    const uint8_t *val_name, const size_t val_name_size) {
 	size_t i = 0, name_size;
 	const uint8_t *name;
 
 	if (NULL == ini || NULL == val_name || 0 == val_name_size ||
-	    (size_t)~0 == sect_off)
-		return ((size_t)~0);
+	    INI_OFFSET_INVALID == sect_off)
+		return (INI_OFFSET_INVALID);
 	if (NULL == ini->lines)
-		return ((size_t)~0);
+		return (INI_OFFSET_INVALID);
 
 	/* Look for value. */
 	while (0 == ini_sect_val_enum(ini, sect_off, &i, &name, &name_size, NULL, NULL)) {
@@ -377,54 +377,58 @@ ini_sect_val_find(ini_p ini, size_t sect_off, const uint8_t *val_name,
 		i ++;
 	}
 
-	return ((size_t)~0);
+	return (INI_OFFSET_INVALID);
 }
 
 size_t
-ini_sect_val_findi(ini_p ini, size_t sect_off, const uint8_t *val_name,
-    size_t val_name_size) {
+ini_sect_val_findi(const ini_p ini, const size_t sect_off,
+    const uint8_t *val_name, const size_t val_name_size) {
 	size_t i = 0, name_size;
 	const uint8_t *name;
 
 	if (NULL == ini || NULL == val_name || 0 == val_name_size ||
-	    (size_t)~0 == sect_off)
-		return ((size_t)~0);
+	    INI_OFFSET_INVALID == sect_off)
+		return (INI_OFFSET_INVALID);
 	if (NULL == ini->lines)
-		return ((size_t)~0);
+		return (INI_OFFSET_INVALID);
 
 	/* Look for value. */
-	while (0 == ini_sect_val_enum(ini, sect_off, &i, &name, &name_size, NULL, NULL)) {
+	while (0 == ini_sect_val_enum(ini, sect_off, &i,
+	    &name, &name_size, NULL, NULL)) {
 		if (0 == mem_cmpin(name, name_size, val_name, val_name_size))
 			return (i); /* Found! */
 		i ++;
 	}
 
-	return ((size_t)~0);
+	return (INI_OFFSET_INVALID);
 }
 
 
 int
-ini_val_get(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    uint8_t **val, size_t *val_size) {
+ini_val_get(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size,
+    const uint8_t **val, size_t *val_size) {
 	size_t sect_off, val_off;
+	size_t _sect_name_size = sect_name_size;
+	size_t _val_name_size = val_name_size;
 
 	if (NULL == ini || NULL == val || NULL == val_size)
 		return (EINVAL);
 	if (0 == sect_name_size && NULL != sect_name) {
-		sect_name_size = strlen((const char*)sect_name);
+		_sect_name_size = strlen((const char*)sect_name);
 	}
 	if (0 == val_name_size && NULL != val_name) {
-		val_name_size = strlen((const char*)val_name);
+		_val_name_size = strlen((const char*)val_name);
 	}
 
 	/* Look for section. */
-	sect_off = ini_sect_find(ini, sect_name, sect_name_size);
-	if ((size_t)~0 == sect_off)
+	sect_off = ini_sect_find(ini, sect_name, _sect_name_size);
+	if (INI_OFFSET_INVALID == sect_off)
 		return (ENOENT); /* No section. */
 	/* Look for value. */
-	val_off = ini_sect_val_find(ini, sect_off, val_name, val_name_size);
-	if ((size_t)~0 == val_off)
+	val_off = ini_sect_val_find(ini, sect_off, val_name, _val_name_size);
+	if (INI_OFFSET_INVALID == val_off)
 		return (ENOENT); /* No value in section. */
 	(*val) = ini->lines[val_off]->val;
 	(*val_size) = ini->lines[val_off]->val_size;
@@ -433,11 +437,11 @@ ini_val_get(ini_p ini, const uint8_t *sect_name,
 }
 
 int
-ini_val_get_int(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    ssize_t *val) {
+ini_val_get_int(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size, ssize_t *val) {
 	int error;
-	uint8_t *tm_val;
+	const uint8_t *tm_val;
 	size_t val_size;
 
 	if (NULL == val)
@@ -452,11 +456,11 @@ ini_val_get_int(ini_p ini, const uint8_t *sect_name,
 }
 
 int
-ini_val_get_uint(ini_p ini, const uint8_t *sect_name, 
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    size_t *val) {
+ini_val_get_uint(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size, size_t *val) {
 	int error;
-	uint8_t *tm_val;
+	const uint8_t *tm_val;
 	size_t val_size;
 
 	if (NULL == val)
@@ -472,27 +476,30 @@ ini_val_get_uint(ini_p ini, const uint8_t *sect_name,
 
 
 int
-ini_vali_get(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    uint8_t **val, size_t *val_size) {
+ini_vali_get(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size,
+    const uint8_t **val, size_t *val_size) {
 	size_t sect_off, val_off;
+	size_t _sect_name_size = sect_name_size;
+	size_t _val_name_size = val_name_size;
 
 	if (NULL == ini || NULL == val || NULL == val_size)
 		return (EINVAL);
 	if (0 == sect_name_size && NULL != sect_name) {
-		sect_name_size = strlen((const char*)sect_name);
+		_sect_name_size = strlen((const char*)sect_name);
 	}
 	if (0 == val_name_size && NULL != val_name) {
-		val_name_size = strlen((const char*)val_name);
+		_val_name_size = strlen((const char*)val_name);
 	}
 
 	/* Look for section. */
-	sect_off = ini_sect_findi(ini, sect_name, sect_name_size);
-	if ((size_t)~0 == sect_off)
+	sect_off = ini_sect_findi(ini, sect_name, _sect_name_size);
+	if (INI_OFFSET_INVALID == sect_off)
 		return (ENOENT); /* No section. */
 	/* Look for value. */
-	val_off = ini_sect_val_findi(ini, sect_off, val_name, val_name_size);
-	if ((size_t)~0 == val_off)
+	val_off = ini_sect_val_findi(ini, sect_off, val_name, _val_name_size);
+	if (INI_OFFSET_INVALID == val_off)
 		return (ENOENT); /* No value in section. */
 	(*val) = ini->lines[val_off]->val;
 	(*val_size) = ini->lines[val_off]->val_size;
@@ -501,11 +508,11 @@ ini_vali_get(ini_p ini, const uint8_t *sect_name,
 }
 
 int
-ini_vali_get_int(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    ssize_t *val) {
+ini_vali_get_int(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size, ssize_t *val) {
 	int error;
-	uint8_t *tm_val;
+	const uint8_t *tm_val;
 	size_t val_size;
 
 	if (NULL == val)
@@ -520,11 +527,11 @@ ini_vali_get_int(ini_p ini, const uint8_t *sect_name,
 }
 
 int
-ini_vali_get_uint(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    size_t *val) {
+ini_vali_get_uint(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size, size_t *val) {
 	int error;
-	uint8_t *tm_val;
+	const uint8_t *tm_val;
 	size_t val_size;
 
 	if (NULL == val)
@@ -540,34 +547,37 @@ ini_vali_get_uint(ini_p ini, const uint8_t *sect_name,
 
 
 int
-ini_val_set(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
+ini_val_set(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size,
     const uint8_t *val, size_t val_size) {
 	int error;
 	size_t sect_off, val_off, data_size;
+	size_t _sect_name_size = sect_name_size;
+	size_t _val_name_size = val_name_size;
 	ini_line_p line = NULL;
 
 	if (NULL == ini || (NULL == val && 0 != val_size))
 		return (EINVAL);
 	if (0 == sect_name_size && NULL != sect_name) {
-		sect_name_size = strlen((const char*)sect_name);
+		_sect_name_size = strlen((const char*)sect_name);
 	}
 	if (0 == val_name_size && NULL != val_name) {
-		val_name_size = strlen((const char*)val_name);
+		_val_name_size = strlen((const char*)val_name);
 	}
 
 	/* Look for section. */
-	sect_off = ini_sect_find(ini, sect_name, sect_name_size);
-	if ((size_t)~0 == sect_off) { /* No section, add. */
+	sect_off = ini_sect_find(ini, sect_name, _sect_name_size);
+	if (INI_OFFSET_INVALID == sect_off) { /* No section, add. */
 		/* Alloc line for section. */
-		line = ini_line_alloc__int((sect_name_size + 2));
+		line = ini_line_alloc__int((_sect_name_size + 2));
 		if (NULL == line)
 			return (errno);
 		line->type = INI_LINE_TYPE_SECTION;
 		line->name = (line->data + 1);
-		line->name_size = sect_name_size;
+		line->name_size = _sect_name_size;
 		line->data[0] = '[';
-		memcpy(line->name, sect_name, sect_name_size);
+		memcpy(line->name, sect_name, _sect_name_size);
 		line->name[line->name_size] = ']';
 
 		/* Add line to array. */
@@ -583,11 +593,11 @@ ini_val_set(ini_p ini, const uint8_t *sect_name,
 		ini->lines_count ++;
 	}
 
-	data_size = (val_name_size + 1 + val_size);
+	data_size = (_val_name_size + 1 + val_size);
 
 	/* Look for value. */
-	val_off = ini_sect_val_find(ini, sect_off, val_name, val_name_size);
-	if ((size_t)~0 == val_off) { /* No value in section, add. */
+	val_off = ini_sect_val_find(ini, sect_off, val_name, _val_name_size);
+	if (INI_OFFSET_INVALID == val_off) { /* No value in section, add. */
 		/* Add line to array. */
 		error = realloc_items((void**)&ini->lines,
 		    sizeof(ini_line_p), &ini->lines_allocated,
@@ -624,8 +634,8 @@ alloc_new_line:
 		ini->lines[val_off] = line;
 		line->type = INI_LINE_TYPE_VALUE;
 		line->name = line->data;
-		line->name_size = val_name_size;
-		memcpy(line->name, val_name, val_name_size);
+		line->name_size = _val_name_size;
+		memcpy(line->name, val_name, _val_name_size);
 		line->name[line->name_size] = '=';
 		line->val = (line->name + line->name_size + 1);
 	} else { /* Check existing item free size. */
@@ -659,27 +669,27 @@ update_value:
 }
 
 int
-ini_val_set_int(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    ssize_t val) {
+ini_val_set_int(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size, ssize_t val) {
 	char buf[64];
 	size_t buf_size;
 
 	buf_size = (size_t)snprintf(buf, sizeof(buf), "%zi", val);
 
 	return (ini_val_set(ini, sect_name, sect_name_size,
-	    val_name, val_name_size, (uint8_t*)buf, buf_size));
+	    val_name, val_name_size, (const uint8_t*)buf, buf_size));
 }
 
 int
-ini_val_set_uint(ini_p ini, const uint8_t *sect_name,
-    size_t sect_name_size, const uint8_t *val_name, size_t val_name_size,
-    size_t val) {
+ini_val_set_uint(const ini_p ini,
+    const uint8_t *sect_name, const size_t sect_name_size,
+    const uint8_t *val_name, const size_t val_name_size, size_t val) {
 	char buf[64];
 	size_t buf_size;
 
 	buf_size = (size_t)snprintf(buf, sizeof(buf), "%zu", val);
 
 	return (ini_val_set(ini, sect_name, sect_name_size,
-	    val_name, val_name_size, (uint8_t*)buf, buf_size));
+	    val_name, val_name_size, (const uint8_t*)buf, buf_size));
 }

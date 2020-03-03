@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,65 +42,75 @@ bn=bv
 #include <inttypes.h>
 
 
-typedef struct ini_s	*ini_p;
+typedef struct ini_s		*ini_p;
+
+#define INI_OFFSET_INVALID	((size_t)~0)
 
 
 int	ini_create(ini_p *ini_ret);
-void	ini_destroy(ini_p ini);
+void	ini_destroy(const ini_p ini);
 
-int	ini_buf_parse(ini_p ini, const uint8_t *buf, size_t buf_size);
+int	ini_buf_parse(const ini_p ini, const uint8_t *buf,
+	    const size_t buf_size);
 
-int	ini_buf_calc_size(ini_p ini, size_t *file_size);
-int	ini_buf_gen(ini_p ini, uint8_t *buf, size_t buf_size,
+int	ini_buf_calc_size(const ini_p ini, size_t *file_size);
+int	ini_buf_gen(const ini_p ini, uint8_t *buf, const size_t buf_size,
 	    size_t *buf_size_ret);
 
-int	ini_sect_enum(ini_p ini, size_t *sect_off,
+int	ini_sect_enum(const ini_p ini, size_t *sect_off,
 	    const uint8_t **sect_name, size_t *sect_name_size);
-size_t	ini_sect_find(ini_p ini, const uint8_t *sect_name,
-	    size_t sect_name_size);
-size_t	ini_sect_findi(ini_p ini, const uint8_t *sect_name,
-	    size_t sect_name_size);
+size_t	ini_sect_find(const ini_p ini, const uint8_t *sect_name,
+	    const size_t sect_name_size);
+size_t	ini_sect_findi(const ini_p ini, const uint8_t *sect_name,
+	    const size_t sect_name_size);
 
-int	ini_sect_val_enum(ini_p ini, size_t sect_off, size_t *val_off,
+int	ini_sect_val_enum(const ini_p ini, const size_t sect_off,
+	    size_t *val_off,
 	    const uint8_t **val_name, size_t *val_name_size,
 	    const uint8_t **val, size_t *val_size);
-size_t	ini_sect_val_find(ini_p ini, size_t sect_off,
-	    const uint8_t *val_name, size_t val_name_size);
-size_t	ini_sect_val_findi(ini_p ini, size_t sect_off,
-	    const uint8_t *val_name, size_t val_name_size);
+size_t	ini_sect_val_find(const ini_p ini, const size_t sect_off,
+	    const uint8_t *val_name, const size_t val_name_size);
+size_t	ini_sect_val_findi(const ini_p ini, const size_t sect_off,
+	    const uint8_t *val_name, const size_t val_name_size);
 
-int	ini_val_get(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size,
-	    uint8_t **val, size_t *val_size);
-int	ini_val_get_int(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size, ssize_t *val);
-int	ini_val_get_uint(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size, size_t *val);
+int	ini_val_get(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    const uint8_t **val, size_t *val_size);
+int	ini_val_get_int(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    ssize_t *val);
+int	ini_val_get_uint(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    size_t *val);
 
-int	ini_vali_get(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size,
-	    uint8_t **val, size_t *val_size);
-int	ini_vali_get_int(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size, ssize_t *val);
-int	ini_vali_get_uint(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size, size_t *val);
+int	ini_vali_get(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    const uint8_t **val, size_t *val_size);
+int	ini_vali_get_int(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    ssize_t *val);
+int	ini_vali_get_uint(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    size_t *val);
 
-int	ini_val_set(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size,
+int	ini_val_set(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
 	    const uint8_t *val, size_t val_size);
-int	ini_val_set_int(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size, ssize_t val);
-int	ini_val_set_uint(ini_p ini,
-	    const uint8_t *sect_name, size_t sect_name_size,
-	    const uint8_t *val_name, size_t val_name_size, size_t val);
+int	ini_val_set_int(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    ssize_t val);
+int	ini_val_set_uint(const ini_p ini,
+	    const uint8_t *sect_name, const size_t sect_name_size,
+	    const uint8_t *val_name, const size_t val_name_size,
+	    size_t val);
 
 
 #endif /* __INI_H__ */
