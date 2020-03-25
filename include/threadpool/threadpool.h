@@ -80,9 +80,12 @@ typedef struct thread_pool_udata_s { /* Thread pool ident and opaque user data. 
 	uintptr_t	ident;	/* Identifier for this event: socket, file, etc.
 				 * For timer ident can be ponter to mem or any
 				 * unique number. */
-	tpt_p		tpt;	/* Internal data, do not use!!! Pointer to thread data. */
-	uint64_t	tpdata;	/* Internal data, do not use!!!
-				 * Linux: timer - timer file handle;
+	/* User defined. */
+	void		*ptr;	/* Some pointer. */
+	size_t		size;	/* Some size. */
+	/* Internal data, do not use!!! */
+	tpt_p		tpt;	/* Pointer to thread data. */
+	uint64_t	tpdata;	/* Linux: timer - timer file handle;
 				 * read/write/timer - event: TP_EV_*;
 				 * TP_F_* flags. */
 	/* Opaque user data ... */
