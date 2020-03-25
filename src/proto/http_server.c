@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -378,6 +378,7 @@ http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
     http_srv_settings_p s, void *udata, http_srv_p *srv_ret) {
 	int error;
 	http_srv_p srv = NULL;
+	struct timespec ts;
 
 	LOGD_EV("...");
 	
@@ -421,8 +422,10 @@ http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
 	srv->s.hdrs_reserve_size *= 1024;
 	srv->s.http_server[srv->s.http_server_size] = 0;
 
-	srv->stat.start_time = tpt_gettime(NULL, 1);
-	srv->stat.start_time_abs = tpt_gettime(NULL, 0);
+	clock_gettime(CLOCK_REALTIME_FAST, &ts);
+	srv->stat.start_time = ts.tv_sec;
+	clock_gettime(CLOCK_MONOTONIC_FAST, &ts);
+	srv->stat.start_time_abs = ts.tv_sec;
 
 	(*srv_ret) = srv;
 	return (0);

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -487,7 +487,7 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	/* Timer */
 	dev->ann_tmr.cb_func = upnp_ssdp_timer_cb;
 	dev->ann_tmr.ident = (uintptr_t)dev;
-	error = tpt_ev_add_ex(tp_thread_get_pvt(ssdp->tp),
+	error = tpt_ev_add_args(tp_thread_get_pvt(ssdp->tp),
 	    TP_EV_TIMER, 0, 0, dev->ann_interval, &dev->ann_tmr);
 	if (0 != error)
 		goto err_out;
@@ -517,7 +517,7 @@ upnp_ssdp_dev_del(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev) {
 	if (NULL == ssdp || NULL == dev)
 		return;
 	/* Destroy announce timer. */
-	tpt_ev_del(TP_EV_TIMER, &dev->ann_tmr);
+	tpt_ev_del_args1(TP_EV_TIMER, &dev->ann_tmr);
 	/* Notify all. */
 	if (ssdp->byebye) {
 		upnp_ssdp_dev_notify_sendto_mc(ssdp, dev, UPNP_SSDP_S_A_BYEBYE);

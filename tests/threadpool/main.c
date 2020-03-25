@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -120,7 +120,6 @@ static void	test_tpt_ev_add_ex_tmr_0(void);
 static void	test_tpt_ev_add_ex_tmr_oneshot(void);
 static void	test_tpt_ev_add_ex_tmr_dispatch(void);
 static void	test_tpt_ev_add_ex_tmr_edge(void);
-static void	test_tpt_gettimev(void);
 
 
 
@@ -167,19 +166,18 @@ main(int argc, char *argv[]) {
 	    NULL == CU_add_test(psuite, "test of tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP))", test_tpt_msg_bsend_ex3) ||
 	    NULL == CU_add_test(psuite, "test of tpt_msg_cbsend(0)", test_tpt_msg_cbsend1) ||
 	    NULL == CU_add_test(psuite, "test of tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE)", test_tpt_msg_cbsend2) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, 0)", test_tpt_ev_add_ex_rd_0) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, TP_F_ONESHOT)", test_tpt_ev_add_ex_rd_oneshot) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, TP_F_DISPATCH)", test_tpt_ev_add_ex_rd_dispatch) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, TP_F_EDGE)", test_tpt_ev_add_ex_rd_edge) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, 0)", test_tpt_ev_add_ex_rw_0) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, TP_F_ONESHOT)", test_tpt_ev_add_ex_rw_oneshot) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, TP_F_DISPATCH)", test_tpt_ev_add_ex_rw_dispatch) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, TP_F_EDGE)", test_tpt_ev_add_ex_rw_edge) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, 0)", test_tpt_ev_add_ex_tmr_0) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, TP_F_ONESHOT)", test_tpt_ev_add_ex_tmr_oneshot) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, TP_F_DISPATCH)", test_tpt_ev_add_ex_tmr_dispatch) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
-	    NULL == CU_add_test(psuite, "test of tpt_gettimev()", test_tpt_gettimev) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, 0)", test_tpt_ev_add_ex_rd_0) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_ONESHOT)", test_tpt_ev_add_ex_rd_oneshot) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_DISPATCH)", test_tpt_ev_add_ex_rd_dispatch) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_EDGE)", test_tpt_ev_add_ex_rd_edge) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, 0)", test_tpt_ev_add_ex_rw_0) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_ONESHOT)", test_tpt_ev_add_ex_rw_oneshot) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_DISPATCH)", test_tpt_ev_add_ex_rw_dispatch) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_EDGE)", test_tpt_ev_add_ex_rw_edge) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, 0)", test_tpt_ev_add_ex_tmr_0) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_ONESHOT)", test_tpt_ev_add_ex_tmr_oneshot) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_DISPATCH)", test_tpt_ev_add_ex_tmr_dispatch) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
 	    NULL == CU_add_test(psuite, "test of test_tp_destroy()", test_tp_destroy) ||
 	    0 ||
 	    NULL == CU_add_test(psuite, "test of test_tp_init16() - threads count = 16", test_tp_init16) ||
@@ -198,19 +196,18 @@ main(int argc, char *argv[]) {
 	    NULL == CU_add_test(psuite, "test of tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP))", test_tpt_msg_bsend_ex3) ||
 	    NULL == CU_add_test(psuite, "test of tpt_msg_cbsend(0)", test_tpt_msg_cbsend1) ||
 	    NULL == CU_add_test(psuite, "test of tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE)", test_tpt_msg_cbsend2) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, 0)", test_tpt_ev_add_ex_rd_0) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, TP_F_ONESHOT)", test_tpt_ev_add_ex_rd_oneshot) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, TP_F_DISPATCH)", test_tpt_ev_add_ex_rd_dispatch) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_READ, TP_F_EDGE)", test_tpt_ev_add_ex_rd_edge) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, 0)", test_tpt_ev_add_ex_rw_0) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, TP_F_ONESHOT)", test_tpt_ev_add_ex_rw_oneshot) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, TP_F_DISPATCH)", test_tpt_ev_add_ex_rw_dispatch) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_WRITE, TP_F_EDGE)", test_tpt_ev_add_ex_rw_edge) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, 0)", test_tpt_ev_add_ex_tmr_0) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, TP_F_ONESHOT)", test_tpt_ev_add_ex_tmr_oneshot) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, TP_F_DISPATCH)", test_tpt_ev_add_ex_tmr_dispatch) ||
-	    NULL == CU_add_test(psuite, "test of tpt_ev_add_ex(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
-	    NULL == CU_add_test(psuite, "test of tpt_gettimev()", test_tpt_gettimev) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, 0)", test_tpt_ev_add_ex_rd_0) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_ONESHOT)", test_tpt_ev_add_ex_rd_oneshot) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_DISPATCH)", test_tpt_ev_add_ex_rd_dispatch) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_EDGE)", test_tpt_ev_add_ex_rd_edge) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, 0)", test_tpt_ev_add_ex_rw_0) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_ONESHOT)", test_tpt_ev_add_ex_rw_oneshot) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_DISPATCH)", test_tpt_ev_add_ex_rw_dispatch) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_EDGE)", test_tpt_ev_add_ex_rw_edge) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, 0)", test_tpt_ev_add_ex_tmr_0) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_ONESHOT)", test_tpt_ev_add_ex_tmr_oneshot) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_DISPATCH)", test_tpt_ev_add_ex_tmr_dispatch) ||
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
 	    NULL == CU_add_test(psuite, "test of test_tp_destroy()", test_tp_destroy) ||
 	    0) {
 		CU_cleanup_registry();
@@ -276,10 +273,10 @@ test_tp_init1(void) {
 	int error;
 	tp_settings_t s;
 
-	tp_def_settings(&s);
+	tp_settings_def(&s);
 	threads_count = 1;
 	s.threads_max = 1;
-	s.flags = (TP_S_F_BIND2CPU | TP_S_F_CACHE_TIME_SYSC);
+	s.flags = (TP_S_F_BIND2CPU );
 	error = tp_create(&s, &tp);
 	CU_ASSERT(0 == error);
 	if (0 != error)
@@ -303,10 +300,10 @@ test_tp_init16(void) {
 	int error;
 	tp_settings_t s;
 
-	tp_def_settings(&s);
+	tp_settings_def(&s);
 	threads_count = THREADS_COUNT_MAX;
 	s.threads_max = THREADS_COUNT_MAX;
-	s.flags = (TP_S_F_BIND2CPU | TP_S_F_CACHE_TIME_SYSC);
+	s.flags = (TP_S_F_BIND2CPU);
 	error = tp_create(&s, &tp);
 	CU_ASSERT(0 == error);
 	if (0 != error)
@@ -590,7 +587,7 @@ tpt_ev_add_r_cb(tp_event_p ev, tp_udata_p tp_udata) {
 	    pipe_fd[0] == (int)tp_udata->ident) {
 		thr_arr[0] ++;
 		if (TEST_EV_CNT_MAX <= thr_arr[0]) {
-			tpt_ev_enable(0, TP_EV_READ, tp_udata);
+			tpt_ev_enable_args1(0, TP_EV_READ, tp_udata);
 		}
 	}
 }
@@ -606,26 +603,26 @@ test_tpt_ev_add_ex_rd(uint16_t flags, uint8_t res, int remove_ok) {
 
 	tp_udata.cb_func = tpt_ev_add_r_cb;
 	tp_udata.ident = (uintptr_t)pipe_fd[0];
-	if (0 != tpt_ev_add_ex(tp_thread_get(tp, 0), TP_EV_READ,
+	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_READ,
 	    flags, 0, 0, &tp_udata)) {
-		CU_FAIL("tpt_ev_add_ex(TP_EV_READ)"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_READ)"); /* Fail. */
 		read(pipe_fd[0], buf, sizeof(buf));
-		tpt_ev_del(TP_EV_READ, &tp_udata);
+		tpt_ev_del_args1(TP_EV_READ, &tp_udata);
 		return; /* Fail. */
 	}
 	CU_ASSERT(1 == write(pipe_fd[1], "1", 1));
 	/* Wait for all threads process. */
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	if (res != thr_arr[0]) {
-		CU_FAIL("tpt_ev_add_ex(TP_EV_READ) - not work"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_READ) - not work"); /* Fail. */
 		LOG_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	read(pipe_fd[0], buf, sizeof(buf));
 	if (0 != remove_ok) {
-		CU_ASSERT(0 == tpt_ev_del(TP_EV_READ, &tp_udata));
+		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_READ, &tp_udata));
 	}
-	CU_ASSERT(0 != tpt_ev_del(TP_EV_READ, &tp_udata));
+	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_READ, &tp_udata));
 }
 static void
 test_tpt_ev_add_ex_rd_0(void) {
@@ -665,7 +662,7 @@ tpt_ev_add_w_cb(tp_event_p ev, tp_udata_p tp_udata) {
 	    1 == write(pipe_fd[1], "1", 1)) { /* Dup for TP_F_ONESHOT test. */
 		thr_arr[0] ++;
 		if (TEST_EV_CNT_MAX <= thr_arr[0]) {
-			tpt_ev_enable(0, TP_EV_WRITE, tp_udata);
+			tpt_ev_enable_args1(0, TP_EV_WRITE, tp_udata);
 		}
 	}
 }
@@ -681,26 +678,26 @@ test_tpt_ev_add_ex_rw(uint16_t flags, uint8_t res, int remove_ok) {
 
 	tp_udata.cb_func = tpt_ev_add_w_cb;
 	tp_udata.ident = (uintptr_t)pipe_fd[1];
-	if (0 != tpt_ev_add_ex(tp_thread_get(tp, 0), TP_EV_WRITE,
+	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_WRITE,
 	    flags, 0, 0, &tp_udata)) {
-		CU_FAIL("tpt_ev_add_ex(TP_EV_WRITE)"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE)"); /* Fail. */
 		read(pipe_fd[0], buf, sizeof(buf));
-		tpt_ev_del(TP_EV_WRITE, &tp_udata);
+		tpt_ev_del_args1(TP_EV_WRITE, &tp_udata);
 		return; /* Fail. */
 	}
 	CU_ASSERT(1 == write(pipe_fd[1], "1", 1));
 	/* Wait for all threads process. */
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	if (res != thr_arr[0]) {
-		CU_FAIL("tpt_ev_add_ex(TP_EV_WRITE) - not work"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE) - not work"); /* Fail. */
 		LOG_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	read(pipe_fd[0], buf, sizeof(buf));
 	if (0 != remove_ok) {
-		CU_ASSERT(0 == tpt_ev_del(TP_EV_WRITE, &tp_udata));
+		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_WRITE, &tp_udata));
 	}
-	CU_ASSERT(0 != tpt_ev_del(TP_EV_WRITE, &tp_udata));
+	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_WRITE, &tp_udata));
 }
 static void
 test_tpt_ev_add_ex_rw_0(void) {
@@ -736,7 +733,7 @@ tpt_ev_add_tmr_cb(tp_event_p ev, tp_udata_p tp_udata) {
 	    TEST_TIMER_ID == tp_udata->ident) {
 		thr_arr[0] ++;
 		if (TEST_EV_CNT_MAX <= thr_arr[0]) {
-			tpt_ev_enable(0, TP_EV_TIMER, tp_udata);
+			tpt_ev_enable_args1(0, TP_EV_TIMER, tp_udata);
 		}
 	}
 }
@@ -750,23 +747,23 @@ test_tpt_ev_add_ex_tmr(uint16_t flags, uint8_t res, int remove_ok) {
 
 	tp_udata.cb_func = tpt_ev_add_tmr_cb;
 	tp_udata.ident = TEST_TIMER_ID;
-	if (0 != tpt_ev_add_ex(tp_thread_get(tp, 0), TP_EV_TIMER,
+	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_TIMER,
 	    flags, 0, TEST_TIMER_INTERVAL, &tp_udata)) {
-		CU_FAIL("tpt_ev_add_ex(TP_EV_TIMER)"); /* Fail. */
-		tpt_ev_del(TP_EV_TIMER, &tp_udata);
+		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER)"); /* Fail. */
+		tpt_ev_del_args1(TP_EV_TIMER, &tp_udata);
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
 	test_sleep(0, 300000000);
 	if (res != thr_arr[0]) {
-		CU_FAIL("tpt_ev_add_ex(TP_EV_TIMER) - not work"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER) - not work"); /* Fail. */
 		LOG_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	if (0 != remove_ok) {
-		CU_ASSERT(0 == tpt_ev_del(TP_EV_TIMER, &tp_udata));
+		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_TIMER, &tp_udata));
 	}
-	CU_ASSERT(0 != tpt_ev_del(TP_EV_TIMER, &tp_udata));
+	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_TIMER, &tp_udata));
 }
 static void
 test_tpt_ev_add_ex_tmr_0(void) {
@@ -788,48 +785,3 @@ test_tpt_ev_add_ex_tmr_edge(void) {
 
 	test_tpt_ev_add_ex_tmr(TP_F_EDGE, TEST_EV_CNT_MAX, 1);
 }
-
-
-static void
-test_tpt_gettimev(void) {
-	struct timespec tp0, tp1;
-	struct timespec tpr0, tpr1;
-
-	memset(&tp0, 0x00, sizeof(tp0));
-	memset(&tp1, 0x00, sizeof(tp1));
-	memset(&tpr0, 0x00, sizeof(tpr0));
-	memset(&tpr1, 0x00, sizeof(tpr1));
-
-	CU_ASSERT(0 == tpt_gettimev(tp_thread_get(tp, 0), 0, &tp0));
-	CU_ASSERT(0 == tpt_gettimev(tp_thread_get(tp, 0), 1, &tpr0));
-	/* Wait... */
-	test_sleep(1, 0);
-
-	CU_ASSERT(0 == tpt_gettimev(tp_thread_get(tp, 0), 0, &tp1));
-	CU_ASSERT(0 == tpt_gettimev(tp_thread_get(tp, 0), 1, &tpr1));
-
-	CU_ASSERT(0 != memcmp(&tp0, &tp1, sizeof(struct timespec)));
-	CU_ASSERT(0 != memcmp(&tpr0, &tpr1, sizeof(struct timespec)));
-	CU_ASSERT(0 != memcmp(&tp0, &tpr0, sizeof(struct timespec)));
-	CU_ASSERT(0 != memcmp(&tp1, &tpr1, sizeof(struct timespec)));
-}
-
-
-#if 0
-int	tp_thread_attach_first(tp_p tp);
-int	tp_thread_dettach(tpt_p tpt);
-
-int	tpt_ev_add(tpt_p tpt, uint16_t event, uint16_t flags,
-	    tp_udata_p tp_udata);
-int	tpt_ev_add2(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata);
-/*
- * flags - allowed: TP_F_ONESHOT, TP_F_DISPATCH, TP_F_EDGE
- */
-int	tpt_ev_del(uint16_t event, tp_udata_p tp_udata);
-int	tpt_ev_enable(int enable, uint16_t event, tp_udata_p tp_udata);
-int	tpt_ev_enable_ex(int enable, uint16_t event, uint16_t flags,
-	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
-
-/* Thread cached time functions. */
-time_t	tpt_gettime(tpt_p tpt, int real_time);
-#endif

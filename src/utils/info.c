@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2015 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -388,7 +388,7 @@ info_sysres(info_sysres_p sysres, uint8_t *buf, size_t buf_size,
 		return (EINVAL);
 
 	if (0 != getrusage(RUSAGE_SELF, &rusage) ||
-	    0 != clock_gettime(CLOCK_MONOTONIC, &ts))
+	    0 != clock_gettime(CLOCK_MONOTONIC_FAST, &ts))
 		return (errno);
 	if (NULL == buf || 0 == buf_size) /* Only init/update internal data. */
 		goto upd_int_data;

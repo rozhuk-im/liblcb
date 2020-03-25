@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,11 @@
 
 
 
-#ifndef SIZEOF
-#	define SIZEOF(__val)	(sizeof(__val) / sizeof(__val[0]))
+#ifndef nitems /* SIZEOF() */
+#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
+#endif
+#ifndef SIZEOF /* nitems() */
+#	define SIZEOF(__val)	nitems((__val))
 #endif
 
 #ifndef ALIGNEX
@@ -93,6 +96,13 @@
 
 #define TIMESPEC_TO_MS(__ts)						\
     ((((uint64_t)(__ts)->tv_sec) * 1000) + (((uint64_t)(__ts)->tv_nsec) / 1000000))
+
+#ifndef CLOCK_REALTIME_FAST
+#	define CLOCK_REALTIME_FAST	CLOCK_REALTIME
+#endif
+#ifndef CLOCK_MONOTONIC_FAST
+#	define CLOCK_MONOTONIC_FAST	CLOCK_MONOTONIC
+#endif
 
 
 #ifndef __unused

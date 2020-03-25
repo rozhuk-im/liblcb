@@ -35,7 +35,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <time.h>
-#ifdef THREAD_POOL_INI_CONFIG
+#ifdef THREAD_POOL_SETTINGS_INI
 #	include "utils/ini.h"
 #endif
 
@@ -57,8 +57,7 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_EV_WRITE	1 /* EVFILT_WRITE	EPOLLET | EPOLLOUT | EPOLLERR */
 #define TP_EV_TIMER	2 /* EVFILT_TIMER	TP_EV_READ + timerfd_create */
 #define TP_EV_LAST	TP_EV_TIMER
-#define TP_EV_MASK	0x0003 /* For internal use. */
-#define TP_EV_NONE	0xffff /* Recerved for internal use. */
+#define TP_EV_MASK	0x0003u /* For internal use: event set mask. */
 
 /* Event flags. */
 /* Only for set.	val			FreeBSD			__linux__ */
@@ -66,11 +65,20 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_F_DISPATCH	(((uint16_t)1) << 1) /* Set: EV_DISPATCH	EPOLLONESHOT */ /* DISABLE event after recv. */
 #define TP_F_EDGE	(((uint16_t)1) << 2) /* Set: EV_CLEAR		EPOLLET */ /* Report only if avaible data changed.*/
  									/* If not set will report if data/space avaible untill disable/delete event. */
-#define TP_F_S_MASK	0x0007 /* For internal use - flags set mask. */
+#define TP_F_S_MASK	0x0007u /* For internal use: flags set mask. */
 /* Return only. */
 #define TP_F_EOF	(((uint16_t)1) << 3) /* Ret: EV_EOF		EPOLLRDHUP */
 #define TP_F_ERROR	(((uint16_t)1) << 4) /* Ret: EV_EOF+fflags	EPOLLERR +  getsockopt(SO_ERROR) */ /* fflags contain error code. */
 
+/* Event fflags. */
+/* TP_EV_TIMER specific: if not set - the default is milliseconds. */
+#define TP_FF_T_SEC	(((uint32_t)1) << 0) /* data is seconds. */
+#define TP_FF_T_MSEC	(((uint32_t)1) << 1) /* data is milliseconds. */
+#define TP_FF_T_USEC	(((uint32_t)1) << 2) /* data is microseconds. */
+#define TP_FF_T_NSEC	(((uint32_t)1) << 3) /* data is nanoseconds. */
+#define TP_FF_T_ABSTIME	(((uint32_t)1) << 4) /* timeout is absolute. */
+#define TP_FF_T_TM_MASK	0x0000000fu /* For internal use: fflags set mask for time. */
+#define TP_FF_T_MASK	0x0000001fu /* For internal use: fflags set mask. */
 
 
 typedef void (*tp_cb)(tp_event_p ev, tp_udata_p tp_udata);
@@ -99,26 +107,23 @@ void	tp_signal_handler(int sig);
 typedef struct thread_pool_settings_s { /* Settings */
 	uint32_t	flags;	/* TP_S_F_* */
 	size_t		threads_max;
-	uint64_t	tick_time;
 } tp_settings_t, *tp_settings_p;
 
 #define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs */
-#define TP_S_F_CACHE_TIME_SYSC	(((uint32_t)1) << 8)	/* Cache tpt_gettimev() syscals. */
 //--#define TP_S_F_SHARE_EVENTS	(((uint32_t)1) << 1)	/* Not affected if threads_max = 1 */
 
 /* Default values. */
 #define TP_S_DEF_FLAGS		(TP_S_F_BIND2CPU)
 #define TP_S_DEF_THREADS_MAX	(0)
-#define TP_S_DEF_TICK_TIME	(10)
 
-void	tp_def_settings(tp_settings_p s_ret);
+void	tp_settings_def(tp_settings_p s_ret);
 
-#ifdef THREAD_POOL_XML_CONFIG
-int	tp_xml_load_settings(const uint8_t *buf, size_t buf_size,
+#ifdef THREAD_POOL_SETTINGS_XML
+int	tp_settings_load_xml(const uint8_t *buf, size_t buf_size,
 	    tp_settings_p s);
 #endif
-#ifdef THREAD_POOL_INI_CONFIG
-int	tp_ini_load_settings(const ini_p ini, const uint8_t *sect_name,
+#ifdef THREAD_POOL_SETTINGS_INI
+int	tp_settings_load_ini(const ini_p ini, const uint8_t *sect_name,
 	    const size_t sect_name_size, tp_settings_p s);
 #endif
 
@@ -150,21 +155,25 @@ void	*tpt_get_msg_queue(tpt_p tpt);
 
 
 
-int	tpt_ev_add(tpt_p tpt, uint16_t event, uint16_t flags,
-	    tp_udata_p tp_udata);
-int	tpt_ev_add_ex(tpt_p tpt, uint16_t event, uint16_t flags,
+int	tpt_ev_add(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata);
+int	tpt_ev_add_args(tpt_p tpt, uint16_t event, uint16_t flags,
 	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
-int	tpt_ev_add2(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata);
+int	tpt_ev_add_args2(tpt_p tpt, uint16_t event, uint16_t flags,
+	    tp_udata_p tp_udata);
+
+/* flags - allowed: TP_F_ONESHOT, TP_F_DISPATCH, TP_F_EDGE */
+int	tpt_ev_del(tp_event_p ev, tp_udata_p tp_udata);
+int	tpt_ev_del_args1(uint16_t event, tp_udata_p tp_udata);
+int	tpt_ev_enable(int enable, tp_event_p ev, tp_udata_p tp_udata);
+int	tpt_ev_enable_args(int enable, uint16_t event, uint16_t flags,
+	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
+int	tpt_ev_enable_args1(int enable, uint16_t event, tp_udata_p tp_udata);
+
+/* fflags: TP_FF_T_* */
 int	tpt_timer_add(tpt_p tpt, int enable, uintptr_t ident,
-	    uint64_t timeout, uint16_t flags, tp_cb cb_func,
-	    tp_udata_p tp_udata);
-/*
- * flags - allowed: TP_F_ONESHOT, TP_F_DISPATCH, TP_F_EDGE
- */
-int	tpt_ev_del(uint16_t event, tp_udata_p tp_udata);
-int	tpt_ev_enable(int enable, uint16_t event, tp_udata_p tp_udata);
-int	tpt_ev_enable_ex(int enable, uint16_t event, uint16_t flags,
-	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
+	    uint64_t timeout, uint16_t flags, uint32_t fflags,
+	    tp_cb cb_func, tp_udata_p tp_udata);
+
 
 #ifdef NOT_YET__FreeBSD__ /* Per thread queue functions. Only for kqueue! */
 int	tpt_ev_q_add(tpt_p tpt, uint16_t event, uint16_t flags,
@@ -178,14 +187,10 @@ int	tpt_ev_q_flush(tpt_p tpt);
 #define	tpt_ev_q_add		tpt_ev_add
 #define	tpt_ev_q_del		tpt_ev_del
 #define	tpt_ev_q_enable		tpt_ev_enable
-#define	tpt_ev_q_enable_ex	tpt_ev_enable_ex
+#define	tpt_ev_q_enable_args	tpt_ev_enable_args
+#define	tpt_ev_q_enable_args1	tpt_ev_enable_args1
 #define	tpt_ev_q_flush
-
 #endif
-
-/* Thread cached time functions. */
-int	tpt_gettimev(tpt_p tpt, int real_time, struct timespec *ts);
-time_t	tpt_gettime(tpt_p tpt, int real_time);
 
 
 #endif /* __THREAD_POOL_H__ */

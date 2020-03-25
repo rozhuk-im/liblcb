@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -500,13 +500,13 @@ dns_rslvr_task_alloc(dns_rslvr_p rslvr, dns_resolv_cb cb_func, void *arg,
 	//task->loop_count = 0;
 	task->cb_func = cb_func;
 	task->udata = arg;
-	error = tpt_ev_add_ex(tp_thread_get_pvt(rslvr->tp), TP_EV_TIMER,
+	error = tpt_ev_add_args(tp_thread_get_pvt(rslvr->tp), TP_EV_TIMER,
 	    TP_F_DISPATCH, 0, rslvr->timeout, &rslvr->tasks_tmr[task_id]);
 	if (0 != error) {
 		dns_rslvr_task_free(task);
 		return (error);
 	}
-	tpt_ev_enable(0, TP_EV_TIMER, &rslvr->tasks_tmr[task_id]);
+	tpt_ev_enable_args1(0, TP_EV_TIMER, &rslvr->tasks_tmr[task_id]);
 	(*task_ret) = task;
 
 	return (0);
@@ -519,7 +519,7 @@ dns_rslvr_task_free(dns_rslvr_task_p task) {
 	if (NULL == task)
 		return;
 	rslvr = task->rslvr;
-	tpt_ev_del(TP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
+	tpt_ev_del_args1(TP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
 	/* XXX Lock */
 	rslvr->tasks_tmr[task->task_id].ident = 0;
 	rslvr->tasks_count --;
@@ -768,7 +768,7 @@ dns_resolv_hostaddr_int(dns_rslvr_p rslvr, int send_request,
 			continue;
 		}
 		/* FOUND!!! */
-		addrs_count = MIN(cache_entry->data_count, SIZEOF(ssaddrs));
+		addrs_count = MIN(cache_entry->data_count, nitems(ssaddrs));
 		dns_rslvr_cache_addr_cp(cache_entry->addrs, addrs_count, ssaddrs);
 		hbucket_zone_unlock(zone);
 		cb_func(task, 0, ssaddrs, addrs_count, arg);
@@ -859,7 +859,7 @@ dns_resolver_task_done(dns_rslvr_task_p task, int error,
 	    (uint16_t)addrs_count, 0, valid_untill);
 
 	if (NULL != task->cb_func) {
-		addrs_count = MIN(addrs_count, SIZEOF(ssaddrs));
+		addrs_count = MIN(addrs_count, nitems(ssaddrs));
 		dns_rslvr_cache_addr_cp(addrs, addrs_count, ssaddrs);
 		task->cb_func(task, error, ssaddrs, addrs_count, task->udata);
 	}
@@ -908,7 +908,7 @@ dns_resolver_send(dns_rslvr_task_p task) {
 	    (sockaddr_p)&task->rslvr->dns_addrs[task->cur_srv_idx],
 	    sa_size(&task->rslvr->dns_addrs[task->cur_srv_idx])))
 		return (errno);
-	tpt_ev_enable_ex(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
+	tpt_ev_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
 	    task->rslvr->timeout, &task->rslvr->tasks_tmr[task->task_id]);
 
 	return (0);
@@ -920,7 +920,7 @@ dns_resolver_task_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	dns_rslvr_task_p task = (dns_rslvr_task_p)tp_udata->ident;
 	int error;
 
-	tpt_ev_enable(0, TP_EV_TIMER, tp_udata);
+	tpt_ev_enable_args1(0, TP_EV_TIMER, tp_udata);
 	if (NULL == task) /* Task already done/removed. */
 		return;
 
@@ -977,7 +977,7 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 		goto rcv_next;
 
 	/* Looks like answer for resolv task... */
-	tpt_ev_enable(0, TP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
+	tpt_ev_enable_args1(0, TP_EV_TIMER, &rslvr->tasks_tmr[task->task_id]);
 
 	time_now = time(NULL);
 	valid_untill = (time_now + rslvr->neg_cache);
@@ -1027,7 +1027,7 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 		goto rcv_next;
 	}
 
-	while (SIZEOF(addrs) > addrs_count) {
+	while (nitems(addrs) > addrs_count) {
 		error = dns_msg_rr_find(dns_hdr, msg_size, &Offset, &rr_count,
 		    task->cache_entry->name, task->cache_entry->name_size, &rr_type,
 		    &rr_class, &rr_ttl, &rr_data_size, (void**)&rr_data, &rr_size);

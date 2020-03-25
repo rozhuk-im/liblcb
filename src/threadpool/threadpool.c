@@ -61,11 +61,11 @@
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
-#ifdef THREAD_POOL_XML_CONFIG
+#ifdef THREAD_POOL_SETTINGS_XML
 #	include "utils/buf_str.h"
 #	include "utils/xml.h"
 #endif
-#ifdef THREAD_POOL_INI_CONFIG
+#ifdef THREAD_POOL_SETTINGS_INI
 #	include "utils/buf_str.h"
 #	include "utils/ini.h"
 #endif
@@ -103,9 +103,6 @@ static const short tp_event_to_kq_map[] = {
 	EVFILT_TIMER,		/* 2: TP_EV_TIMER */
 	0
 };
-
-#define TP_CLOCK_REALTIME	CLOCK_REALTIME_FAST
-#define TP_CLOCK_MONOTONIC	CLOCK_MONOTONIC_FAST
 
 #endif /* BSD specific code. */
 
@@ -146,10 +143,6 @@ static const uint32_t tp_event_to_ep_map[] = {
 }
 #define TPDATA_F_DISABLED		(((uint64_t)1) << 63) /* Make sure that disabled event never call cb func. */
 
-
-#define TP_CLOCK_REALTIME	CLOCK_REALTIME
-#define TP_CLOCK_MONOTONIC	CLOCK_MONOTONIC
-
 #endif /* Linux specific code. */
 
 
@@ -180,16 +173,13 @@ typedef struct thread_pool_s { /* thread pool */
 	uint32_t	flags;
 	size_t		cpu_count;
 	uintptr_t	fd_count;
-	tp_udata_t	timer_cached;	/* Cached time update timer: ident=pointer to tp_cached. */
-	struct timespec	time_cached[2]; /* 0: MONOTONIC, 1: REALTIME */
 	size_t		threads_max;
 	volatile size_t	threads_cnt;	/* worker threads count */
 	tp_thread_t	threads[];	/* worker threads */
 } tp_t;
 
 
-static int	tpt_ev_post(int op, uint16_t event, uint16_t flags,
-		    tp_event_p ev, tp_udata_p tp_udata);
+static int	tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata);
 static int	tpt_data_event_init(tpt_p tpt);
 static void	tpt_data_event_destroy(tpt_p tpt);
 static void	tpt_loop(tpt_p tpt);
@@ -229,6 +219,39 @@ tp_flags_to_kq(uint16_t flags) {
 	return (ret);
 }
 
+static inline u_int
+tp_fflags_to_kq(uint16_t event, uint32_t fflags) {
+	u_int ret = 0;
+
+	switch (event) {
+	case TP_EV_TIMER:
+		if (0 != (TP_FF_T_ABSTIME & fflags)) {
+			ret |= NOTE_ABSTIME;
+		}
+		switch ((TP_FF_T_TM_MASK & fflags)) {
+		case TP_FF_T_SEC:
+			ret |= NOTE_SECONDS;
+			break;
+		case 0:
+		case TP_FF_T_MSEC:
+			ret |= NOTE_MSECONDS;
+			break;
+		case TP_FF_T_USEC:
+			ret |= NOTE_USECONDS;
+			break;
+		case TP_FF_T_NSEC:
+			ret |= NOTE_NSECONDS;
+			break;
+		}
+		break;
+	default:
+		ret = (u_int)fflags;
+		break;
+	}
+
+	return (ret);
+}
+
 static int
 tpt_data_event_init(tpt_p tpt) {
 	struct kevent kev;
@@ -261,42 +284,27 @@ tpt_data_event_destroy(tpt_p tpt) {
 }
 
 static int
-tpt_ev_post(int op, uint16_t event, uint16_t flags, tp_event_p ev,
-    tp_udata_p tp_udata) {
+tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
 	struct kevent kev;
-	uint32_t fflags;
-	uint64_t data;
 
 	if (TP_CTL_LAST < op ||
-	    NULL == tp_udata ||
-	    (uintptr_t)-1 == tp_udata->ident ||
-	    NULL == tp_udata->tpt)
+	    NULL == ev ||
+	    NULL == tp_udata)
 		return (EINVAL);
-	if (NULL != ev) {
-		event = ev->event;
-		flags = ev->flags;
-		fflags = ev->fflags;
-		data = ev->data;
-	} else {
-		fflags = 0;
-		data = 0;
-	}
-	if (TP_EV_LAST < event)
-		return (EINVAL); /* Bad event. */
+
 	EV_SET(&kev,
 	    tp_udata->ident,
-	    tp_event_to_kq_map[event],
-	    (tp_op_to_flags_kq_map[op] | tp_flags_to_kq(flags)),
-	    fflags, data, (void*)tp_udata);
-	if (TP_EV_TIMER == event) { /* Timer: force update. */
+	    tp_event_to_kq_map[ev->event],
+	    (tp_op_to_flags_kq_map[op] | tp_flags_to_kq(ev->flags)),
+	    tp_fflags_to_kq(ev->event, ev->fflags),
+	    ev->data,
+	    (void*)tp_udata);
+	if (TP_EV_TIMER == ev->event) { /* Timer: force update. */
 		if (0 != ((EV_ADD | EV_ENABLE) & kev.flags)) {
 			if (NULL == ev) /* Params required for add/mod. */
 				return (EINVAL);
 			kev.flags |= (EV_ADD | EV_ENABLE);
 		}
-	} else { /* Read/write. */
-		if (tp_udata->tpt->tp->fd_count <= tp_udata->ident)
-			return (EBADF); /* Bad FD. */
 	}
 	if (-1 == kevent((int)tp_udata->tpt->io_fd, &kev, 1, NULL, 0, NULL))
 		return (errno);
@@ -352,20 +360,20 @@ tpt_ev_q_del(uint16_t event, tp_udata_p tp_udata) {
 	tpt->ev_nchanges = ev_nchanges;
 
 	return (ret);*/
-	return (tpt_ev_del(event, tp_udata));
+	return (tpt_ev_del_args1(event, tp_udata));
 }
 
 int
 tpt_ev_q_enable(int enable, uint16_t event, tp_udata_p tp_udata) {
 
-	return (tpt_ev_enable(enable, event, tp_udata));
+	return (tpt_ev_enable_args1(enable, event, tp_udata));
 }
 
 int
 tpt_ev_q_enable_ex(int enable, uint16_t event, uint16_t flags,
     uint32_t fflags, intptr_t data, tp_udata_p tp_udata) {
 
-	return (tpt_ev_enable_ex(enable, event, flags, fflags, data, tp_udata));
+	return (tpt_ev_enable_args(enable, event, flags, fflags, data, tp_udata));
 }
 
 int
@@ -505,6 +513,7 @@ tp_flags_to_ep(uint16_t flags) {
 static int
 tpt_data_event_init(tpt_p tpt) {
 	int error;
+	tp_event_t ev;
 
 	tpt->io_fd = epoll_create(tpt->tp->fd_count);
 	if ((uintptr_t)-1 == tpt->io_fd)
@@ -516,11 +525,12 @@ tpt_data_event_init(tpt_p tpt) {
 	if (NULL != tpt->tp->pvt &&
 	    tpt != tpt->tp->pvt) {
 		/* Add pool virtual thread to normal thread. */
+		mem_bzero(&ev, sizeof(tp_event_t));
+		ev.event = TP_EV_READ;
 		tpt->pvt_udata.cb_func = NULL;
 		tpt->pvt_udata.ident = tpt->tp->pvt->io_fd;
 		tpt->pvt_udata.tpt = tpt;
-		error = tpt_ev_post(TP_CTL_ADD, TP_EV_READ, 0,
-		    NULL, &tpt->pvt_udata);
+		error = tpt_ev_post(TP_CTL_ADD, &ev, &tpt->pvt_udata);
 		if (0 != error)
 			return (error);
 	}
@@ -567,29 +577,20 @@ epoll_ctl_ex(int epfd, int op, int fd, struct epoll_event *event) {
 }
 
 static int
-tpt_ev_post(int op, uint16_t event, uint16_t flags, tp_event_p ev,
-    tp_udata_p tp_udata) {
-	int error = 0;
-	int tfd;
+tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
+	int error = 0, tfd, clockid = CLOCK_MONOTONIC, tmr_flags = 0;
 	struct itimerspec new_tmr;
 	struct epoll_event epev;
 
 	if (TP_CTL_LAST < op ||
-	    NULL == tp_udata ||
-	    (uintptr_t)-1 == tp_udata->ident ||
-	    NULL == tp_udata->tpt)
+	    NULL == ev ||
+	    NULL == tp_udata)
 		return (EINVAL);
-	if (NULL != ev) {
-		event = ev->event;
-		flags = ev->flags;
-	}
-	if (TP_EV_LAST < event)
-		return (EINVAL); /* Bad event. */
 
 	epev.events = (EPOLLHUP | EPOLLERR);
 	epev.data.ptr = (void*)tp_udata;
 
-	if (TP_EV_TIMER == event) { /* Special handle for timer. */
+	if (TP_EV_TIMER == ev->event) { /* Special handle for timer. */
 		tfd = TPDATA_TFD_GET(tp_udata->tpdata);
 		if (TP_CTL_DEL == op) { /* Delete timer. */
 			if (0 == tfd)
@@ -611,17 +612,21 @@ err_out_timer:
 			}
 			return (0);
 		}
+
 		/* TP_CTL_ADD, TP_CTL_ENABLE */
-		if (NULL == ev) /* Params required for add/mod. */
-			return (EINVAL);
+		if (0 != (TP_FF_T_ABSTIME & ev->fflags)) {
+			clockid = CLOCK_REALTIME;
+			tmr_flags = TFD_TIMER_ABSTIME;
+		}
+
 		if (0 == tfd) { /* Create timer, if needed. */
-			tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
+			tfd = timerfd_create(clockid, TFD_NONBLOCK);
 			if (-1 == tfd) {
 				tp_udata->tpdata = 0;
 				return (errno);
 			}
 			TPDATA_TFD_SET(tp_udata->tpdata, tfd);
-			TPDATA_EV_FL_SET(tp_udata->tpdata, event, flags); /* Remember original event and flags. */
+			TPDATA_EV_FL_SET(tp_udata->tpdata, ev->event, ev->flags); /* Remember original event and flags. */
 			/* Adding to epoll. */
 			epev.events |= EPOLLIN; /* Not set EPOLLONESHOT, control timer. */
 			if (0 != epoll_ctl((int)tp_udata->tpt->io_fd,
@@ -630,15 +635,33 @@ err_out_timer:
 				goto err_out_timer;
 			}
 		}
+
 		tp_udata->tpdata &= ~TPDATA_F_DISABLED;
-		new_tmr.it_value.tv_sec = (ev->data / 1000);
-		new_tmr.it_value.tv_nsec = ((ev->data % 1000) * 1000000);
-		if (0 != ((TP_F_ONESHOT | TP_F_DISPATCH) & flags)) { /* Onetime. */
+		switch ((TP_FF_T_TM_MASK & ev->fflags)) {
+		case TP_FF_T_SEC:
+			new_tmr.it_value.tv_sec = (time_t)ev->data;
+			new_tmr.it_value.tv_nsec = 0;
+			break;
+		case 0:
+		case TP_FF_T_MSEC:
+			new_tmr.it_value.tv_sec = (ev->data / 1000ul);
+			new_tmr.it_value.tv_nsec = ((ev->data % 1000ul) * 1000000ul);
+			break;
+		case TP_FF_T_USEC:
+			new_tmr.it_value.tv_sec = (ev->data / 1000000ul);
+			new_tmr.it_value.tv_nsec = ((ev->data % 1000000ul) * 1000000000000ul);
+			break;
+		case TP_FF_T_NSEC:
+			new_tmr.it_value.tv_sec = (ev->data / 1000000000ul);
+			new_tmr.it_value.tv_nsec = (ev->data % 1000000000ul);
+			break;
+		}
+		if (0 != ((TP_F_ONESHOT | TP_F_DISPATCH) & ev->flags)) { /* Onetime. */
 			mem_bzero(&new_tmr.it_interval, sizeof(struct timespec));
 		} else { /* Periodic. */
 			new_tmr.it_interval = new_tmr.it_value; /* memcpy(). */
 		}
-		if (-1 == timerfd_settime(tfd, 0, &new_tmr, NULL)) {
+		if (-1 == timerfd_settime(tfd, tmr_flags, &new_tmr, NULL)) {
 			error = errno;
 			goto err_out_timer;
 		}
@@ -646,8 +669,6 @@ err_out_timer:
 	}
 
 	/* Read/Write events. */
-	if (tp_udata->tpt->tp->fd_count <= tp_udata->ident)
-		return (EBADF); /* Bad FD. */
 	/* Single event. */
 	if (TP_CTL_DEL == op) {
 		tp_udata->tpdata = 0;
@@ -659,13 +680,13 @@ err_out_timer:
 
 	tfd = ((0 == tp_udata->tpdata) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD);
 	TPDATA_TFD_SET(tp_udata->tpdata, 0);
-	TPDATA_EV_FL_SET(tp_udata->tpdata, event, flags); /* Remember original event and flags. */
+	TPDATA_EV_FL_SET(tp_udata->tpdata, ev->event, ev->flags); /* Remember original event and flags. */
 	if (TP_CTL_DISABLE == op) { /* Disable event. */
 		tp_udata->tpdata |= TPDATA_F_DISABLED;
 		epev.events |= EPOLLET; /* Mark as level trig, to only once report HUP/ERR. */
 	} else {
 		tp_udata->tpdata &= ~TPDATA_F_DISABLED;
-		epev.events |= (tp_event_to_ep_map[event] | tp_flags_to_ep(flags));
+		epev.events |= (tp_event_to_ep_map[ev->event] | tp_flags_to_ep(ev->flags));
 	}
 	error = epoll_ctl_ex((int)tp_udata->tpt->io_fd,
 	    tfd, (int)tp_udata->ident, &epev);
@@ -807,7 +828,7 @@ tp_signal_handler(int sig) {
 
 
 void
-tp_def_settings(tp_settings_p s_ret) {
+tp_settings_def(tp_settings_p s_ret) {
 
 	if (NULL == s_ret)
 		return;
@@ -817,12 +838,11 @@ tp_def_settings(tp_settings_p s_ret) {
 	/* Default settings. */
 	s_ret->flags = TP_S_DEF_FLAGS;
 	s_ret->threads_max = TP_S_DEF_THREADS_MAX;
-	s_ret->tick_time = TP_S_DEF_TICK_TIME;
 }
 
-#ifdef THREAD_POOL_XML_CONFIG
+#ifdef THREAD_POOL_SETTINGS_XML
 int
-tp_xml_load_settings(const uint8_t *buf, size_t buf_size, tp_settings_p s) {
+tp_settings_load_xml(const uint8_t *buf, size_t buf_size, tp_settings_p s) {
 	const uint8_t *data;
 	size_t data_size;
 
@@ -835,24 +855,17 @@ tp_xml_load_settings(const uint8_t *buf, size_t buf_size, tp_settings_p s) {
 	    (const uint8_t*)"fBindToCPU", NULL)) {
 		yn_set_flag32(data, data_size, TP_S_F_BIND2CPU, &s->flags);
 	}
-	if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
-	    &data, &data_size,
-	    (const uint8_t*)"fCacheGetTimeSyscall", NULL)) {
-		yn_set_flag32(data, data_size, TP_S_F_CACHE_TIME_SYSC, &s->flags);
-	}
 
 	/* Other. */
 	xml_get_val_size_t_args(buf, buf_size, NULL, &s->threads_max,
 	    (const uint8_t*)"threadsCountMax", NULL);
-	xml_get_val_uint64_args(buf, buf_size, NULL, &s->tick_time,
-	    (const uint8_t*)"timerGranularity", NULL);
 
 	return (0);
 }
 #endif
-#ifdef THREAD_POOL_INI_CONFIG
+#ifdef THREAD_POOL_SETTINGS_INI
 int
-tp_ini_load_settings(const ini_p ini, const uint8_t *sect_name,
+tp_settings_load_ini(const ini_p ini, const uint8_t *sect_name,
     const size_t sect_name_size, tp_settings_p s) {
 	const uint8_t *data;
 	size_t data_size;
@@ -865,16 +878,10 @@ tp_ini_load_settings(const ini_p ini, const uint8_t *sect_name,
 	    (const uint8_t*)"fBindToCPU", 0, &data, &data_size)) {
 		yn_set_flag32(data, data_size, TP_S_F_BIND2CPU, &s->flags);
 	}
-	if (0 == ini_vali_get(ini, sect_name, sect_name_size,
-	    (const uint8_t*)"fCacheGetTimeSyscall", 0, &data, &data_size)) {
-		yn_set_flag32(data, data_size, TP_S_F_CACHE_TIME_SYSC, &s->flags);
-	}
 
 	/* Other. */
 	ini_vali_get_uint(ini, sect_name, sect_name_size,
 	    (const uint8_t*)"threadsCountMax", 0, &s->threads_max);
-	ini_vali_get_uint(ini, sect_name, sect_name_size,
-	    (const uint8_t*)"timerGranularity", 0, &s->tick_time);
 
 	return (0);
 }
@@ -897,7 +904,6 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 	size_t i, cpu_count;
 	tp_p tp;
 	tp_settings_t s_def;
-	tp_event_t ev;
 
 	error = tp_init();
 	if (0 != error) {
@@ -908,7 +914,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 	if (NULL == ptp)
 		return (EINVAL);
 	if (NULL == s) {
-		tp_def_settings(&s_def);
+		tp_settings_def(&s_def);
 	} else {
 		memcpy(&s_def, s, sizeof(s_def));
 	}
@@ -950,20 +956,6 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 		}
 	}
 
-	if (0 != (TP_S_F_CACHE_TIME_SYSC & s->flags)) {
-		error = tpt_timer_add(&tp->threads[0], 1,
-		    (uintptr_t)&tp->time_cached, s->tick_time, 0,
-		    tpt_cached_time_update_cb, &tp->timer_cached);
-		if (0 != error) {
-			LOGD_ERR(error, "tpt_ev_add_ex(threads[0], TP_EV_TIMER, tick_time)");
-			goto err_out;
-		}
-		/* Update time. */
-		mem_bzero(&ev, sizeof(ev));
-		ev.event = TP_EV_TIMER;
-		tpt_cached_time_update_cb(&ev, &tp->timer_cached);
-	}
-
 	(*ptp) = tp;
 	return (0);
 
@@ -978,9 +970,6 @@ tp_shutdown(tp_p tp) {
 
 	if (NULL == tp)
 		return;
-	if (0 != (TP_S_F_CACHE_TIME_SYSC & tp->flags)) {
-		tpt_ev_del(TP_EV_TIMER, &tp->timer_cached);
-	}
 	/* Shutdown threads. */
 	for (i = 0; i < tp->threads_max; i ++) {
 		if (0 == tp->threads[i].running)
@@ -1253,122 +1242,163 @@ tpt_data_uninit(tpt_p tpt) {
 }
 
 
-int
-tpt_ev_add(tpt_p tpt, uint16_t event, uint16_t flags,
-    tp_udata_p tp_udata) {
+static int
+tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 
-	if (NULL == tp_udata || NULL == tp_udata->cb_func)
+	/* Args. */
+	if (TP_CTL_LAST < op ||
+	    NULL == ev ||
+	    NULL == tp_udata)
 		return (EINVAL);
-	tp_udata->tpt = tpt;
-	return (tpt_ev_post(TP_CTL_ADD, event, flags, NULL, tp_udata));
+	/* tp_udata */
+	if (NULL == tp_udata->cb_func ||
+	    (uintptr_t)-1 == tp_udata->ident ||
+	    NULL == tp_udata->tpt)
+		return (EINVAL);
+	/* Extended checks. */
+	switch (ev->event) {
+	case TP_EV_READ:
+	case TP_EV_WRITE:
+		if (tp_udata->tpt->tp->fd_count <= tp_udata->ident)
+			return (EBADF); /* Bad FD. */
+		break;
+	case TP_EV_TIMER:
+#if 0 /* XXX: check this. */
+		if (0 != (TP_F_EDGE & ev->flags))
+			return (EINVAL); /* Invalid flags. */
+#endif
+		if (0 != (~(TP_FF_T_MASK) & ev->fflags))
+			return (EINVAL); /* Invalid fflags: some unknown bits is set. */
+		switch ((TP_FF_T_TM_MASK & ev->fflags)) {
+		case 0:
+		case TP_FF_T_SEC:
+		case TP_FF_T_MSEC:
+		case TP_FF_T_USEC:
+		case TP_FF_T_NSEC:
+			break;
+		default:
+			return (EINVAL); /* Invalid fflags. */
+		}
+		break;
+	default:
+		return (EINVAL); /* Bad event. */
+	}
+
+	return (0);
 }
 
-int
-tpt_ev_add_ex(tpt_p tpt, uint16_t event, uint16_t flags,
-    uint32_t fflags, uint64_t data, tp_udata_p tp_udata) {
+static int
+tpt_ev_post_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
+	int error;
+
+	error = tpt_ev_validate(op, ev, tp_udata);
+	if (0 != error)
+		return (error);
+	return (tpt_ev_post(op, ev, tp_udata));
+}
+
+static int
+tpt_ev_post_validate_args(int op, uint16_t event,
+    uint16_t flags, uint32_t fflags, uint64_t data, tp_udata_p tp_udata) {
 	tp_event_t ev;
 
 	ev.event = event;
 	ev.flags = flags;
 	ev.fflags = fflags;
 	ev.data = data;
-	return (tpt_ev_add2(tpt, &ev, tp_udata));
+
+	return (tpt_ev_post_validate(op, &ev, tp_udata));
 }
 
 int
-tpt_ev_add2(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata) {
+tpt_ev_add(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata) {
 
-	if (NULL == ev || NULL == tp_udata || NULL == tp_udata->cb_func)
+	if (NULL == tp_udata)
 		return (EINVAL);
 	tp_udata->tpt = tpt;
-	return (tpt_ev_post(TP_CTL_ADD, TP_EV_NONE, 0, ev, tp_udata));
+
+	return (tpt_ev_post_validate(TP_CTL_ADD, ev, tp_udata));
 }
+
+int
+tpt_ev_add_args(tpt_p tpt, uint16_t event, uint16_t flags,
+    uint32_t fflags, uint64_t data, tp_udata_p tp_udata) {
+
+	if (NULL == tp_udata)
+		return (EINVAL);
+	tp_udata->tpt = tpt;
+
+	return (tpt_ev_post_validate_args(TP_CTL_ADD, event, flags,
+	    fflags, data, tp_udata));
+}
+
+int
+tpt_ev_add_args2(tpt_p tpt, uint16_t event, uint16_t flags,
+    tp_udata_p tp_udata) {
+
+	if (NULL == tp_udata)
+		return (EINVAL);
+	tp_udata->tpt = tpt;
+
+	return (tpt_ev_post_validate_args(TP_CTL_ADD, event, flags,
+	    0, 0, tp_udata));
+}
+
+int
+tpt_ev_del(tp_event_p ev, tp_udata_p tp_udata) {
+
+	return (tpt_ev_post_validate(TP_CTL_DEL, ev, tp_udata));
+}
+
+int
+tpt_ev_del_args1(uint16_t event, tp_udata_p tp_udata) {
+
+	return (tpt_ev_post_validate_args(TP_CTL_DEL, event, 0, 0, 0,
+	    tp_udata));
+}
+
+int
+tpt_ev_enable(int enable, tp_event_p ev, tp_udata_p tp_udata) {
+
+	return (tpt_ev_post_validate(
+	    ((0 != enable) ? TP_CTL_ENABLE : TP_CTL_DISABLE),
+	    ev, tp_udata));
+}
+
+int
+tpt_ev_enable_args(int enable, uint16_t event, uint16_t flags,
+    uint32_t fflags, uint64_t data, tp_udata_p tp_udata) {
+
+	return (tpt_ev_post_validate_args(
+	    ((0 != enable) ? TP_CTL_ENABLE : TP_CTL_DISABLE),
+	    event, flags, fflags, data, tp_udata));
+}
+
+int
+tpt_ev_enable_args1(int enable, uint16_t event, tp_udata_p tp_udata) {
+
+	return (tpt_ev_post_validate_args(
+	    ((0 != enable) ? TP_CTL_ENABLE : TP_CTL_DISABLE),
+	    event, 0, 0, 0, tp_udata));
+}
+
 
 int
 tpt_timer_add(tpt_p tpt, int enable, uintptr_t ident,
-    uint64_t timeout, uint16_t flags, tp_cb cb_func,
+    uint64_t timeout, uint16_t flags, uint32_t fflags, tp_cb cb_func,
     tp_udata_p tp_udata) {
 	int error;
 
-	if (NULL == tpt || NULL == cb_func || NULL == tp_udata ||
-	    0 != (TP_F_EDGE & flags))
+	if (NULL == tp_udata)
 		return (EINVAL);
 	tp_udata->cb_func = cb_func;
 	tp_udata->ident = ident;
-	error = tpt_ev_add_ex(tpt, TP_EV_TIMER, flags, 0, timeout,
-	    tp_udata);
+	tp_udata->tpt = tpt;
+	error = tpt_ev_post_validate_args(TP_CTL_ADD, TP_EV_TIMER,
+	    flags, fflags, timeout, tp_udata);
 	if (0 != error ||
 	    0 != enable)
 		return (error);
-	tpt_ev_enable(0, TP_EV_TIMER, tp_udata);
+	tpt_ev_enable_args1(0, TP_EV_TIMER, tp_udata);
 	return (0);
-}
-
-int
-tpt_ev_del(uint16_t event, tp_udata_p tp_udata) {
-
-	//tpt_ev_q_del(event, tp_udata);
-	return (tpt_ev_post(TP_CTL_DEL, event, 0, NULL, tp_udata));
-}
-
-int
-tpt_ev_enable(int enable, uint16_t event, tp_udata_p tp_udata) {
-
-	return (tpt_ev_post(((0 != enable) ? TP_CTL_ENABLE : TP_CTL_DISABLE),
-	    event, 0, NULL, tp_udata));
-}
-
-int
-tpt_ev_enable_ex(int enable, uint16_t event, uint16_t flags,
-    uint32_t fflags, uint64_t data, tp_udata_p tp_udata) {
-	tp_event_t ev;
-
-	ev.event = event;
-	ev.flags = flags;
-	ev.fflags = fflags;
-	ev.data = data;
-
-	return (tpt_ev_post(((0 != enable) ? TP_CTL_ENABLE : TP_CTL_DISABLE),
-	    TP_EV_NONE, 0, &ev, tp_udata));
-}
-
-
-void
-tpt_cached_time_update_cb(tp_event_p ev, tp_udata_p tp_udata) {
-	struct timespec *ts;
-
-	debugd_break_if(NULL == ev);
-	debugd_break_if(TP_EV_TIMER != ev->event);
-	debugd_break_if(NULL == tp_udata);
-
-	ts = (struct timespec*)tp_udata->ident;
-	clock_gettime(TP_CLOCK_MONOTONIC, &ts[0]);
-	clock_gettime(TP_CLOCK_REALTIME, &ts[1]);
-}
-
-int
-tpt_gettimev(tpt_p tpt, int real_time, struct timespec *ts) {
-
-	if (NULL == ts)
-		return (EINVAL);
-	if (NULL == tpt ||
-	    0 == (TP_S_F_CACHE_TIME_SYSC & tpt->tp->flags)) { /* No caching. */
-		if (0 != real_time)
-			return (clock_gettime(TP_CLOCK_REALTIME, ts));
-		return (clock_gettime(TP_CLOCK_MONOTONIC, ts));
-	}
-	if (0 != real_time) {
-		memcpy(ts, &tpt->tp->time_cached[1], sizeof(struct timespec));
-	} else {
-		memcpy(ts, &tpt->tp->time_cached[0], sizeof(struct timespec));
-	}
-	return (0);
-}
-
-time_t
-tpt_gettime(tpt_p tpt, int real_time) {
-	struct timespec ts;
-
-	tpt_gettimev(tpt, real_time, &ts);
-	return (ts.tv_sec);
 }

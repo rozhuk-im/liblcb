@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -389,17 +389,17 @@ tp_task_restart(tp_task_p tptask) {
 	if (NULL == tptask || NULL == tptask->cb_func)
 		return (EINVAL);
 	if (0 != tptask->timeout) { /* Set io timeout timer */
-		error = tpt_ev_add_ex(tptask->tpt, TP_EV_TIMER,
+		error = tpt_ev_add_args(tptask->tpt, TP_EV_TIMER,
 		    TP_F_DISPATCH, 0, tptask->timeout,
 		    &tptask->tp_timer);
 		if (0 != error)
 			return (error);
 	}
-	error = tpt_ev_add(tptask->tpt, tptask->event,
+	error = tpt_ev_add_args2(tptask->tpt, tptask->event,
 	    tptask->event_flags, &tptask->tp_data);
 	if (0 != error)	{ /* Error, remove timer. */
 		debugd_break();
-		tpt_ev_del(TP_EV_TIMER, &tptask->tp_data);
+		tpt_ev_del_args1(TP_EV_TIMER, &tptask->tp_data);
 	}
 	return (error);
 }
@@ -409,9 +409,9 @@ tp_task_stop(tp_task_p tptask) {
 
 	if (NULL == tptask)
 		return;
-	tpt_ev_del(tptask->event, &tptask->tp_data);
+	tpt_ev_del_args1(tptask->event, &tptask->tp_data);
 	if (0 != tptask->timeout) {
-		tpt_ev_del(TP_EV_TIMER, &tptask->tp_timer);
+		tpt_ev_del_args1(TP_EV_TIMER, &tptask->tp_timer);
 	}
 }
 
@@ -423,16 +423,16 @@ tp_task_enable(tp_task_p tptask, int enable) {
 	if (NULL == tptask)
 		return (EINVAL);
 	if (0 != tptask->timeout) {
-		error = tpt_ev_enable_ex(enable, TP_EV_TIMER,
+		error = tpt_ev_enable_args(enable, TP_EV_TIMER,
 		    TP_F_DISPATCH, 0, tptask->timeout,
 		    &tptask->tp_timer);
 		if (0 != error)
 			return (error);
 	}
-	error = tpt_ev_enable(enable, tptask->event, &tptask->tp_data);
+	error = tpt_ev_enable_args1(enable, tptask->event, &tptask->tp_data);
 	if (0 != error) {
 		debugd_break();
-		tpt_ev_enable(0, TP_EV_TIMER, &tptask->tp_data);
+		tpt_ev_enable_args1(0, TP_EV_TIMER, &tptask->tp_data);
 	}
 	return (error);
 }
@@ -449,7 +449,7 @@ tp_task_handler_pre_int(tp_event_p ev, tp_udata_p tp_udata,
 		if (0 != (TP_F_ONESHOT & (*tptask)->event_flags)) {
 			tp_task_stop((*tptask));
 		} else {
-			tpt_ev_enable(0, (*tptask)->event,
+			tpt_ev_enable_args1(0, (*tptask)->event,
 			    &(*tptask)->tp_data);
 		}
 		(*data2transfer_size) = 0;
@@ -458,9 +458,9 @@ tp_task_handler_pre_int(tp_event_p ev, tp_udata_p tp_udata,
 	(*tptask) = (tp_task_p)tp_udata;
 	if (0 != (*tptask)->timeout) { /* Disable/remove timer. */
 		if (0 != (TP_F_ONESHOT & (*tptask)->event_flags)) {
-			tpt_ev_del(TP_EV_TIMER, &(*tptask)->tp_timer);
+			tpt_ev_del_args1(TP_EV_TIMER, &(*tptask)->tp_timer);
 		} else {
-			tpt_ev_enable(0, TP_EV_TIMER,
+			tpt_ev_enable_args1(0, TP_EV_TIMER,
 			    &(*tptask)->tp_timer);
 		}
 	}
@@ -477,12 +477,12 @@ tp_task_handler_post_int(tp_event_p ev, tp_task_p tptask, int cb_ret) {
 		return;
 	/* tp_task_enable() */
 	if (0 != tptask->timeout) {
-		tpt_ev_q_enable_ex(1, TP_EV_TIMER, TP_F_DISPATCH,
+		tpt_ev_q_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH,
 		    0, tptask->timeout, &tptask->tp_timer);
 	}
 	if (0 != (tptask->event_flags & TP_F_DISPATCH) ||
 	    TP_EV_TIMER == ev->event) {
-		tpt_ev_q_enable(1, tptask->event, &tptask->tp_data);
+		tpt_ev_q_enable_args1(1, tptask->event, &tptask->tp_data);
 	}
 }
 
@@ -1074,7 +1074,7 @@ tp_task_connect_ex_start(tp_task_p tptask, int do_connect) {
 			goto shedule_delay_timer;
 	} else {
 		if (0 != conn_prms->time_limit) { /* time limit checks. */
-			tpt_gettimev(tptask->tpt, 0, &time_now);
+			clock_gettime(CLOCK_MONOTONIC_FAST, &time_now);
 			time_run_ms = (TIMESPEC_TO_MS(&time_now) -
 			    tptask->start_time); /* Task run time. */
 			time_limit_ms = conn_prms->time_limit;
@@ -1130,7 +1130,7 @@ shedule_delay_timer:
 	if (0 != time_limit_ms &&
 	    conn_prms->retry_delay >= time_limit_ms)
 		return (-1); /* No more tries. */
-	error = tpt_ev_add_ex(tptask->tpt, TP_EV_TIMER,
+	error = tpt_ev_add_args(tptask->tpt, TP_EV_TIMER,
 	    TP_F_DISPATCH, 0, conn_prms->retry_delay,
 	    &tptask->tp_timer);
 	return (error);
@@ -1168,7 +1168,7 @@ tp_task_create_connect_ex(tpt_p tpt, uint32_t flags,
 	//tptask->tot_transfered_size = 0; /* addrs_cur */
 	tptask->cb_func = (tp_task_cb)cb_func;
 	if (0 != conn_prms->time_limit) {
-		tpt_gettimev(tpt, 0, &time_now);
+		clock_gettime(CLOCK_MONOTONIC_FAST, &time_now);
 		tptask->start_time = TIMESPEC_TO_MS(&time_now);
 	}
 

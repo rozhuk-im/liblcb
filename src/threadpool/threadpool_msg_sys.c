@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -250,7 +250,7 @@ tpt_msg_queue_create(tpt_p tpt) { /* Init threads message exchange. */
 		goto err_out;
 	msg_queue->udata.cb_func = tpt_msg_recv_and_process;
 	msg_queue->udata.ident = (uintptr_t)msg_queue->fd[0];
-	error = tpt_ev_add(tpt, TP_EV_READ, 0, &msg_queue->udata);
+	error = tpt_ev_add_args2(tpt, TP_EV_READ, 0, &msg_queue->udata);
 	if (0 == error)
 		return (msg_queue);
 err_out:

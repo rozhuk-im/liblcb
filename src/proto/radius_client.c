@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2014 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -321,7 +321,7 @@ radius_client_rnd_factor(tpt_p tpt, uint64_t data) {
 	uint32_t tm;
 	struct timespec ts;
 
-	tpt_gettimev(tpt, 0, &ts);
+	clock_gettime(CLOCK_MONOTONIC_FAST, &ts);
 	tm = crc32_le_ex4((uint8_t*)&ts, sizeof(struct timespec), ~CRC32_INIT);
 	tm ^= crc32_le_ex4((uint8_t*)&data, sizeof(uint64_t), ~CRC32_INIT);
 	tm = data_xor8(&tm, sizeof(uint32_t));
@@ -667,7 +667,7 @@ radius_client_query_unlink_skt(radius_cli_query_p query) {
 	/* Remove query from socket. */
 	skt = query->skt;
 	query->skt = NULL;
-	tpt_ev_del(TP_EV_TIMER, &skt->queries_tmr[query->query_id]);
+	tpt_ev_del_args1(TP_EV_TIMER, &skt->queries_tmr[query->query_id]);
 	skt->queries_tmr[query->query_id].ident = 0;
 	skt->queries_count --;
 	skt->skts->queries_count --;
@@ -880,7 +880,7 @@ radius_client_send_new(tpt_p tpt, radius_cli_query_p query) {
 	skt->queries_count ++;
 	skt->skts->queries_count ++;
 	query->skt = skt;
-	error = tpt_ev_add_ex(tpt, TP_EV_TIMER, TP_F_DISPATCH, 0,
+	error = tpt_ev_add_args(tpt, TP_EV_TIMER, TP_F_DISPATCH, 0,
 	    srv->s.retrans_time_init, &query->skt->queries_tmr[query->query_id]);
 	if (0 != error)
 		return (error);
@@ -923,14 +923,14 @@ radius_client_send(radius_cli_query_p query) {
 	}
 
 	srv = &query->rad_cli->srv[query->cur_srv_idx];
-	error = tpt_ev_enable_ex(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
+	error = tpt_ev_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
 	    query->retrans_time, &query->skt->queries_tmr[query->query_id]);
 	if (0 != error)
 		return (error);
 	if ((ssize_t)query->buf->used != sendto((int)query->skt->ident,
 	    query->buf->data, query->buf->used, (MSG_DONTWAIT | MSG_NOSIGNAL),
 	    (sockaddr_p)&srv->s.addr, sa_size(&srv->s.addr))) {
-		tpt_ev_enable(0, TP_EV_TIMER,
+		tpt_ev_enable_args1(0, TP_EV_TIMER,
 		    &query->skt->queries_tmr[query->query_id]);
 		return (errno);
 	}
@@ -945,7 +945,7 @@ radius_client_query_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	int error;
 
 	LOGD_EV("...");
-	tpt_ev_enable(0, TP_EV_TIMER, tp_udata);
+	tpt_ev_enable_args1(0, TP_EV_TIMER, tp_udata);
 	if (NULL == query) /* Task already done/removed. */
 		return;
 	if (tp_thread_get_current() != query->skt->thr->tpt) {

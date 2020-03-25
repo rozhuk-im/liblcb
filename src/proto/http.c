@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2010 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2010 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -223,7 +223,7 @@ http_get_err_descr(uint32_t status_code, size_t *descr_size_ret) {
 	if (100 > status_code) { /* 0 - 99 */
 	} else if (200 > status_code) { /* 100 - 199 */
 		status_code -= 100;
-		if (SIZEOF(reason_phrase_1xx) > status_code) {
+		if (nitems(reason_phrase_1xx) > status_code) {
 			reason_phrase = reason_phrase_1xx[status_code];
 			if (NULL != descr_size_ret) {
 				(*descr_size_ret) = reason_phrase_size_1xx[status_code];
@@ -231,7 +231,7 @@ http_get_err_descr(uint32_t status_code, size_t *descr_size_ret) {
 		}
 	} else if (300 > status_code) { /* 200 - 299 */
 		status_code -= 200;
-		if (SIZEOF(reason_phrase_2xx) > status_code) {
+		if (nitems(reason_phrase_2xx) > status_code) {
 			reason_phrase = reason_phrase_2xx[status_code];
 			if (NULL != descr_size_ret) {
 				(*descr_size_ret) = reason_phrase_size_2xx[status_code];
@@ -239,7 +239,7 @@ http_get_err_descr(uint32_t status_code, size_t *descr_size_ret) {
 		}
 	} else if (400 > status_code) { /* 300 - 399 */
 		status_code -= 300;
-		if (SIZEOF(reason_phrase_3xx) > status_code) {
+		if (nitems(reason_phrase_3xx) > status_code) {
 			reason_phrase = reason_phrase_3xx[status_code];
 			if (NULL != descr_size_ret) {
 				(*descr_size_ret) = reason_phrase_size_3xx[status_code];
@@ -247,7 +247,7 @@ http_get_err_descr(uint32_t status_code, size_t *descr_size_ret) {
 		}
 	} else if (500 > status_code) { /* 400 - 499 */
 		status_code -= 400;
-		if (SIZEOF(reason_phrase_4xx) > status_code) {
+		if (nitems(reason_phrase_4xx) > status_code) {
 			reason_phrase = reason_phrase_4xx[status_code];
 			if (NULL != descr_size_ret) {
 				(*descr_size_ret) = reason_phrase_size_4xx[status_code];
@@ -255,7 +255,7 @@ http_get_err_descr(uint32_t status_code, size_t *descr_size_ret) {
 		}
 	} else if (600 > status_code) { /* 500 - 599 */
 		status_code -= 500;
-		if (SIZEOF(reason_phrase_5xx) > status_code) {
+		if (nitems(reason_phrase_5xx) > status_code) {
 			reason_phrase = reason_phrase_5xx[status_code];
 			if (NULL != descr_size_ret) {
 				(*descr_size_ret) = reason_phrase_size_5xx[status_code];

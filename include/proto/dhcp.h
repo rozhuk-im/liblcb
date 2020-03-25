@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,8 @@
 #include <sys/types.h>
 #include <inttypes.h>
 
-#ifndef SIZEOF
-#	define SIZEOF(__X)	(sizeof(__X) / sizeof(__X[0]))
+#ifndef nitems
+#	define nitems(__X)	(sizeof(__X) / sizeof(__X[0]))
 #endif
 
 
@@ -660,8 +660,8 @@ static const char *dhcp_opt43_MSFT_1[] = {
 
 static const dhcp_opt_params_t dhcp_opt43_MSFT[] = {
 /*   0 */	DHCP_OPT_PARAMS_PAD,
-/*   1 */	{ "NetBIOS over TCP/IP (NetBT)", 4,	DHCP_OPTP_T_4BYTE,	(DHCP_OPTP_F_FIXEDLEN), dhcp_opt43_MSFT_1, SIZEOF(dhcp_opt43_MSFT_1)},
-/*   2 */	{ "Release DHCP Lease on Shutdown", 4,	DHCP_OPTP_T_4BYTE,	(DHCP_OPTP_F_FIXEDLEN),	dhcp_opt_enabledisable, SIZEOF(dhcp_opt_enabledisable)},
+/*   1 */	{ "NetBIOS over TCP/IP (NetBT)", 4,	DHCP_OPTP_T_4BYTE,	(DHCP_OPTP_F_FIXEDLEN), dhcp_opt43_MSFT_1, nitems(dhcp_opt43_MSFT_1)},
+/*   2 */	{ "Release DHCP Lease on Shutdown", 4,	DHCP_OPTP_T_4BYTE,	(DHCP_OPTP_F_FIXEDLEN),	dhcp_opt_enabledisable, nitems(dhcp_opt_enabledisable)},
 /*   3 */	{ "Default Router Metric Base",	4,	DHCP_OPTP_T_4BYTE,	(DHCP_OPTP_F_FIXEDLEN)},
 /*   4 */	DHCP_OPT_PARAMS_UNKNOWN,
 /*   5 */	DHCP_OPT_PARAMS_UNKNOWN,
@@ -913,8 +913,8 @@ static const dhcp_opt_params_t dhcp_opt82_2[] = {
 
 static const dhcp_opt_params_t dhcp_opt82[] = {
 /*   0 */	DHCP_OPT_PARAMS_UNKNOWN,
-/*   1 */	{ "Circuit ID",			2,	DHCP_OPTP_T_SUBOPTS,(DHCP_OPTP_F_MINLEN),	(void*)dhcp_opt82_1, SIZEOF(dhcp_opt82_1)}, /* RFC 3046 DHCP Relay Agent Information Option. */
-/*   2 */	{ "Remote ID",			2,	DHCP_OPTP_T_SUBOPTS,(DHCP_OPTP_F_MINLEN),	(void*)dhcp_opt82_2, SIZEOF(dhcp_opt82_2)}, /* RFC 3046 DHCP Relay Agent Information Option. */
+/*   1 */	{ "Circuit ID",			2,	DHCP_OPTP_T_SUBOPTS,(DHCP_OPTP_F_MINLEN),	(void*)dhcp_opt82_1, nitems(dhcp_opt82_1)}, /* RFC 3046 DHCP Relay Agent Information Option. */
+/*   2 */	{ "Remote ID",			2,	DHCP_OPTP_T_SUBOPTS,(DHCP_OPTP_F_MINLEN),	(void*)dhcp_opt82_2, nitems(dhcp_opt82_2)}, /* RFC 3046 DHCP Relay Agent Information Option. */
 /*   3 */	DHCP_OPT_PARAMS_UNKNOWN,
 /*   4 */	{ "DOCSIS Device Class",	4,	DHCP_OPTP_T_4BYTE,	(DHCP_OPTP_F_FIXEDLEN)}, /* RFC 3256 The DOCSIS Device Class DHCP. */
 /*   5 */	{ "Link selection",		4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN)}, /* RFC 3527 Link Selection sub-option. */
@@ -967,26 +967,26 @@ static const dhcp_opt_params_t dhcp_options[256] = {
 /*  33 */	{ dhcp_opt55[33],	8,	DHCP_OPTP_T_IPIPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)},
 /*  34 */	{ dhcp_opt55[34],	1,	DHCP_OPTP_T_BOOL,	(DHCP_OPTP_F_FIXEDLEN)},
 /*  35 */	{ dhcp_opt55[35],	4,	DHCP_OPTP_T_4BYTE,	(DHCP_OPTP_F_FIXEDLEN)},
-/*  36 */	{ dhcp_opt55[36],	1,	DHCP_OPTP_T_BOOL,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt36, SIZEOF(dhcp_opt36)},
+/*  36 */	{ dhcp_opt55[36],	1,	DHCP_OPTP_T_BOOL,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt36, nitems(dhcp_opt36)},
 /*  37 */	{ dhcp_opt55[37],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_FIXEDLEN)},
 /*  38 */	{ dhcp_opt55[38],	4,	DHCP_OPTP_T_4TIME,	(DHCP_OPTP_F_FIXEDLEN)},
 /*  39 */	{ dhcp_opt55[39],	1,	DHCP_OPTP_T_BOOL,	(DHCP_OPTP_F_FIXEDLEN)},
 /*  40 */	{ dhcp_opt55[40],	1,	DHCP_OPTP_T_STR,	(DHCP_OPTP_F_MINLEN)},
 /*  41 */	{ dhcp_opt55[41],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)},
 /*  42 */	{ dhcp_opt55[42],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)},
-/*  43 */	{ dhcp_opt55[43],	1,	DHCP_OPTP_T_SUBOPTS,	(DHCP_OPTP_F_MINLEN),					(void*)dhcp_opt43_MSFT, SIZEOF(dhcp_opt43_MSFT)}, /* http://msdn.microsoft.com/en-us/library/cc227275%28v=PROT.10%29.aspx */
+/*  43 */	{ dhcp_opt55[43],	1,	DHCP_OPTP_T_SUBOPTS,	(DHCP_OPTP_F_MINLEN),					(void*)dhcp_opt43_MSFT, nitems(dhcp_opt43_MSFT)}, /* http://msdn.microsoft.com/en-us/library/cc227275%28v=PROT.10%29.aspx */
 /*  44 */	{ dhcp_opt55[44],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)},
 /*  45 */	{ dhcp_opt55[45],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)},
-/*  46 */	{ dhcp_opt55[46],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt46, SIZEOF(dhcp_opt46)},
+/*  46 */	{ dhcp_opt55[46],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt46, nitems(dhcp_opt46)},
 /*  47 */	{ dhcp_opt55[47],	1,	DHCP_OPTP_T_BYTES,	(DHCP_OPTP_F_MINLEN)},
 /*  48 */	{ dhcp_opt55[48],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)},
 /*  49 */	{ dhcp_opt55[49],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)},
 /*  50 */	{ dhcp_opt55[50],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN)},
 /*  51 */	{ dhcp_opt55[51],	4,	DHCP_OPTP_T_4TIME,	(DHCP_OPTP_F_FIXEDLEN)},
-/*  52 */	{ dhcp_opt55[52],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt52, SIZEOF(dhcp_opt52)},
-/*  53 */	{ dhcp_opt55[53],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt53, SIZEOF(dhcp_opt53)},
+/*  52 */	{ dhcp_opt55[52],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt52, nitems(dhcp_opt52)},
+/*  53 */	{ dhcp_opt55[53],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_FIXEDLEN),					dhcp_opt53, nitems(dhcp_opt53)},
 /*  54 */	{ dhcp_opt55[54],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN)},
-/*  55 */	{ dhcp_opt55[55],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_MINLEN|DHCP_OPTP_F_ARRAY),	dhcp_opt55, SIZEOF(dhcp_opt55)},
+/*  55 */	{ dhcp_opt55[55],	1,	DHCP_OPTP_T_1BYTE,	(DHCP_OPTP_F_MINLEN|DHCP_OPTP_F_ARRAY),	dhcp_opt55, nitems(dhcp_opt55)},
 /*  56 */	{ dhcp_opt55[56],	1,	DHCP_OPTP_T_STR,	(DHCP_OPTP_F_MINLEN)},
 /*  57 */	{ dhcp_opt55[57],	2,	DHCP_OPTP_T_2BYTE,	(DHCP_OPTP_F_FIXEDLEN)},
 /*  58 */	{ dhcp_opt55[58],	4,	DHCP_OPTP_T_4TIME,	(DHCP_OPTP_F_FIXEDLEN)},
@@ -1014,7 +1014,7 @@ static const dhcp_opt_params_t dhcp_options[256] = {
 /*  79 */	{ dhcp_opt55[79],	2,	DHCP_OPTP_T_ADV,	(DHCP_OPTP_F_MINLEN)}, /* RFC 2610 DHCP Options for Service Location Protocol. */
 /*  80 */	{ dhcp_opt55[80],	0,	DHCP_OPTP_T_NONE,	(DHCP_OPTP_F_FIXEDLEN)}, /* RFC 3679 // RFC 4039 Rapid Commit Option for DHCPv4. */
 /*  81 */	{ dhcp_opt55[81],	3,	DHCP_OPTP_T_ADV,	(DHCP_OPTP_F_MINLEN)}, /* RFC 4702 The DHCP Client FQDN Option. */
-/*  82 */	{ dhcp_opt55[82],	2,	DHCP_OPTP_T_SUBOPTS,	(DHCP_OPTP_F_MINLEN),					(void*)dhcp_opt82, SIZEOF(dhcp_opt82)}, /* RFC 3046 DHCP Relay Agent Information Option. */
+/*  82 */	{ dhcp_opt55[82],	2,	DHCP_OPTP_T_SUBOPTS,	(DHCP_OPTP_F_MINLEN),					(void*)dhcp_opt82, nitems(dhcp_opt82)}, /* RFC 3046 DHCP Relay Agent Information Option. */
 /*  83 */	{ dhcp_opt55[83],	18,	DHCP_OPTP_T_ADV,	(DHCP_OPTP_F_MINLEN)}, /* RFC 3679 // RFC 4174 DHCP Option Number for iSNS. */
 /*  84 */	DHCP_OPT_PARAMS_UNKNOWN, /* RFC 3679. */
 /*  85 */	{ dhcp_opt55[85],	4,	DHCP_OPTP_T_IPADDR,	(DHCP_OPTP_F_FIXEDLEN|DHCP_OPTP_F_ARRAY)}, /* RFC 2241 DHCP Options for Novell Directory Services. */
