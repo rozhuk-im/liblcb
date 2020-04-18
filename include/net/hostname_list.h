@@ -84,7 +84,7 @@ static inline hostname_list_p
 hostname_list_alloc() {
 	hostname_list_p hn_lst;
 
-	hn_lst = malloc(sizeof(hostname_list_t));
+	hn_lst = mem_znew(hostname_list_t);
 	if (NULL == hn_lst)
 		return (hn_lst);
 	if (0 != hostname_list_init(hn_lst)) {
@@ -100,10 +100,9 @@ hostname_list_clone(hostname_list_p hn_lst) {
 	size_t i, size;
 	hostname_list_p hn_new;
 
-	hn_new = malloc(sizeof(hostname_list_t));
+	hn_new = mem_dup(hn_lst, sizeof(hostname_list_t));
 	if (NULL == hn_new)
 		return (hn_new);
-	memcpy(hn_new, hn_lst, sizeof(hostname_list_t));
 	hn_new->names = zallocarray(hn_new->allocated, sizeof(hostname_p));
 	if (NULL == hn_new->names) {
 		free(hn_new);

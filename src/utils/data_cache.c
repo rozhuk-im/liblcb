@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2012 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2012 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,7 @@ data_cache_create(data_cache_p *dcache, data_cache_alloc_data_func alloc_data_fn
 
 	if (NULL == dcache)
 		return (EINVAL);
-	dcache_ret = zalloc(sizeof(data_cache_t));
+	dcache_ret = mem_znew(data_cache_t);
 	if (NULL == dcache_ret)
 		return (ENOMEM);
 	dcache_ret->alloc_data_fn = alloc_data_fn;
@@ -259,7 +259,7 @@ data_cache_item_add(data_cache_p dcache, const uint8_t *key, size_t key_size,
 	////mtx_unlock(&bucket->rw_lock);
 
 	/* Not found. */
-	dc_item_ret = zalloc(sizeof(data_cache_item_t));
+	dc_item_ret = mem_znew(data_cache_item_t);
 	if (NULL == dc_item_ret)
 		return (ENOMEM);
 	dc_item_ret->data = dcache->alloc_data_fn(key, key_size);

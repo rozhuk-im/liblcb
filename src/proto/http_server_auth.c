@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -333,7 +333,7 @@ http_srv_auth_start(http_srv_cli_p cli, auth_pl_p plugin,
 		return (500);
 	if (http_srv_auth_on_req_rcv_cb == http_srv_cli_get_on_req_rcv(cli))
 		return (508);
-	auth_ctx = zalloc(sizeof(http_srv_cli_auth_ctx_t));
+	auth_ctx = mem_znew(http_srv_cli_auth_ctx_t);
 	if (NULL == auth_ctx)
 		return (500);
 	auth_ctx->plugin = plugin;

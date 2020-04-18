@@ -346,7 +346,7 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 
 	if (NULL == tp || NULL == s || NULL == rad_cli_ret)
 		return (EINVAL);
-	rad_cli = zalloc(sizeof(radius_cli_t));
+	rad_cli = mem_znew(radius_cli_t);
 	if (NULL == rad_cli)
 		return (ENOMEM);
 	rad_cli->tp = tp;
@@ -534,7 +534,7 @@ radius_client_socket_alloc(uint16_t family, radius_cli_thr_p thr) {
 	skts = ((AF_INET == family) ? &thr->skts4 : &thr->skts6);
 	if (skts->skt_count >= thr->rad_cli->s.thr_sockets_max)
 		return (E2BIG);
-	skt = zalloc(sizeof(radius_cli_skt_t));
+	skt = mem_znew(radius_cli_skt_t);
 	if (NULL == skt)
 		return (ENOMEM);
 	error = skt_create(family, SOCK_DGRAM, IPPROTO_UDP,
@@ -627,7 +627,7 @@ radius_client_query_alloc(radius_cli_p rad_cli, tpt_p tpt, size_t query_id,
 	if (RADIUS_PKT_HDR_ID_MAX_COUNT <= query_id &&
 	    RADIUS_CLIENT_QUERY_ID_AUTO != query_id)
 		return (EINVAL);
-	query = zalloc(sizeof(radius_cli_query_t));
+	query = mem_znew(radius_cli_query_t);
 	if (NULL == query)
 		return (ENOMEM);
 	query->rad_cli = rad_cli;

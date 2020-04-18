@@ -243,7 +243,7 @@ tpt_msg_queue_create(tpt_p tpt) { /* Init threads message exchange. */
 	int error;
 	tpt_msg_queue_p msg_queue;
 
-	msg_queue = zalloc(sizeof(tpt_msg_queue_t));
+	msg_queue = mem_znew(tpt_msg_queue_t);
 	if (NULL == msg_queue)
 		return (NULL);
 	if (-1 == pipe2(msg_queue->fd, O_NONBLOCK))
@@ -493,16 +493,13 @@ tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
 		}
 		return (0); /* Sended / error on send. */
 	}
-	msg_data = malloc(sizeof(tpt_msg_data_t));
+	msg_data = mem_znew(tpt_msg_data_t);
 	if (NULL == msg_data)
 		return (ENOMEM);
 	msg_data->msg_cb = msg_cb;
 	msg_data->udata = udata;
 	msg_data->active_thr_count = threads_max;
-	msg_data->cur_thr_idx = 0;
 	msg_data->flags = flags;
-	msg_data->send_msg_cnt = 0;
-	msg_data->error_cnt = 0;
 	msg_data->tpt = src;
 	msg_data->done_cb = done_cb;
 
@@ -543,7 +540,7 @@ tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
 
 	if (NULL == op_cb)
 		return (NULL);
-	aop = malloc(sizeof(tpt_msg_async_op_t));
+	aop = mem_znew(tpt_msg_async_op_t);
 	if (NULL == aop)
 		return (NULL);
 	if (NULL == dst) {
@@ -551,7 +548,6 @@ tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
 	}
 	aop->tpt = dst;
 	aop->op_cb = op_cb;
-	mem_bzero(&aop->udata, sizeof(aop->udata));
 
 	return (aop);
 }

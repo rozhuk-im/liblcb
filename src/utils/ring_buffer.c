@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2012 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2012 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -361,7 +361,7 @@ r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
 	if (0 == size || 0 == min_block_size) /* Prevent division by zero. */
 		return (NULL);
 
-	r_buf = zalloc(sizeof(r_buf_t));
+	r_buf = mem_znew(r_buf_t);
 	if (NULL == r_buf)
 		return (NULL);
 	page_size = (size_t)sysconf(_SC_PAGE_SIZE);

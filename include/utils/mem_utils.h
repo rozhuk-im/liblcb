@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -562,6 +562,7 @@ mem_set(void *buf, const size_t size, const uint8_t c) {
 #ifndef HAVE_MEMSET_S
 static inline int
 memset_s(void *dest, size_t destsz, int c, size_t len) {
+
 	if (0 == len)
 		return (0);
 	if (NULL == dest || len > destsz ||
@@ -585,7 +586,7 @@ memset_s(void *dest, size_t destsz, int c, size_t len) {
 static inline void *
 mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
 	void *ret;
-	size_t alloc_sz = roundup2((size + pad_size), sizeof(void*));
+	const size_t alloc_sz = roundup2((size + pad_size), sizeof(void*));
 
 	ret = malloc(alloc_sz);
 	if (NULL == ret)
@@ -603,6 +604,8 @@ mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
 #define zalloc(__size)			calloc(1, (size_t)(__size))
 #define zallocarray(__nmemb, __size)	calloc((__nmemb), (size_t)(__size))
 
+#define mem_new(__type)			(__type*)malloc(sizeof(__type))
+#define mem_znew(__type)		(__type*)zalloc(sizeof(__type))
 
 #define mallocarray(__nmemb, __size)	reallocarray(NULL, (__nmemb), (size_t)(__size))
 

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -172,7 +172,7 @@ sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
 	if (NULL == thp || NULL == sap_rcvr_ret)
 		return (EINVAL);
 		
-	srcvr = zalloc(sizeof(sap_rcvr_t));
+	srcvr = mem_znew(sap_rcvr_t);
 	if (NULL == srcvr)
 		return (errno);
 	error = skt_bind_ap(AF_INET, NULL, SAP_PORT,

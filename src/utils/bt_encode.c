@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ bt_en_node_p
 bt_en_alloc(uint8_t type, uint8_t *raw, size_t raw_size) {
 	bt_en_node_p ret;
 	
-	ret = zalloc(sizeof(bt_en_node_t));
+	ret = mem_znew(bt_en_node_t);
 	if (NULL == ret)
 		return (NULL);
 	ret->type = type;

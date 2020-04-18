@@ -93,7 +93,7 @@ ini_create(ini_p *ini_ret) {
 	if (NULL == ini_ret)
 		return (EINVAL);
 
-	ini = zalloc(sizeof(ini_t));
+	ini = mem_znew(ini_t);
 	if (NULL == ini) {
 		(*ini_ret) = NULL;
 		return (errno);

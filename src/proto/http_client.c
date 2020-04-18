@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015  - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015  - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -185,7 +185,7 @@ http_cli_create(http_cli_cb ccb, http_cli_settings_p s, void *udata,
 		}
 	}
 	/* Create. */
-	cli = zalloc(sizeof(http_cli_t));
+	cli = mem_znew(http_cli_t);
 	if (NULL == cli) {
 		error = ENOMEM;
 		goto err_out;
@@ -270,7 +270,7 @@ http_cli_conn_create(http_cli_p cli, thrpt_p thrpt, http_cli_cb ccb,
 	
 	if (NULL == cli || NULL == cli_conn_ret)
 		return (EINVAL);
-	cli_conn = zalloc(sizeof(http_cli_conn_t));
+	cli_conn = mem_znew(http_cli_conn_t);
 	if (NULL == cli_conn)
 		return (errno);
 

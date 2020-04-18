@@ -80,7 +80,7 @@ tp_task_create(tpt_p tpt, uintptr_t ident, tp_cb tp_cb_func,
 
 	if (NULL == tpt || NULL == tp_cb_func || NULL == tptask_ret)
 		return (EINVAL);
-	tptask = zalloc(sizeof(tp_task_t));
+	tptask = mem_znew(tp_task_t);
 	if (NULL == tptask)
 		return (ENOMEM);
 	tptask->tp_data.cb_func = tp_cb_func;

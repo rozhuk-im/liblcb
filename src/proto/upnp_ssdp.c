@@ -281,7 +281,7 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 		memcpy(&s_def, s, sizeof(s_def));
 	}
 
-	ssdp = zalloc(sizeof(upnp_ssdp_t));
+	ssdp = mem_znew(upnp_ssdp_t);
 	if (NULL == ssdp)
 		return (ENOMEM);
 	s = &s_def;
@@ -741,7 +741,7 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 	if_index = if_nametoindex(ifname);
 	if (0 == if_index)
 		return (ESPIPE);
-	s_if = zalloc(sizeof(upnp_ssdp_if_t));
+	s_if = mem_znew(upnp_ssdp_if_t);
 	if (NULL == s_if)
 		return (ENOMEM);
 	s_if->if_index = if_index;

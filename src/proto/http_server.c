@@ -395,7 +395,7 @@ http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
 		}
 	}
 	/* Create. */
-	srv = zalloc(sizeof(http_srv_t));
+	srv = mem_znew(http_srv_t);
 	if (NULL == srv) {
 		error = ENOMEM;
 		goto err_out;
@@ -586,7 +586,7 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 	if (NULL == srv || NULL == s)
 		return (EINVAL);
 
-	bnd = zalloc(sizeof(http_srv_bind_t));
+	bnd = mem_znew(http_srv_bind_t);
 	if (NULL == bnd)
 		return (ENOMEM);
 	bnd->srv = srv;
@@ -713,7 +713,7 @@ http_srv_cli_alloc(http_srv_bind_p bnd, tpt_p tpt, uintptr_t skt,
 
 	LOGD_EV("...");
 
-	cli = zalloc(sizeof(http_srv_cli_t));
+	cli = mem_znew(http_srv_cli_t);
 	if (NULL == cli)
 		return (cli);
 	bnd->srv->stat.connections ++;

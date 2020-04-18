@@ -483,7 +483,7 @@ dns_rslvr_task_alloc(dns_rslvr_p rslvr, dns_resolv_cb cb_func, void *arg,
 	}
 	if (0 != rslvr->tasks_tmr[task_id].ident)
 		return (EAGAIN); /* No free task slot. */
-	task = zalloc(sizeof(dns_rslvr_task_t));
+	task = mem_znew(dns_rslvr_task_t);
 	if (NULL == task)
 		return (ENOMEM);
 	rslvr->tasks_index = task_id;
@@ -560,7 +560,7 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	    NULL == dns_rslvr_ret)
 		return (EINVAL);
 		
-	rslvr = zalloc(sizeof(dns_rslvr_t));
+	rslvr = mem_znew(dns_rslvr_t);
 	if (NULL == rslvr)
 		return (ENOMEM);
 	rslvr->dns_addrs = zallocarray(dns_addrs_count, sizeof(sockaddr_storage_t));
