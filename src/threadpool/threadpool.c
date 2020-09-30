@@ -301,8 +301,6 @@ tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
 	    (void*)tp_udata);
 	if (TP_EV_TIMER == ev->event) { /* Timer: force update. */
 		if (0 != ((EV_ADD | EV_ENABLE) & kev.flags)) {
-			if (NULL == ev) /* Params required for add/mod. */
-				return (EINVAL);
 			kev.flags |= (EV_ADD | EV_ENABLE);
 		}
 	}
