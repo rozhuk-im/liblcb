@@ -61,12 +61,14 @@ signal_install(sig_t func) {
 void
 make_daemon(void) {
 	int error;
+	char err_descr[256];
 
 	switch (fork()) {
 	case -1:
 		error = errno;
+		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "make_daemon: fork() failed: %i %s\n",
-		    error, strerror(error));
+		    error, err_descr);
 		exit(error);
 		/* return; */
 	case 0: /* Child. */
@@ -115,7 +117,7 @@ int
 set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
 	int error = 0;
 	struct passwd *pwd, pwd_buf;
-	char buffer[4096];
+	char buffer[4096], err_descr[256];
 
 	if (0 == pw_uid || 0 == pw_gid)
 		return (EINVAL);
@@ -123,30 +125,35 @@ set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
 	error = getpwuid_r(pw_uid, &pwd_buf, buffer, sizeof(buffer), &pwd);
 	if (0 != error) {
 		error = errno;
+		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: getpwuid_r() error %i: %s\n",
-		    error, strerror(error));
+		    error, err_descr);
 		return (error);
 	}
 
 	if (0 != setgid(pw_gid)) {
 		error = errno;
+		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: setgid() error %i: %s\n",
-		    error, strerror(error));
+		    error, err_descr);
 	}
 	if (0 != initgroups(pwd->pw_name, pw_gid)) {
 		error = errno;
+		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: initgroups() error %i: %s\n",
-		    error, strerror(error));
+		    error, err_descr);
 	}
 	if (0 != setgroups(1, &pwd->pw_gid)) {
 		error = errno;
+		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: setgroups() error %i: %s\n",
-		    error, strerror(error));
+		    error, err_descr);
 	}
 	if (0 != setuid(pw_uid)) {
 		error = errno;
+		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: setuid() error %i: %s\n",
-		    error, strerror(error));
+		    error, err_descr);
 	}
 
 	return (error);

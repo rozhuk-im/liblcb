@@ -119,8 +119,9 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 				if (0 == error) {
 					data->pw_uid = pwd->pw_uid;
 				} else {
+					strerror_r(error, tmbuf, sizeof(tmbuf));
 					fprintf(stderr, "option \"-u\" requires UID, UID %s not found: %i - %s\n",
-					    uid, error, strerror(error));
+					    uid, error, tmbuf);
 				}
 				break;
 			case 'g':
@@ -139,8 +140,9 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 				if (0 == error) {
 					data->pw_gid = grp->gr_gid;
 				} else {
+					strerror_r(error, tmbuf, sizeof(tmbuf));
 					fprintf(stderr, "option \"-g\" requires GID, GID %s not found: %i - %s\n",
-					    gid, error, strerror(error));
+					    gid, error, tmbuf);
 				}
 				break;
 			case 'v':

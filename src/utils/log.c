@@ -57,8 +57,8 @@ log_write_fd(uintptr_t fd, const char *data, size_t data_size) {
 
 void
 log_write_err_fd(uintptr_t fd, const char *fname, int line, int error, const char *descr) {
-	char buf[16384];
-	const char *err_descr, *empty = "";
+	char buf[16384], err_descr[256];
+	const char *empty = "";
 	size_t nsize;
 	time_t timel;
 	struct tm tml;
@@ -68,10 +68,7 @@ log_write_err_fd(uintptr_t fd, const char *fname, int line, int error, const cha
 	if (NULL == descr) {
 		descr = empty;
 	}
-	err_descr = strerror(error);
-	if (NULL == err_descr) {
-		err_descr = empty;
-	}
+	strerror_r(error, err_descr, sizeof(err_descr));
 	timel = time(NULL);
 	localtime_r(&timel, &tml);
 	if (NULL != fname) {
@@ -93,8 +90,7 @@ log_write_err_fd(uintptr_t fd, const char *fname, int line, int error, const cha
 void
 log_write_err_fmt_fd(uintptr_t fd, const char *fname, int line, int error,
     const char *fmt, ...) {
-	char buf[16384];
-	const char *err_descr, *empty = "";
+	char buf[16384], err_descr[256];
 	size_t nsize;
 	time_t timel;
 	struct tm tml;
@@ -102,10 +98,7 @@ log_write_err_fmt_fd(uintptr_t fd, const char *fname, int line, int error,
 
 	if ((uintptr_t)-1 == fd || 0 == error || NULL == fmt)
 		return;
-	err_descr = strerror(error);
-	if (NULL == err_descr) {
-		err_descr = empty;
-	}
+	strerror_r(error, err_descr, sizeof(err_descr));
 	timel = time(NULL);
 	localtime_r(&timel, &tml);
 	if (NULL != fname) {

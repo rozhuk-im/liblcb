@@ -50,8 +50,9 @@ sys_res_limits_xml(const uint8_t *buf, size_t buf_size) {
 	const uint8_t *data;
 	size_t data_size;
 	int64_t itm64;
-	int itm;
+	int error, itm;
 	struct rlimit rlp;
+	char err_descr[256];
 
 	/* System resource limits. */
 	if (NULL == buf || 0 == buf_size)
@@ -62,8 +63,10 @@ sys_res_limits_xml(const uint8_t *buf, size_t buf_size) {
 		rlp.rlim_cur = itm64;
 		rlp.rlim_max = itm64;
 		if (0 != setrlimit(RLIMIT_NOFILE, &rlp)) {
+			error = errno;
+			strerror_r(error, err_descr, sizeof(err_descr));
 			fprintf(stderr, "setrlimit(RLIMIT_NOFILE) error: %i - %s\n",
-			    errno, strerror(errno));
+			    error, err_descr);
 		}
 	}
 	if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
@@ -77,8 +80,10 @@ sys_res_limits_xml(const uint8_t *buf, size_t buf_size) {
 		}
 		rlp.rlim_max = rlp.rlim_cur;
 		if (0 != setrlimit(RLIMIT_CORE, &rlp)) {
+			error = errno;
+			strerror_r(error, err_descr, sizeof(err_descr));
 			fprintf(stderr, "setrlimit(RLIMIT_CORE) error: %i - %s\n",
-			    errno, strerror(errno));
+			    error, err_descr);
 		}
 	}
 	if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
@@ -92,15 +97,19 @@ sys_res_limits_xml(const uint8_t *buf, size_t buf_size) {
 		}
 		rlp.rlim_max = rlp.rlim_cur;
 		if (0 != setrlimit(RLIMIT_MEMLOCK, &rlp)) {
+			error = errno;
+			strerror_r(error, err_descr, sizeof(err_descr));
 			fprintf(stderr, "setrlimit(RLIMIT_MEMLOCK) error: %i - %s\n",
-			    errno, strerror(errno));
+			    error, err_descr);
 		}
 	}
 	if (0 == xml_get_val_int32_args(buf, buf_size, NULL,
 	    &itm, (const uint8_t*)"processPriority", NULL)) {
 		if (0 != setpriority(PRIO_PROCESS, 0, itm)) {
+			error = errno;
+			strerror_r(error, err_descr, sizeof(err_descr));
 			fprintf(stderr, "setpriority() error: %i - %s\n",
-			    errno, strerror(errno));
+			    error, err_descr);
 		}
 	}
 	if (0 == xml_get_val_int32_args(buf, buf_size, NULL,
@@ -110,8 +119,10 @@ sys_res_limits_xml(const uint8_t *buf, size_t buf_size) {
 		rtp.type = RTP_PRIO_REALTIME;
 		rtp.prio = (u_short)itm;
 		if (0 != rtprio(RTP_SET, 0, &rtp)) {
+			error = errno;
+			strerror_r(error, err_descr, sizeof(err_descr));
 			fprintf(stderr, "rtprio() error: %i - %s\n",
-			    errno, strerror(errno));
+			    error, err_descr);
 		}
 #endif /* BSD specific code. */
 	}
