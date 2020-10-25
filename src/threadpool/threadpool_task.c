@@ -534,9 +534,11 @@ tp_task_handler(int type, tp_event_p ev, tp_udata_p tp_udata,
 				    IO_BUF_TR_SIZE_GET(tptask->buf),
 				    MSG_DONTWAIT);
 			}
-			/*LOGD_EV_FMT("ev->data = %zu, ios = %zu, "
+#if defined(DEBUG) && defined(TP_TASK_EXTRA_LOG)
+			LOGD_EV_FMT("ev->data = %zu, ios = %zu, "
 			    "transfered_size = %zu, eof = %i, err = %i",
-			    ev->data, ios, transfered_size, eof, errno);//*/
+			    ev->data, ios, transfered_size, eof, errno);
+#endif
 			if (-1 == ios) /* Error. */
 				goto err_out;
 			if (0 == ios) { /* All data read. */
@@ -1008,7 +1010,7 @@ tp_task_connect_ex_handler(tp_event_p ev, tp_udata_p tp_udata) {
 	if (TP_EV_TIMER == ev->event) { /* Timeout / retry delay! */
 		tptask = (tp_task_p)tp_udata->ident;
 		if ((uintptr_t)-1 == tptask->tp_data.ident) { /* Retry delay. */
-			// XXX tp_task_stop()?
+			/* XXX tp_task_stop()? */
 			error = 0;
 			goto connect_ex_start;
 		}
