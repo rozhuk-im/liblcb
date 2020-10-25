@@ -60,7 +60,7 @@ typedef struct upnp_ssdp_settings_s { /* Settings */
 #define UPNP_SSDP_DEF_SKT_SND_BUF	64	/* kb */
 #define UPNP_SSDP_DEF_SEARCH_PORT	1900
 #define UPNP_SSDP_DEF_V4_TTL		2
-#define UPNP_SSDP_DEF_V6_HOP_LIMIT	5
+#define UPNP_SSDP_DEF_V6_HOP_LIMIT	2
 #define UPNP_SSDP_DEF_MAX_AGE		1800	/* sec */
 #define UPNP_SSDP_DEF_ANNOUNCE_INTERVAL	60	/* sec */
 #define UPNP_SSDP_DEF_FLAGS		(UPNP_SSDP_S_F_BYEBYE) /* IPv4 and IPv6 */
