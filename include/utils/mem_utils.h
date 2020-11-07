@@ -638,9 +638,7 @@ freezero(void *ptr, const size_t size) {
 
 	if (NULL == ptr)
 		return;
-	if (0 != size) {
-		mem_bzero(ptr, size);
-	}
+	mem_bzero(ptr, size);
 	free(ptr);
 }
 #endif
