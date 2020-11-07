@@ -32,7 +32,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if.h>
-//#include <netinet/in.h>
 
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
@@ -62,15 +61,15 @@
 
 #define UPNP_UUID_SIZE			36
 #define UPNP_NT_UUID_SIZE		(5 + UPNP_UUID_SIZE) /* uuid:... */
-#define UPNP_NOTIFY_TYPE_MAX_SIZE	(5 + 256 + 10 + 64 + 16) /* Notification Type */
+#define UPNP_NOTIFY_TYPE_MAX_SIZE	(5 + 256 + 10 + 64 + 16) /* Notification Type. */
 #define UPNP_SSDP_V4_ADDR		"239.255.255.250"
-#define UPNP_SSDP_V6_ADDR_LINK_LOCAL	"FF02::C" // link local scope
-#define UPNP_SSDP_V6_ADDR_SITE_LOCAL	"FF05::C" // site local scope
-#define UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV	"FF02::130" // for link local multicast eventing
-#define UPNP_SSDP_V6_ADDR_SITE_LOCAL_EV	"FF05::130" // for site local multicast eventing
-#define UPNP_SSDP_PORT			1900	// default value for ssdp unicast, const for multicast
-#define UPNP_SSDP_UC_PORT_MIN		49152	// unicast search
-#define UPNP_SSDP_UC_PORT_MAX		65535
+#define UPNP_SSDP_V6_ADDR_LINK_LOCAL	"FF02::C" /* Link local scope. */
+#define UPNP_SSDP_V6_ADDR_SITE_LOCAL	"FF05::C" /* Site local scope. */
+#define UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV	"FF02::130" /* For link local multicast eventing. */
+#define UPNP_SSDP_V6_ADDR_SITE_LOCAL_EV	"FF05::130" /* For site local multicast eventing. */
+#define UPNP_SSDP_PORT			1900	/* Default value for ssdp unicast, const for multicast. */
+#define UPNP_SSDP_UC_PORT_MIN		49152	/* Unicast search port min. */
+#define UPNP_SSDP_UC_PORT_MAX		65535	/* Unicast search port max. */
 #define UPNP_SSDP_V6_EVENT_PORT		7900
 
 
@@ -93,7 +92,7 @@ typedef struct upnp_ssdp_dev_if_s *upnp_ssdp_dev_if_p;
 typedef struct upnp_ssdp_if_s {
 	uint32_t	if_index;
 	uint32_t	dev_ifs_cnt;
-	upnp_ssdp_dev_if_p *dev_ifs;	/* Associated devices */
+	upnp_ssdp_dev_if_p *dev_ifs;	/* Associated devices. */
 } upnp_ssdp_if_t, *upnp_ssdp_if_p;
 
 
@@ -141,7 +140,7 @@ typedef struct upnp_ssdp_dev_s {
 	uint32_t	ann_interval;
 	/* Internal data. */
 	uint32_t	dev_ifs_cnt;
-	upnp_ssdp_dev_if_p *dev_ifs;	/* Associated interfaces */
+	upnp_ssdp_dev_if_p *dev_ifs;	/* Associated interfaces. */
 	tp_udata_t	ann_tmr;	/* Announce send timer. */
 	upnp_ssdp_p	ssdp;		/* Need in timer proc. */
 } upnp_ssdp_dev_t;
@@ -149,7 +148,7 @@ typedef struct upnp_ssdp_dev_s {
 
 typedef struct upnp_ssdp_s {
 	tp_p		tp;
-	upnp_ssdp_if_p	*s_ifs;		/* interfaces */
+	upnp_ssdp_if_p	*s_ifs;		/* Interfaces. */
 	uint32_t	s_ifs_cnt;	/*  */
 	upnp_ssdp_dev_p	*root_devs;
 	uint32_t	root_devs_cnt;	/*  */
@@ -235,7 +234,7 @@ upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret) {
 	if (NULL == s_ret)
 		return;
 	mem_bzero(s_ret, sizeof(upnp_ssdp_settings_t));
-	/* default settings */
+	/* Default settings. */
 	s_ret->skt_rcv_buf = UPNP_SSDP_DEF_SKT_RCV_BUF;
 	s_ret->skt_snd_buf = UPNP_SSDP_DEF_SKT_SND_BUF;
 	s_ret->search_port = UPNP_SSDP_DEF_SEARCH_PORT;
@@ -266,14 +265,12 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	int off = 0;
 	upnp_ssdp_settings_t s_def;
 
-	LOGD_EV("...");
-
 	/* Init static global constants. */
 	upnp_ssdp_init__int();
 
 	if (NULL == ussdp_ret)
 		return (EINVAL);
-	if (NULL == s) { /* Apply default settings */
+	if (NULL == s) { /* Apply default settings. */
 		upnp_ssdp_def_settings(&s_def);
 	} else {
 		if (0 == ((UPNP_SSDP_S_F_IPV4 | UPNP_SSDP_S_F_IPV6) & s->flags))
@@ -295,11 +292,9 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	ssdp->http_server[s->http_server_size] = 0;
 	ssdp->byebye = (0 != (UPNP_SSDP_S_F_BYEBYE & s->flags));
 
-	/* IPv4 */
+	/* IPv4. */
 	if (0 == (UPNP_SSDP_S_F_IPV4 & s->flags))
 		goto skip_ipv4;
-	//error = skt_bind((sockaddr_p)&ssdp_v4_mc_addr, SOCK_DGRAM, IPPROTO_UDP, (SO_F_NONBLOCK), &skt);
-	//if (0 != error) /* Bind to mc addr fail, try bind inaddr_any. */
 	error = skt_bind_ap(AF_INET, NULL, UPNP_SSDP_PORT,
 	    SOCK_DGRAM, IPPROTO_UDP,
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
@@ -337,7 +332,7 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 		goto err_out;
 skip_ipv4:
 
-	/* IPv6 */
+	/* IPv6. */
 	if (0 == (UPNP_SSDP_S_F_IPV6 & s->flags))
 		goto skip_ipv6;
 	error = skt_bind_ap(AF_INET6, NULL, UPNP_SSDP_PORT,
@@ -393,7 +388,6 @@ void
 upnp_ssdp_destroy(upnp_ssdp_p ssdp) {
 	uint32_t i;
 
-	LOGD_EV("...");
 	if (NULL == ssdp)
 		return;
 	/* Destroy all upnp devices and services. */
@@ -426,8 +420,6 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	int error;
 	upnp_ssdp_dev_p dev, *root_devs_new;
 	size_t nt_size, tot_size;
-
-	LOGD_EV("...");
 
 	if (NULL == ssdp || NULL == uuid || NULL == domain_name ||
 	    NULL == type ||
@@ -484,7 +476,7 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	memcpy(dev->type, type, type_size);
 	dev->nt_size = (size_t)snprintf((char*)dev->nt, nt_size, "urn:%s:device:%s:%"PRIu32"",
 	    dev->domain_name, dev->type, dev->ver);
-	/* Timer */
+	/* Timer. */
 	dev->ann_tmr.cb_func = upnp_ssdp_timer_cb;
 	dev->ann_tmr.ident = (uintptr_t)dev;
 	error = tpt_ev_add_args(tp_thread_get_pvt(ssdp->tp),
@@ -494,10 +486,10 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	/* Send announces. */
 	//upnp_ssdp_timer_cb(NULL, &dev->ann_tmr);
 
-	// need more space?
+	/* Need more space? */
 	root_devs_new = reallocarray(ssdp->root_devs,
 	    (ssdp->root_devs_cnt + 4), sizeof(upnp_ssdp_dev_p));
-	if (NULL == root_devs_new) { // reallocate failed
+	if (NULL == root_devs_new) { /* Reallocate failed. */
 		free(dev);
 		return (ENOMEM);
 	}
@@ -565,7 +557,6 @@ upnp_ssdp_svc_add(upnp_ssdp_dev_p dev,
 	upnp_ssdp_svc_p svc, *serviceList_new;
 	size_t nt_size, tot_size;
 
-	LOGD_EV("...");
 	if (NULL == dev || NULL == domain_name || NULL == type)
 		return (EINVAL);
 	if (0 == domain_name_size)
@@ -589,10 +580,10 @@ upnp_ssdp_svc_add(upnp_ssdp_dev_p dev,
 	memcpy(svc->type, type, type_size);
 	svc->nt_size = (size_t)snprintf((char*)svc->nt, nt_size, "urn:%s:service:%s:%"PRIu32"",
 	    svc->domain_name, svc->type, svc->ver);
-	// need more space?
+	/* Need more space? */
 	serviceList_new = reallocarray(dev->serviceList,
 	    (dev->serviceList_cnt + 4), sizeof(upnp_ssdp_svc_p));
-	if (NULL == serviceList_new) { // reallocate failed
+	if (NULL == serviceList_new) { /* Reallocate failed. */
 		free(svc);
 		return (ENOMEM);
 	}
@@ -613,8 +604,6 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	uint32_t if_index;
 	char ifname[IFNAMSIZ];
 	int error;
-
-	LOGD_EV("...");
 
 	if (NULL == ssdp || NULL == dev ||
 	    NULL == if_name || 0 == if_name_size ||
@@ -650,7 +639,7 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	/* Add to device dev_ifs list. */
 	dev_ifs_new = reallocarray(dev->dev_ifs, (dev->dev_ifs_cnt + 4),
 	    sizeof(upnp_ssdp_dev_if_p));
-	if (NULL == dev_ifs_new) { // reallocate failed
+	if (NULL == dev_ifs_new) { /* Reallocate failed. */
 		free(dev_if);
 		return (ENOMEM);
 	}
@@ -660,7 +649,7 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	/* Add to iface dev_ifs list. */
 	dev_ifs_new = reallocarray(s_if->dev_ifs, (s_if->dev_ifs_cnt + 4),
 	    sizeof(upnp_ssdp_dev_if_p));
-	if (NULL == dev_ifs_new) { // reallocate failed
+	if (NULL == dev_ifs_new) { /* Reallocate failed. */
 		dev->dev_ifs_cnt --;
 		free(dev_if);
 		return (ENOMEM);
@@ -676,10 +665,9 @@ void
 upnp_ssdp_dev_if_del(upnp_ssdp_dev_if_p dev_if) {
 	uint32_t i;
 
-	LOGD_EV("...");
 	if (NULL == dev_if)
 		return;
-	/* Remove frome dev_ifs list in iface */
+	/* Remove frome dev_ifs list in iface. */
 	if (NULL != dev_if->s_if) {
 		for (i = 0; i < dev_if->s_if->dev_ifs_cnt; i ++) {
 			if (dev_if->s_if->dev_ifs[i] != dev_if)
@@ -690,7 +678,7 @@ upnp_ssdp_dev_if_del(upnp_ssdp_dev_if_p dev_if) {
 			break;
 		}
 	}
-	/* Remove frome dev_ifs list in dev */
+	/* Remove frome dev_ifs list in dev. */
 	if (NULL != dev_if->dev) {
 		for (i = 0; i < dev_if->dev->dev_ifs_cnt; i ++) {
 			if (dev_if->dev->dev_ifs[i] != dev_if)
@@ -729,7 +717,6 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 	uint32_t if_index;
 	char ifname[IFNAMSIZ];
 
-	LOGD_EV("...");
 	if (NULL == ssdp ||
 	    NULL == if_name || IFNAMSIZ <= if_name_size)
 		return (EINVAL);
@@ -770,10 +757,10 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 		}
 	}
 
-	// need more space?
+	/* Need more space? */
 	s_ifs_new = reallocarray(ssdp->s_ifs, (ssdp->s_ifs_cnt + 4),
 	    sizeof(upnp_ssdp_if_p));
-	if (NULL == s_ifs_new) { // reallocate failed
+	if (NULL == s_ifs_new) { /* Reallocate failed. */
 		error = ENOMEM;
 		goto err_out;
 	}
@@ -808,7 +795,6 @@ void
 upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 	uint32_t i;
 
-	LOGD_EV("...");
 	if (NULL == ssdp || NULL == s_if)
 		return;
 	/* Notify all. */
@@ -839,7 +825,7 @@ upnp_ssdp_if_del(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if) {
 		skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6), 0,
 		    s_if->if_index, &ssdp_v6_mc_addr_link_local);
 	}
-	/* Remove frome ifaces list */
+	/* Remove frome ifaces list. */
 	for (i = 0; i < ssdp->s_ifs_cnt; i ++) {
 		if (ssdp->s_ifs[i] == s_if) {
 			ssdp->s_ifs_cnt --;
@@ -884,7 +870,6 @@ void
 upnp_ssdp_timer_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	upnp_ssdp_dev_p dev = (upnp_ssdp_dev_p)tp_udata->ident;
 
-	//LOGD_EV("...");
 	if (NULL == dev)
 		return;
 	/* Notify all. */
@@ -912,14 +897,12 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	size_t tm, req_hdr_len;
 	http_req_line_data_t req_data;
 
-	LOGD_EV("...");
-
 	if (0 != error) {
 		LOG_ERR(error, "on receive");
 		return (TP_TASK_CB_CONTINUE);
 	}
 
-	while (transfered_size < data2transfer_size) { /* recv loop. */
+	while (transfered_size < data2transfer_size) { /* Recv loop. */
 		ios = skt_recvfrom(tp_task_ident_get(tptask),
 		    buf, sizeof(buf), MSG_DONTWAIT, addr, &if_index);
 		if (-1 == ios) {
@@ -970,14 +953,15 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 			//LOG_EV_FMT("error: http_req_sec_chk() !!! bad http header or request, client ip: %s", straddr);
 			continue;
 		}
-
-		/*if (0 != http_hdr_val_get(req_hdr, req_hdr_len,
+#if 0
+		if (0 != http_hdr_val_get(req_hdr, req_hdr_len,
 		    (uint8_t*)"host", 4, &ptm, &tm) || 15 > tm ||
 		    0 != memcmp(ptm, UPNP_SSDP_V4_ADDR, 15)) {
 			sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
 			LOG_EV_FMT("error: bad http HOST (%s) in request, client ip: %s", ptm, straddr);
 			continue;
-		}*/
+		}
+#endif
 		if (0 != http_hdr_val_get(req_hdr, req_hdr_len,
 		    (const uint8_t*)"man", 3, &ptm, &tm) ||
 		    0 != mem_cmpn_cstr("\"ssdp:discover\"", ptm, tm)) {
@@ -1000,10 +984,9 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 			    straddr);
 			continue;
 		}
-		//LOGD_EV("...");
 		upnp_ssdp_iface_notify_ex(ssdp, s_if, addr, UPNP_SSDP_S_A_SRESPONSE,
 		    ptm, tm);
-	} /* end recv while */
+	} /* End recv loop. */
 
 	return (TP_TASK_CB_CONTINUE);
 }
@@ -1021,7 +1004,6 @@ upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 	upnp_ssdp_dev_p dev/*, edev */;
 	upnp_ssdp_svc_p svc;
 
-	LOGD_EV("...");
 	if (NULL == ssdp ||
 	    NULL == s_if || NULL == s_if->dev_ifs ||
 	    NULL == addr ||
@@ -1056,7 +1038,7 @@ upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 		    NULL == dev_if->dev)
 			continue;
 		dev = dev_if->dev;
-		/* device is root */
+		/* Device is root. */
 		if (NULL == search_target ||
 		    0 != root_dev_only) {
 			upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
@@ -1064,20 +1046,20 @@ upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 			if (0 != root_dev_only)
 				continue;
 		}
-		/* device uuid */
+		/* Device uuid. */
 		if (NULL == search_target ||  /* st = "ssdp:all" */
 		    (UPNP_NT_UUID_SIZE == search_target_size &&
 		    0 == memcmp(search_target, dev->nt_uuid, UPNP_NT_UUID_SIZE))) {
 			upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
 			    dev->nt_uuid, UPNP_NT_UUID_SIZE);
 		}
-		/* device type */
+		/* Device type. */
 		if (NULL == search_target) {
 			upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
 			    dev->nt, dev->nt_size);
 			goto dev_no_match;
 		}
-		// "urn:%s:device:%s:"
+		/* "urn:%s:device:%s:" */
 		st = search_target;
 		st_size = search_target_size;
 		if (4 > st_size || 0 != memcmp(st, "urn:", 4))
@@ -1109,7 +1091,7 @@ upnp_ssdp_iface_notify_ex(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if,
 		    search_target, search_target_size);
 
 dev_no_match:
-		/* device serviceList */
+		/* Device serviceList. */
 		for (j = 0; j < dev->serviceList_cnt && NULL != dev->serviceList; j ++) {
 			svc = dev->serviceList[j];
 			if (NULL == svc)
@@ -1119,7 +1101,7 @@ dev_no_match:
 				    dev_if, svc->nt, svc->nt_size);
 				continue;
 			}
-			// "urn:%s:service:%s:"
+			/* "urn:%s:service:%s:" */
 			st = search_target;
 			st_size = search_target_size;
 			if (4 > st_size || 0 != memcmp(st, "urn:", 4))
@@ -1150,7 +1132,7 @@ dev_no_match:
 			upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
 			    search_target, search_target_size);
 		}
-		// XXX todo: enum embeded deviceList
+		/* XXX todo: enum embeded deviceList. */
 		//edev = dev->deviceList;
 	}
 
@@ -1184,8 +1166,6 @@ upnp_ssdp_dev_notify_sendto(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	//upnp_ssdp_dev_p edev;
 	upnp_ssdp_svc_p svc;
 
-	LOGD_EV("...");
-
 	if (NULL == ssdp ||
 	    NULL == dev ||
 	    NULL == addr)
@@ -1212,16 +1192,16 @@ upnp_ssdp_dev_notify_sendto(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 		    NULL == dev_if->s_if)
 			continue;
 		s_if = dev_if->s_if;
-		/* device is root */
+		/* Device is root. */
 		upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
 		    (const uint8_t*)"upnp:rootdevice", 15);
-		/* device uuid */
+		/* Device uuid. */
 		upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
 		    dev->nt_uuid, UPNP_NT_UUID_SIZE);
-		/* device type */
+		/* Device type. */
 		upnp_ssdp_send(ssdp, s_if, addr, action, dev_if,
 		    dev->nt, dev->nt_size);
-		/* device serviceList */
+		/* Device serviceList. */
 		if (NULL == dev->serviceList)
 			continue;
 		for (j = 0; j < dev->serviceList_cnt; j ++) {
@@ -1232,7 +1212,7 @@ upnp_ssdp_dev_notify_sendto(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 			    dev_if, svc->nt, svc->nt_size);
 		}
 	}
-	// XXX todo: enum embeded deviceList
+	/* XXX todo: enum embeded deviceList. */
 	//edev = dev->deviceList;
 	return (0);
 }
@@ -1252,8 +1232,6 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 	sockaddr_storage_t v6_mc_addr;
 	char straddr[STR_ADDR_LEN];
 	uint8_t buf_data[4096];
-
-	LOGD_EV("...");
 
 	if (NULL == ssdp || NULL == addr || NULL == dev_if ||
 	    (NULL == nt && 0 != nt_size))
@@ -1283,8 +1261,10 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		url = dev_if->url4;
 		url_size = dev_if->url4_size;
 		dhost_addr = ssdp_v4_addr;
-		//if (UPNP_SSDP_S_A_SRESPONSE != action)
-		//	addr = &ssdp_v4_mc_addr;
+#if 0
+		if (UPNP_SSDP_S_A_SRESPONSE != action)
+			addr = &ssdp_v4_mc_addr;
+#endif
 		break;
 	case AF_INET6:
 		if (NULL == ssdp->mc_rcvr_v6)
@@ -1298,9 +1278,10 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		}
 		url = dev_if->url6;
 		url_size = dev_if->url6_size;
-		// XXX
-		//if (UPNP_SSDP_S_A_SRESPONSE != action)
-		//	addr = &ssdp_v6_mc_addr_link_local;
+#if 0
+		if (UPNP_SSDP_S_A_SRESPONSE != action)
+			addr = &ssdp_v6_mc_addr_link_local;
+#endif
 		/* Make copy of addr, update ptr and edit. */
 		memcpy(&v6_mc_addr, addr, sizeof(v6_mc_addr));
 		addr = &v6_mc_addr;
@@ -1322,18 +1303,18 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 	nt_loc[nt_size] = 0;
 	usn_nt = nt_loc;
 	usn_pre_nt = "::";
-	if (5 < nt_size && 0 == memcmp(nt, "uuid:", 5)) { /* device uuid */
+	if (5 < nt_size && 0 == memcmp(nt, "uuid:", 5)) { /* Device uuid. */
 		usn_pre_nt = usn_nt = "";
 	}
 
 	switch (action) {
-	case UPNP_SSDP_S_A_BYEBYE: /* 1.2.3 Device unavailable -- NOTIFY with ssdp:byebye */
+	case UPNP_SSDP_S_A_BYEBYE: /* 1.2.3 Device unavailable -- NOTIFY with ssdp:byebye. */
 		IO_BUF_PRINTF(&buf,
 		    "NOTIFY * HTTP/1.1\r\n"
 		    "HOST: %s:1900\r\n"
 		    "NT: %s\r\n"
-		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" // For backward compatibility
-		    "01-NLS: %"PRIu32"\r\n" // For backward compatibility
+		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" /* For backward compatibility. */
+		    "01-NLS: %"PRIu32"\r\n" /* For backward compatibility. */
 		    "NTS: ssdp:byebye\r\n"
 		    "USN: uuid:%s%s%s\r\n"
 		    "BOOTID.UPNP.ORG: %"PRIu32"\r\n"
@@ -1341,15 +1322,15 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    dhost_addr, nt_loc, dev->boot_id, dev->uuid, usn_pre_nt, usn_nt,
 		    dev->boot_id, dev->config_id);
 		break;
-	case UPNP_SSDP_S_A_ALIVE: /* 1.2.2 Device available - NOTIFY with ssdp:alive */
+	case UPNP_SSDP_S_A_ALIVE: /* 1.2.2 Device available - NOTIFY with ssdp:alive. */
 		add_search_port = (UPNP_SSDP_PORT != ssdp->search_port);
 		IO_BUF_PRINTF(&buf,
 		    "NOTIFY * HTTP/1.1\r\n"
 		    "HOST: %s:1900\r\n"
 		    "CACHE-CONTROL: max-age=%"PRIu32"\r\n"
 		    "LOCATION: %s\r\n"
-		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" // For backward compatibility
-		    "01-NLS: %"PRIu32"\r\n" // For backward compatibility
+		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" /* For backward compatibility. */
+		    "01-NLS: %"PRIu32"\r\n" /* For backward compatibility. */
 		    "NT: %s\r\n"
 		    "NTS: ssdp:alive\r\n"
 		    "SERVER: %s\r\n"
@@ -1360,15 +1341,15 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    dev->boot_id, nt_loc, ssdp->http_server,
 		    dev->uuid, usn_pre_nt, usn_nt, dev->boot_id, dev->config_id);
 		break;
-	case UPNP_SSDP_S_A_UPDATE: /* 1.2.4 Device Update NOTIFY with ssdp:update */
+	case UPNP_SSDP_S_A_UPDATE: /* 1.2.4 Device Update NOTIFY with ssdp:update. */
 		add_search_port = (UPNP_SSDP_PORT != ssdp->search_port);
 		IO_BUF_PRINTF(&buf,
 		    "NOTIFY * HTTP/1.1\r\n"
 		    "HOST: %s:1900\r\n"
 		    "LOCATION: %s\r\n"
 		    "NT: %s\r\n"
-		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" // For backward compatibility
-		    "01-NLS: %"PRIu32"\r\n" // For backward compatibility
+		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" /* For backward compatibility. */
+		    "01-NLS: %"PRIu32"\r\n" /* For backward compatibility. */
 		    "NTS: ssdp:update\r\n"
 		    "USN: uuid:%s%s%s\r\n"
 		    "BOOTID.UPNP.ORG: %"PRIu32"\r\n"
@@ -1378,7 +1359,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    dev->boot_id,
 		    dev->config_id, (dev->boot_id + 1));
 		break;
-	case UPNP_SSDP_S_A_SRESPONSE: /* 1.3.3 Discovery: Search: Response */
+	case UPNP_SSDP_S_A_SRESPONSE: /* 1.3.3 Discovery: Search: Response. */
 		add_search_port = (UPNP_SSDP_PORT != ssdp->search_port);
 		IO_BUF_PRINTF(&buf,
 		    "HTTP/1.1 200 OK\r\n"
@@ -1386,8 +1367,8 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    "EXT:\r\n"
 		    "LOCATION: %s\r\n"
 		    "SERVER: %s\r\n"
-		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" // For backward compatibility
-		    "01-NLS: %"PRIu32"\r\n" // For backward compatibility
+		    "OPT: \"http://schemas.upnp.org/upnp/1/0/\"; ns=01\r\n" /* For backward compatibility. */
+		    "01-NLS: %"PRIu32"\r\n" /* For backward compatibility. */
 		    "ST: %s\r\n"
 		    "USN: uuid:%s%s%s\r\n"
 		    "BOOTID.UPNP.ORG: %"PRIu32"\r\n"

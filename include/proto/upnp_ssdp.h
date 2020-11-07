@@ -36,34 +36,34 @@
 #include "threadpool/threadpool.h"
 
 
-/* Main structs */
+/* Main structs. */
 typedef struct upnp_ssdp_dev_s *upnp_ssdp_dev_p;
 typedef struct upnp_ssdp_s *upnp_ssdp_p;
 
-typedef struct upnp_ssdp_settings_s { /* Settings */
-	uint32_t	skt_rcv_buf;	/* kb */
-	uint32_t	skt_snd_buf;	/* kb */
+typedef struct upnp_ssdp_settings_s { /* Settings. */
+	uint32_t	skt_rcv_buf;	/* kb. */
+	uint32_t	skt_snd_buf;	/* kb. */
 	uint16_t	search_port;	/* UPnP 1.1: SEARCHPORT.UPNP.ORG: (49152-65535) identifies the port at which the device listens to unicast M-SEARCH messages */
 	uint32_t	ttl;		/* IPv4 TTL. */
 	uint32_t	hop_limit;	/* IPv6 multicast hop limit. */
-	uint32_t	flags;		/* Flags */
-	size_t		http_server_size; /* 'OS/version UPnP/1.1 product/version' */
+	uint32_t	flags;		/* Flags. */
+	size_t		http_server_size; /* 'OS/version UPnP/1.1 product/version' len. */
 	char		http_server[256]; /* 'OS/version UPnP/1.1 product/version' */
 } upnp_ssdp_settings_t, *upnp_ssdp_settings_p;
-#define UPNP_SSDP_S_F_IPV4		(((uint32_t)1) << 0)
-#define UPNP_SSDP_S_F_IPV6		(((uint32_t)1) << 1)
-#define UPNP_SSDP_S_F_BYEBYE		(((uint32_t)1) << 2)
+#define UPNP_SSDP_S_F_IPV4		(((uint32_t)1) << 0) /* Enable IPv4 support. */
+#define UPNP_SSDP_S_F_IPV6		(((uint32_t)1) << 1) /* Enable IPv6 support. */
+#define UPNP_SSDP_S_F_BYEBYE		(((uint32_t)1) << 2) /* Send byebye on shutdown. */
 
 
 /* Default values. */
-#define UPNP_SSDP_DEF_SKT_RCV_BUF	64	/* kb */
-#define UPNP_SSDP_DEF_SKT_SND_BUF	64	/* kb */
-#define UPNP_SSDP_DEF_SEARCH_PORT	1900
-#define UPNP_SSDP_DEF_V4_TTL		2
-#define UPNP_SSDP_DEF_V6_HOP_LIMIT	2
-#define UPNP_SSDP_DEF_MAX_AGE		1800	/* sec */
-#define UPNP_SSDP_DEF_ANNOUNCE_INTERVAL	60	/* sec */
-#define UPNP_SSDP_DEF_FLAGS		(UPNP_SSDP_S_F_BYEBYE) /* IPv4 and IPv6 */
+#define UPNP_SSDP_DEF_SKT_RCV_BUF	64	/* kb. */
+#define UPNP_SSDP_DEF_SKT_SND_BUF	64	/* kb. */
+#define UPNP_SSDP_DEF_SEARCH_PORT	1900	/* Number. */
+#define UPNP_SSDP_DEF_V4_TTL		2	/* Count. */
+#define UPNP_SSDP_DEF_V6_HOP_LIMIT	2	/* Count. */
+#define UPNP_SSDP_DEF_MAX_AGE		1800	/* sec. */
+#define UPNP_SSDP_DEF_ANNOUNCE_INTERVAL	60	/* sec. */
+#define UPNP_SSDP_DEF_FLAGS		(UPNP_SSDP_S_F_BYEBYE) /* IPv4 and IPv6. */
 
 
 void	upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret);
