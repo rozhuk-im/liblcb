@@ -48,11 +48,8 @@ pipe2(int fildes[2], int flags) {
 	if (0 != error)
 		return (error);
 	if (0 != (O_NONBLOCK & flags)) {
-		if (-1 == fcntl((int)fildes[0], F_SETFL, O_NONBLOCK)) {
-			error = errno;
-			goto err_out;
-		}
-		if (-1 == fcntl((int)fildes[1], F_SETFL, O_NONBLOCK)) {
+		if (-1 == fcntl((int)fildes[0], F_SETFL, O_NONBLOCK) ||
+		    -1 == fcntl((int)fildes[1], F_SETFL, O_NONBLOCK)) {
 			error = errno;
 			goto err_out;
 		}
