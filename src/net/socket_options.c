@@ -347,9 +347,10 @@ skt_opts_cvt(const int mult, skt_opts_p opts) {
 
 int
 skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
-    const skt_opts_p opts, uint32_t *err_mask) {
+    const skt_opts_p opts, const sa_family_t family, uint32_t *err_mask) {
 	int error = 0, ival;
 	uint32_t _mask, error_mask = 0;
+	sa_family_t sa_family = family;
 	u_char ucvar;
 
 	if ((uintptr_t)-1 == skt || NULL == opts)
@@ -523,46 +524,77 @@ skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
 #endif /* BSD specific code. */
 	/* SO_F_SNDTIMEO - no set to skt */
 
+	/* Autodetect socket family if required. */
+	if (0 != (SO_F_IP_MASK & _mask) && 0 == family) {
+		skt_get_addr_family(skt, &sa_family);
+	}
 	/* Prefer IPv6 to not rewrite code in future. */
 	/* SO_F_IP_HOPLIM_U */
 	if (0 != (SO_F_IP_HOPLIM_U & _mask)) {
 		ival = opts->hop_limit_u;
-		if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-		    &ival, sizeof(ival)) &&
-		    0 != setsockopt((int)skt, IPPROTO_IP, IP_TTL,
-		    &ival, sizeof(ival))) {
+		for (;;) {
+			/* Try aplly to IPv6. */
+			if ((0 == sa_family || AF_INET6 == sa_family) &&
+			    0 == setsockopt((int)skt, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
+			    &ival, sizeof(ival)))
+				break;
+			/* Try aplly to IPv4. */
+			if ((0 == sa_family || AF_INET == sa_family) &&
+			    0 == setsockopt((int)skt, IPPROTO_IP, IP_TTL,
+			    &ival, sizeof(ival)))
+				break;
+			/* Fail. */
 			error = errno;
 			error_mask |= SO_F_IP_HOPLIM_U;
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))
 				goto err_out;
+			break;
 		}
 	}
 	/* SO_F_IP_HOPLIM_M */
 	if (0 != (SO_F_IP_HOPLIM_M & _mask)) {
 		ival = opts->hop_limit_m;
 		ucvar = (u_char)opts->hop_limit_m;
-		if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-		    &ival, sizeof(ival)) &&
-		    0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_TTL,
-		    &ucvar, sizeof(ucvar))) {
+		for (;;) {
+			/* Try aplly to IPv6. */
+			if ((0 == sa_family || AF_INET6 == sa_family) &&
+			    0 == setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+			    &ival, sizeof(ival)))
+				break;
+			/* Try aplly to IPv4. */
+			if ((0 == sa_family || AF_INET == sa_family) &&
+			    0 == setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_TTL,
+			    &ucvar, sizeof(ucvar)))
+				break;
+			/* Fail. */
 			error = errno;
 			error_mask |= SO_F_IP_HOPLIM_M;
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))
 				goto err_out;
+			break;
 		}
 	}
 	/* SO_F_IP_MULTICAST_LOOP */
 	if (0 != (SO_F_IP_MULTICAST_LOOP & _mask)) {
 		ival = ((SO_F_IP_MULTICAST_LOOP & opts->bit_vals) ? 1 : 0);
 		ucvar = (u_char)ival;
-		if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-		    &ival, sizeof(ival)) &&
-		    0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_LOOP,
-		    &ucvar, sizeof(ucvar))) {
+		for (;;) {
+			/* Try aplly to IPv6. */
+			if ((0 == sa_family || AF_INET6 == sa_family) &&
+			    0 == setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+			    &ival, sizeof(ival)))
+				break;
+			/* Try aplly to IPv4. */
+			if ((0 == sa_family || AF_INET == sa_family) &&
+			    0 == setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_LOOP,
+			    &ucvar, sizeof(ucvar)))
+				break;
+			/* Fail. */
 			error = errno;
 			error_mask |= SO_F_IP_MULTICAST_LOOP;
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))
 				goto err_out;
+			break;
 		}
 	}
 
@@ -638,11 +670,11 @@ err_out:
 
 int
 skt_opts_apply(const uintptr_t skt, const uint32_t mask,
-    const uint32_t bit_vals) {
+    const uint32_t bit_vals, const sa_family_t family) {
 	skt_opts_t opts;
 
 	opts.mask = (SO_F_BIT_VALS_MASK & mask);
 	opts.bit_vals = bit_vals;
 	
-	return (skt_opts_apply_ex(skt, mask, &opts, NULL));
+	return (skt_opts_apply_ex(skt, mask, &opts, family, NULL));
 }

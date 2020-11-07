@@ -1063,7 +1063,7 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 	sa_copy(addr, &cli->addr);
 	/* Tune socket. */
 	error = skt_opts_apply_ex(skt, SO_F_TCP_ES_CONN_MASK,
-	    &bnd->s.skt_opts, NULL);
+	    &bnd->s.skt_opts, addr->ss_family, NULL);
 	LOG_ERR_FMT(error, "%s: skt_opts_apply_ex(), this is not fatal.", straddr);
 	/* Receive http request. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
