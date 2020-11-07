@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,18 +34,16 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include "threadpool/threadpool.h"
+#include "net/socket_options.h"
 
 
-/* Main structs. */
 typedef struct upnp_ssdp_dev_s *upnp_ssdp_dev_p;
 typedef struct upnp_ssdp_s *upnp_ssdp_p;
 
+
 typedef struct upnp_ssdp_settings_s { /* Settings. */
-	uint32_t	skt_rcv_buf;	/* kb. */
-	uint32_t	skt_snd_buf;	/* kb. */
+	skt_opts_t	skt_opts;
 	uint16_t	search_port;	/* UPnP 1.1: SEARCHPORT.UPNP.ORG: (49152-65535) identifies the port at which the device listens to unicast M-SEARCH messages */
-	uint32_t	ttl;		/* IPv4 TTL. */
-	uint32_t	hop_limit;	/* IPv6 multicast hop limit. */
 	uint32_t	flags;		/* Flags. */
 	size_t		http_server_size; /* 'OS/version UPnP/1.1 product/version' len. */
 	char		http_server[256]; /* 'OS/version UPnP/1.1 product/version' */
@@ -54,15 +52,18 @@ typedef struct upnp_ssdp_settings_s { /* Settings. */
 #define UPNP_SSDP_S_F_IPV6		(((uint32_t)1) << 1) /* Enable IPv6 support. */
 #define UPNP_SSDP_S_F_BYEBYE		(((uint32_t)1) << 2) /* Send byebye on shutdown. */
 
+#define UPNP_SSDP_S_SKT_OPTS_LOAD_MASK	(SO_F_RCVBUF |			\
+					SO_F_SNDBUF |			\
+					SO_F_IP_HOPLIM_U |		\
+					SO_F_IP_HOPLIM_M)
 
 /* Default values. */
-#define UPNP_SSDP_DEF_SKT_RCV_BUF	64	/* kb. */
-#define UPNP_SSDP_DEF_SKT_SND_BUF	64	/* kb. */
-#define UPNP_SSDP_DEF_SEARCH_PORT	1900	/* Number. */
-#define UPNP_SSDP_DEF_V4_TTL		2	/* Count. */
-#define UPNP_SSDP_DEF_V6_HOP_LIMIT	2	/* Count. */
-#define UPNP_SSDP_DEF_MAX_AGE		1800	/* sec. */
-#define UPNP_SSDP_DEF_ANNOUNCE_INTERVAL	60	/* sec. */
+#define UPNP_SSDP_S_DEF_SKT_OPTS_MASK	(SO_F_IP_HOPLIM_U | SO_F_IP_HOPLIM_M) /* Opts that have def values. */
+#define UPNP_SSDP_S_DEF_SKT_OPTS_VALS	(0)
+#define UPNP_SSDP_DEF_HOP_LIMIT		(1)	/* Count, same default for unicast and multicast. */
+#define UPNP_SSDP_DEF_SEARCH_PORT	(1900)	/* Number. */
+#define UPNP_SSDP_DEF_MAX_AGE		(1800)	/* sec. */
+#define UPNP_SSDP_DEF_ANNOUNCE_INTERVAL	(60)	/* sec. */
 #define UPNP_SSDP_DEF_FLAGS		(UPNP_SSDP_S_F_BYEBYE) /* IPv4 and IPv6. */
 
 

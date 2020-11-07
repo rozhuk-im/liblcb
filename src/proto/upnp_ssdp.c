@@ -235,11 +235,11 @@ upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret) {
 		return;
 	mem_bzero(s_ret, sizeof(upnp_ssdp_settings_t));
 	/* Default settings. */
-	s_ret->skt_rcv_buf = UPNP_SSDP_DEF_SKT_RCV_BUF;
-	s_ret->skt_snd_buf = UPNP_SSDP_DEF_SKT_SND_BUF;
+	s_ret->skt_opts.mask |= UPNP_SSDP_S_DEF_SKT_OPTS_MASK;
+	s_ret->skt_opts.bit_vals |= UPNP_SSDP_S_DEF_SKT_OPTS_VALS;
+	s_ret->skt_opts.hop_limit_u = UPNP_SSDP_DEF_HOP_LIMIT;
+	s_ret->skt_opts.hop_limit_m = UPNP_SSDP_DEF_HOP_LIMIT;
 	s_ret->search_port = UPNP_SSDP_DEF_SEARCH_PORT;
-	s_ret->ttl = UPNP_SSDP_DEF_V4_TTL;
-	s_ret->hop_limit = UPNP_SSDP_DEF_V6_HOP_LIMIT;
 	s_ret->flags = UPNP_SSDP_DEF_FLAGS;
 
 	/* 'OS/version UPnP/1.1 product/version' */
@@ -262,7 +262,6 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	upnp_ssdp_p ssdp;
 	uintptr_t skt;
 	int error;
-	int off = 0;
 	upnp_ssdp_settings_t s_def;
 
 	/* Init static global constants. */
@@ -283,8 +282,10 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 		return (ENOMEM);
 	s = &s_def;
 	/* kb -> bytes */
-	s->skt_snd_buf *= 1024;
-	s->skt_rcv_buf *= 1024;
+	skt_opts_cvt(SKT_OPTS_MULT_K, &s->skt_opts);
+	/* Force MULTICAST_LOOP off. */
+	s->skt_opts.mask |= SO_F_IP_MULTICAST_LOOP;
+	s->skt_opts.bit_vals &= ~SO_F_IP_MULTICAST_LOOP;
 
 	ssdp->tp = tp;
 	ssdp->search_port = s->search_port;
@@ -304,22 +305,10 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 		goto err_out;
 	}
 	/* Tune socket. */
-	error = skt_snd_tune(skt, s->skt_snd_buf, 1);
-	if (0 != error) {
-		LOG_ERR(error, "skt_snd_tune");
-	}
-	error = skt_rcv_tune(skt, s->skt_rcv_buf, 1);
-	if (0 != error) {
-		LOG_ERR(error, "skt_rcv_tune");
-	}
-	if (0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_TTL,
-	    &s->ttl, sizeof(int))) {
-		LOG_ERR(errno, "setsockopt: IP_MULTICAST_TTL");
-	}
-	if (0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_LOOP,
-	    &off, sizeof(int))) {
-		LOG_ERR(errno, "setsockopt: IP_MULTICAST_LOOP");
-	}
+	error = skt_opts_apply_ex(skt, SO_F_UDP_BIND_AF_MASK,
+	    &s->skt_opts, AF_INET, NULL);
+	LOG_ERR_FMT(error, "skt_opts_apply_ex(), this is not fatal.");
+
 	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {
 		LOG_ERR(error, "skt_enable_recv_ifindex");
@@ -344,22 +333,10 @@ skip_ipv4:
 		goto err_out;
 	}
 	/* Tune socket. */
-	error = skt_snd_tune(skt, s->skt_snd_buf, 1);
-	if (0 != error) {
-		LOG_ERR(error, "skt_snd_tune");
-	}
-	error = skt_rcv_tune(skt, s->skt_rcv_buf, 1);
-	if (0 != error) {
-		LOG_ERR(error, "skt_rcv_tune");
-	}
-	if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-	    &off, sizeof(int))) {
-		LOG_ERR(errno, "setsockopt: IPV6_MULTICAST_LOOP");
-	}
-	if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-	    &s->hop_limit, sizeof(int))) {
-		LOG_ERR(errno, "setsockopt: IPV6_MULTICAST_HOPS");
-	}
+	error = skt_opts_apply_ex(skt, SO_F_UDP_BIND_AF_MASK,
+	    &s->skt_opts, AF_INET6, NULL);
+	LOG_ERR_FMT(error, "skt_opts_apply_ex(), this is not fatal.");
+
 	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {
 		LOG_ERR(error, "skt_enable_recv_ifindex");
