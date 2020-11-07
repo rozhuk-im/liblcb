@@ -138,9 +138,9 @@ void	skt_opts_cvt(const int mult, skt_opts_p opts);
 #define SKT_OPTS_MULT_M		2
 #define SKT_OPTS_MULT_G		3
 
-int	skt_opts_set_ex(const uintptr_t skt, const uint32_t mask,
+int	skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
 	    const skt_opts_p opts, uint32_t *err_mask);
-int	skt_opts_set(const uintptr_t skt, const uint32_t mask,
+int	skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 	    const uint32_t bit_vals);
 /* Set only SO_F_BIT_VALS_MASK. */
 

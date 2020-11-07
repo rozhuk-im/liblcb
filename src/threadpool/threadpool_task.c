@@ -890,7 +890,7 @@ tp_task_create_bind_accept(tpt_p tpt,
 			goto err_out;
 	}
 	/* Tune socket. */
-	error = skt_opts_set_ex(skt, SO_F_TCP_LISTEN_AF_MASK,
+	error = skt_opts_apply_ex(skt, SO_F_TCP_LISTEN_AF_MASK,
 	    skt_opts, &err_mask);
 	if (0 != error) { /* Non fatal error. */
 		skt_opts->bit_vals &= ~(err_mask & SO_F_ACC_FILTER);

@@ -346,7 +346,7 @@ skt_opts_cvt(const int mult, skt_opts_p opts) {
 }
 
 int
-skt_opts_set_ex(const uintptr_t skt, const uint32_t mask,
+skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
     const skt_opts_p opts, uint32_t *err_mask) {
 	int error = 0, ival;
 	uint32_t _mask, error_mask = 0;
@@ -637,12 +637,12 @@ err_out:
 }
 
 int
-skt_opts_set(const uintptr_t skt, const uint32_t mask,
+skt_opts_apply(const uintptr_t skt, const uint32_t mask,
     const uint32_t bit_vals) {
 	skt_opts_t opts;
 
 	opts.mask = (SO_F_BIT_VALS_MASK & mask);
 	opts.bit_vals = bit_vals;
 	
-	return (skt_opts_set_ex(skt, mask, &opts, NULL));
+	return (skt_opts_apply_ex(skt, mask, &opts, NULL));
 }
