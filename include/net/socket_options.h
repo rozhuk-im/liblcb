@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 typedef struct socket_options_s {
 	uint32_t	mask;		/* Flags: mask to set */
 	uint32_t	bit_vals;	/* Bitmask values for: SO_F_BIT_VAL_MASK */
+/* Socket level. */
 	int		backlog;	/* Listen queue len. */
 	uint32_t	rcv_buf;	/* SO_RCVBUF kb */
 	uint32_t	rcv_lowat;	/* SO_RCVLOWAT kb */
@@ -46,6 +47,10 @@ typedef struct socket_options_s {
 	uint32_t	snd_buf;	/* SO_SNDBUF kb */
 	uint32_t	snd_lowat;	/* SO_SNDLOWAT kb */
 	uint64_t	snd_timeout;	/* SO_SNDTIMEO sec */
+/* IP level. */
+	uint8_t		hop_limit_u;	/* IP_TTL / IPV6_UNICAST_HOPS count. */
+	uint8_t		hop_limit_m;	/* IP_MULTICAST_TTL / IPV6_MULTICAST_HOPS count. */
+/* Proto level. */
 #ifdef SO_ACCEPTFILTER
 	struct accept_filter_arg tcp_acc_filter; /* SO_ACCEPTFILTER */
 #elif defined(TCP_DEFER_ACCEPT)
@@ -59,6 +64,7 @@ typedef struct socket_options_s {
 } skt_opts_t, *skt_opts_p;
 
 /* Continue, first flags see in net/socket.h. */
+/* Socket level. */
 #define SO_F_HALFCLOSE_RD	(((uint32_t)1) <<  4) /* shutdown(SHUT_RD) */
 #define SO_F_HALFCLOSE_WR	(((uint32_t)1) <<  5) /* shutdown(SHUT_WR) */
 #define SO_F_HALFCLOSE_RDWR	(SO_F_HALFCLOSE_RD | SO_F_HALFCLOSE_WR) /* shutdown(SHUT_RDWR) */
@@ -70,14 +76,17 @@ typedef struct socket_options_s {
 #define SO_F_SNDBUF		(((uint32_t)1) << 11) /* SO_SNDBUF */
 #define SO_F_SNDLOWAT		(((uint32_t)1) << 12) /* SO_SNDLOWAT */
 #define SO_F_SNDTIMEO		(((uint32_t)1) << 13) /* SO_SNDTIMEO - no set to skt */
-
-#define SO_F_ACC_FILTER		(((uint32_t)1) << 15) /* SO_ACCEPTFILTER(httpready) / TCP_DEFER_ACCEPT */
-#define SO_F_TCP_KEEPIDLE	(((uint32_t)1) << 16) /* TCP_KEEPIDLE only if SO_KEEPALIVE set */
-#define SO_F_TCP_KEEPINTVL	(((uint32_t)1) << 17) /* TCP_KEEPINTVL only if SO_KEEPALIVE set */
-#define SO_F_TCP_KEEPCNT	(((uint32_t)1) << 18) /* TCP_KEEPCNT only if SO_KEEPALIVE set */
-#define SO_F_TCP_NODELAY	(((uint32_t)1) << 19) /* TCP_NODELAY */
-#define SO_F_TCP_NOPUSH		(((uint32_t)1) << 20) /* TCP_NOPUSH / TCP_CORK */
-#define SO_F_TCP_CONGESTION	(((uint32_t)1) << 21) /* TCP_CONGESTION */
+/* IP level. */
+#define SO_F_IP_HOPLIM_U	(((uint32_t)1) << 16) /* IP_TTL / IPV6_UNICAST_HOPS */
+#define SO_F_IP_HOPLIM_M	(((uint32_t)1) << 17) /* IP_MULTICAST_TTL / IPV6_MULTICAST_HOPS */
+/* Proto level. */
+#define SO_F_ACC_FILTER		(((uint32_t)1) << 24) /* SO_ACCEPTFILTER(httpready) / TCP_DEFER_ACCEPT */
+#define SO_F_TCP_KEEPIDLE	(((uint32_t)1) << 25) /* TCP_KEEPIDLE only if SO_KEEPALIVE set */
+#define SO_F_TCP_KEEPINTVL	(((uint32_t)1) << 26) /* TCP_KEEPINTVL only if SO_KEEPALIVE set */
+#define SO_F_TCP_KEEPCNT	(((uint32_t)1) << 27) /* TCP_KEEPCNT only if SO_KEEPALIVE set */
+#define SO_F_TCP_NODELAY	(((uint32_t)1) << 28) /* TCP_NODELAY */
+#define SO_F_TCP_NOPUSH		(((uint32_t)1) << 29) /* TCP_NOPUSH / TCP_CORK */
+#define SO_F_TCP_CONGESTION	(((uint32_t)1) << 30) /* TCP_CONGESTION */
 
 #define SO_F_FAIL_ON_ERR	(((uint32_t)1) << 31) /* Return on first set error. */
 
@@ -89,20 +98,28 @@ typedef struct socket_options_s {
 				SO_F_KEEPALIVE | SO_F_ACC_FILTER |	\
 				SO_F_TCP_NODELAY | SO_F_TCP_NOPUSH)
 #define SO_F_ALL_MASK		(0xffffffff & ~SO_F_FAIL_ON_ERR)
+
 /* Apply masks. */
-/* AF = after bind */
 #define SO_F_RCV_MASK		(SO_F_RCVBUF | SO_F_RCVLOWAT | SO_F_RCVTIMEO)
 #define SO_F_SND_MASK		(SO_F_SNDBUF | SO_F_SNDLOWAT | SO_F_SNDTIMEO)
-#define SO_F_UDP_BIND_AF_MASK	(SO_F_RCV_MASK | SO_F_SND_MASK)
+/* AF = after bind */
+#define SO_F_UDP_BIND_AF_MASK	(SO_F_RCV_MASK |			\
+				SO_F_SND_MASK |				\
+				SO_F_IP_HOPLIM_U |			\
+				SO_F_IP_HOPLIM_M)
+/* AF = after listen */
+#define SO_F_TCP_LISTEN_AF_MASK	(SO_F_IP_HOPLIM_U |			\
+				SO_F_ACC_FILTER |			\
+				SO_F_KEEPALIVE_MASK)
+/* ES = after connection. */
 #define SO_F_TCP_ES_CONN_MASK	(SO_F_HALFCLOSE_RDWR |			\
 				SO_F_KEEPALIVE_MASK |			\
 				SO_F_RCV_MASK |				\
 				SO_F_SND_MASK |				\
+				SO_F_IP_HOPLIM_U |			\
 				SO_F_TCP_NODELAY |			\
 				SO_F_TCP_NOPUSH |			\
 				SO_F_TCP_CONGESTION)
-/* AF = after listen */
-#define SO_F_TCP_LISTEN_AF_MASK	(SO_F_ACC_FILTER | SO_F_KEEPALIVE_MASK)
 
 
 #ifdef SOCKET_XML_CONFIG

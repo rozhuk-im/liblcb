@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,7 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
     const uint32_t mask, skt_opts_p opts) {
 	const uint8_t *data;
 	size_t data_size;
+	uint32_t u32tm;
 
 	if (NULL == buf || 0 == buf_size || NULL == opts)
 		return (EINVAL);
@@ -244,6 +245,28 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 			yn_set_flag32(data, data_size, SO_F_ACC_FILTER, &opts->bit_vals);
 		}
 	}
+
+	/* SO_F_IP_HOPLIM_U */
+	if (0 != (SO_F_IP_HOPLIM_U & mask)) {
+		if (0 == xml_get_val_uint32_args(buf, buf_size, NULL,
+		    &u32tm, (const uint8_t*)"hopLimitUnicast", NULL) ||
+		    0 == xml_get_val_uint32_args(buf, buf_size, NULL,
+		    &u32tm, (const uint8_t*)"hopLimit", NULL)) {
+			opts->hop_limit_u = (uint8_t)u32tm;
+			opts->mask |= SO_F_IP_HOPLIM_U;
+		}
+	}
+	/* SO_F_IP_HOPLIM_M */
+	if (0 != (SO_F_IP_HOPLIM_M & mask)) {
+		if (0 == xml_get_val_uint32_args(buf, buf_size, NULL,
+		    &u32tm, (const uint8_t*)"hopLimitMulticast", NULL) ||
+		    0 == xml_get_val_uint32_args(buf, buf_size, NULL,
+		    &u32tm, (const uint8_t*)"hopLimit", NULL)) {
+			opts->hop_limit_m = (uint8_t)u32tm;
+			opts->mask |= SO_F_IP_HOPLIM_M;
+		}
+	}
+
 	/* SO_F_TCP_NODELAY */
 	if (0 != (SO_F_TCP_NODELAY & mask)) {
 		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
@@ -318,6 +341,7 @@ skt_opts_set_ex(const uintptr_t skt, const uint32_t mask,
     const skt_opts_p opts, uint32_t *err_mask) {
 	int error = 0, ival;
 	uint32_t _mask, error_mask = 0;
+	u_char ucvar;
 
 	if ((uintptr_t)-1 == skt || NULL == opts)
 		return (EINVAL);
@@ -489,6 +513,35 @@ skt_opts_set_ex(const uintptr_t skt, const uint32_t mask,
 	}
 #endif /* BSD specific code. */
 	/* SO_F_SNDTIMEO - no set to skt */
+
+	/* Prefer IPv6 to not rewrite code in future. */
+	/* SO_F_IP_HOPLIM_U */
+	if (0 != (SO_F_IP_HOPLIM_U & _mask)) {
+		ival = opts->hop_limit_u;
+		if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
+		    &ival, sizeof(ival)) &&
+		    0 != setsockopt((int)skt, IPPROTO_IP, IP_TTL,
+		    &ival, sizeof(ival))) {
+			error = errno;
+			error_mask |= SO_F_IP_HOPLIM_U;
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
+		}
+	}
+	/* SO_F_IP_HOPLIM_M */
+	if (0 != (SO_F_IP_HOPLIM_M & _mask)) {
+		ival = opts->hop_limit_m;
+		ucvar = (u_char)opts->hop_limit_m;
+		if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+		    &ival, sizeof(ival)) &&
+		    0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_TTL,
+		    &ucvar, sizeof(ucvar))) {
+			error = errno;
+			error_mask |= SO_F_IP_HOPLIM_M;
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
+		}
+	}
 
 	/* SO_F_ACC_FILTER */
 	if (0 != (SO_F_ACC_FILTER & _mask) &&
