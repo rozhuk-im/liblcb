@@ -266,6 +266,15 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 			opts->mask |= SO_F_IP_HOPLIM_M;
 		}
 	}
+	/* SO_F_IP_MULTICAST_LOOP */
+	if (0 != (SO_F_IP_MULTICAST_LOOP & mask)) {
+		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
+		    &data, &data_size,
+		    (const uint8_t*)"fMulticastLoop", NULL)) {
+			yn_set_flag32(data, data_size, SO_F_IP_MULTICAST_LOOP, &opts->bit_vals);
+			opts->mask |= SO_F_IP_MULTICAST_LOOP;
+		}
+	}
 
 	/* SO_F_TCP_NODELAY */
 	if (0 != (SO_F_TCP_NODELAY & mask)) {
@@ -538,6 +547,20 @@ skt_opts_set_ex(const uintptr_t skt, const uint32_t mask,
 		    &ucvar, sizeof(ucvar))) {
 			error = errno;
 			error_mask |= SO_F_IP_HOPLIM_M;
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
+		}
+	}
+	/* SO_F_IP_MULTICAST_LOOP */
+	if (0 != (SO_F_IP_MULTICAST_LOOP & _mask)) {
+		ival = ((SO_F_IP_MULTICAST_LOOP & opts->bit_vals) ? 1 : 0);
+		ucvar = (u_char)ival;
+		if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+		    &ival, sizeof(ival)) &&
+		    0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_LOOP,
+		    &ucvar, sizeof(ucvar))) {
+			error = errno;
+			error_mask |= SO_F_IP_MULTICAST_LOOP;
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))
 				goto err_out;
 		}

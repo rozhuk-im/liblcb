@@ -79,6 +79,7 @@ typedef struct socket_options_s {
 /* IP level. */
 #define SO_F_IP_HOPLIM_U	(((uint32_t)1) << 16) /* IP_TTL / IPV6_UNICAST_HOPS */
 #define SO_F_IP_HOPLIM_M	(((uint32_t)1) << 17) /* IP_MULTICAST_TTL / IPV6_MULTICAST_HOPS */
+#define SO_F_IP_MULTICAST_LOOP	(((uint32_t)1) << 18) /* IP_MULTICAST_LOOP / IPV6_MULTICAST_LOOP */
 /* Proto level. */
 #define SO_F_ACC_FILTER		(((uint32_t)1) << 24) /* SO_ACCEPTFILTER(httpready) / TCP_DEFER_ACCEPT */
 #define SO_F_TCP_KEEPIDLE	(((uint32_t)1) << 25) /* TCP_KEEPIDLE only if SO_KEEPALIVE set */
@@ -95,7 +96,9 @@ typedef struct socket_options_s {
 
 #define SO_F_BIT_VALS_MASK	(SO_F_NONBLOCK | SO_F_BROADCAST |	\
 				SO_F_REUSEADDR | SO_F_REUSEPORT | 	\
-				SO_F_KEEPALIVE | SO_F_ACC_FILTER |	\
+				SO_F_KEEPALIVE | 			\
+				SO_F_IP_MULTICAST_LOOP |		\
+				SO_F_ACC_FILTER |			\
 				SO_F_TCP_NODELAY | SO_F_TCP_NOPUSH)
 #define SO_F_ALL_MASK		(0xffffffff & ~SO_F_FAIL_ON_ERR)
 
@@ -106,7 +109,8 @@ typedef struct socket_options_s {
 #define SO_F_UDP_BIND_AF_MASK	(SO_F_RCV_MASK |			\
 				SO_F_SND_MASK |				\
 				SO_F_IP_HOPLIM_U |			\
-				SO_F_IP_HOPLIM_M)
+				SO_F_IP_HOPLIM_M |			\
+				SO_F_IP_MULTICAST_LOOP)
 /* AF = after listen */
 #define SO_F_TCP_LISTEN_AF_MASK	(SO_F_IP_HOPLIM_U |			\
 				SO_F_ACC_FILTER |			\
