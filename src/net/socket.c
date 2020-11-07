@@ -161,6 +161,23 @@ skt_get_tcp_maxseg(uintptr_t skt, int *val_ret) {
 }
 
 int
+skt_get_addr_family(uintptr_t skt, sa_family_t *family) {
+	socklen_t addrlen;
+	sockaddr_storage_t ssaddr;
+
+	if (NULL == family)
+		return (EINVAL);
+
+	mem_bzero(&ssaddr, sizeof(ssaddr));
+	addrlen = sizeof(ssaddr);
+	if (0 != getsockname((int)skt, (sockaddr_p)&ssaddr, &addrlen))
+		return (errno);
+	(*family) = ssaddr.ss_family;
+
+	return (0);
+}
+
+int
 skt_set_tcp_nodelay(uintptr_t skt, int val) {
 
 	if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val)))
@@ -254,16 +271,15 @@ skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 
 int
 skt_enable_recv_ifindex(uintptr_t skt, int enable) {
-	socklen_t addrlen;
-	sockaddr_storage_t ssaddr;
+	int error;
+	sa_family_t sa_family;
 
 	/* First, we detect socket address family: ipv4 or ipv6. */
-	ssaddr.ss_family = 0;
-	addrlen = sizeof(ssaddr);
-	if (0 != getsockname((int)skt, (sockaddr_p)&ssaddr, &addrlen))
-		return (errno);
+	error = skt_get_addr_family(skt, &sa_family);
+	if (0 != error)
+		return (error);
 
-	switch (ssaddr.ss_family) {
+	switch (sa_family) {
 	case AF_INET:
 #if (defined(IP_RECVIF) || defined(IP_PKTINFO))
 		if (

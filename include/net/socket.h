@@ -66,6 +66,7 @@ int	skt_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size);
 int	skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret);
 int	skt_is_tcp_cc_avail(const char *cc, size_t cc_size);
 int	skt_get_tcp_maxseg(uintptr_t skt, int *val_ret);
+int	skt_get_addr_family(uintptr_t skt, sa_family_t *family);
 int	skt_set_tcp_nodelay(uintptr_t skt, int val);
 int	skt_set_tcp_nopush(uintptr_t skt, int val);
 int	skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size);
