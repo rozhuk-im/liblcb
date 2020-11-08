@@ -60,10 +60,6 @@ static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 #	define SIZE_T_MAX	((size_t)~0)
 #endif
 
-#ifndef RSIZE_MAX
-#	define RSIZE_MAX	(SIZE_T_MAX >> 1)
-#endif
-
 #ifndef CLOCK_REALTIME_FAST
 #	define CLOCK_REALTIME_FAST	CLOCK_REALTIME
 #endif
@@ -179,22 +175,6 @@ static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 
 
 /* Functions. */
-
-#ifndef HAVE_MEMSET_S
-static inline int
-memset_s(void *dest, size_t destsz, int c, size_t len) {
-
-	if (0 == len)
-		return (0);
-	if (NULL == dest || len > destsz ||
-	    RSIZE_MAX < destsz || RSIZE_MAX < len)
-		return (EINVAL);
-
-	memset_volatile(dest, (uint8_t)c, len);
-
-	return (0);
-}
-#endif
 
 #ifndef HAVE_EXPLICIT_BZERO
 static inline void

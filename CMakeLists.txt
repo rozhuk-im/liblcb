@@ -71,14 +71,13 @@ endif()
 #chk_include_files(sys/types.h SYS_TYPES_H)
 
 # Check platform API.
-chk_function_exists(memset_s)
 chk_function_exists(explicit_bzero)
-chk_function_exists(freezero)
 chk_function_exists(memrchr)
 chk_function_exists(memmem)
 chk_function_exists(strlcpy)
 chk_function_exists(strncasecmp)
 chk_function_exists(reallocarray)
+chk_function_exists(freezero)
 chk_function_exists(pipe2)
 chk_function_exists(accept4)
 
