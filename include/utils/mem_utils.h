@@ -48,70 +48,7 @@
 #endif
 #include <stdlib.h>
 #include <string.h> /* memcpy, memmove, memset... */
-
-#ifndef SIZE_T_MAX
-#	define SIZE_T_MAX	((size_t)~0)
-#endif
-#ifndef RSIZE_MAX
-#	define RSIZE_MAX	(SIZE_T_MAX >> 1)
-#endif
-#ifndef roundup2
-#	define roundup2(x, y)	(((x) + ((y) - 1)) & (~((y) - 1)))
-#endif
-
-/* Secure version of memset(). */
-static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
-
-
-#ifndef HAVE_MEMRCHR
-static inline void *
-memrchr(const void *buf, const int what_find, const size_t buf_size) {
-	register uint8_t *ptm;
-
-	if (NULL == buf || 0 == buf_size)
-		return (NULL);
-
-	ptm = (((uint8_t*)buf) + buf_size - 1);
-	while (ptm >= buf) {
-		if ((*ptm) == (uint8_t)what_find)
-			return (ptm);
-		ptm --;
-	}
-	return (NULL);
-}
-#endif
-
-#ifndef HAVE_MEMMEM
-static inline void *
-memmem(const void *buf, const size_t buf_size, const void *what_find,
-    const size_t what_find_size) {
-	register uint8_t *ptm;
-	register size_t buf_size_wrk;
-
-	if (NULL == buf || 0 == what_find_size || what_find_size > buf_size)
-		return (NULL);
-	if (1 == what_find_size) /* use fast memchr() */
-		return ((void*)memchr(buf, (*((uint8_t*)what_find)), buf_size));
-	if (what_find_size == buf_size) { /* only memcmp() */
-		if (0 == memcmp(buf, what_find, what_find_size))
-			return ((void*)buf);
-		return (NULL);
-	}
-
-	ptm = ((uint8_t*)buf);
-	buf_size_wrk = (buf_size - (what_find_size - 1));
-	for (;;) {
-		ptm = (uint8_t*)memchr(ptm, (*((uint8_t*)what_find)),
-		    (buf_size_wrk - (ptm - ((uint8_t*)buf))));
-		if (NULL == ptm)
-			return (NULL);
-		if (0 == memcmp(ptm, what_find, what_find_size))
-			return (ptm);
-		ptm ++;
-	}
-	return (NULL);
-}
-#endif
+#include "al/os.h"
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -304,6 +241,8 @@ not_found:
 	(*state) = off;
 	return (ENOENT); /* Not found. */
 }
+
+
 ////////////////////////////////////////////////////////////////////////
 /////// Replace items from src_repl array to items from dst_repl. //////
 ////////////////////////////////////////////////////////////////////////
@@ -559,26 +498,6 @@ mem_set(void *buf, const size_t size, const uint8_t c) {
 
 #define mem_bzero(__buf, __size)	mem_set((__buf), (size_t)(__size), 0x00)
 
-#ifndef HAVE_EXPLICIT_BZERO
-#	define explicit_bzero		mem_bzero
-#endif
-
-#ifndef HAVE_MEMSET_S
-static inline int
-memset_s(void *dest, size_t destsz, int c, size_t len) {
-
-	if (0 == len)
-		return (0);
-	if (NULL == dest || len > destsz ||
-	    RSIZE_MAX < destsz || RSIZE_MAX < len)
-		return (EINVAL);
-
-	memset_volatile(dest, (uint8_t)c, len);
-
-	return (0);
-}
-#endif
-
 /* Debug memory fill. */
 #ifdef DEBUG
 #	define mem_filld(__buf, __size)	mem_set((__buf), (size_t)(__size), 0xab)
@@ -612,40 +531,6 @@ mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
 #define mem_znew(__type)		(__type*)zalloc(sizeof(__type))
 
 #define mallocarray(__nmemb, __size)	reallocarray(NULL, (__nmemb), (size_t)(__size))
-
-#ifndef HAVE_REALLOCARRAY
-static inline void *
-reallocarray(void *ptr, const size_t nmemb, const size_t size) {
-	size_t nmemb_size;
-
-	nmemb_size = (nmemb * size);
-	if (0 == nmemb_size) {
-		if (0 != nmemb &&
-		    0 != size) { /* Overflow. */
-			errno = ENOMEM;
-			return (NULL);
-		}
-		nmemb_size ++;
-	} else if (((nmemb | size) & (SIZE_T_MAX << (sizeof(size_t) * 4))) &&
-	    (nmemb_size / size) != nmemb) { /* size_t overflow. */
-		errno = ENOMEM;
-		return (NULL);
-	}
-
-	return (realloc(ptr, nmemb_size));
-}
-#endif
-
-#ifndef HAVE_FREEZERO
-static inline void
-freezero(void *ptr, const size_t size) {
-
-	if (NULL == ptr)
-		return;
-	mem_bzero(ptr, size);
-	free(ptr);
-}
-#endif
 
 static inline int
 realloc_items(void **items, const size_t item_size,

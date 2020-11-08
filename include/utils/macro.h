@@ -43,10 +43,6 @@
 #endif
 
 
-
-#ifndef nitems /* SIZEOF() */
-#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
-#endif
 #ifndef SIZEOF /* nitems() */
 #	define SIZEOF(__val)	nitems((__val))
 #endif
@@ -56,14 +52,6 @@
 		(((__size) + ((size_t)(__align_size)) - 1) & ~(((size_t)(__align_size)) - 1))
 #	define ALIGNEX_PTR(__ptr, __align_size)				\
 		((((char*)(__ptr)) + ((size_t)(__align_size)) - 1) & ~(((size_t)(__align_size)) - 1))
-#endif
-
-#ifndef MIN
-#	define MIN(__a, __b)	(((__a) < (__b)) ? (__a) : (__b))
-#endif
-
-#ifndef MAX
-#	define MAX(__a, __b)	(((__a) > (__b)) ? (__a) : (__b))
 #endif
 
 #ifndef limit_val
@@ -97,79 +85,9 @@
 #define TIMESPEC_TO_MS(__ts)						\
     ((((uint64_t)(__ts)->tv_sec) * 1000) + (((uint64_t)(__ts)->tv_nsec) / 1000000))
 
-#ifndef CLOCK_REALTIME_FAST
-#	define CLOCK_REALTIME_FAST	CLOCK_REALTIME
-#endif
-#ifndef CLOCK_MONOTONIC_FAST
-#	define CLOCK_MONOTONIC_FAST	CLOCK_MONOTONIC
-#endif
-
-
-#ifndef __unused
-#	define __unused		__attribute__((__unused__))
-#endif
-
 
 #ifndef MK_RW_PTR
 #	define MK_RW_PTR(__ptr)	((void*)(size_t)(__ptr))
-#endif
-
-
-#ifndef TAILQ_FOREACH_SAFE /* Linux does not have this macro. */
-#	define TAILQ_FOREACH_SAFE(__var, __head, __field, __tvar)	\
-		for ((__var) = TAILQ_FIRST((__head));			\
-		    (__var) && ((__tvar) = TAILQ_NEXT((__var), __field), 1); \
-		    (__var) = (__tvar))
-#endif
-
-#ifndef TAILQ_SWAP /* Linux does not have this macro. */
-#	define TAILQ_SWAP(__head1, __head2, __type, __field) do {	\
-		struct __type *swap_first = (__head1)->tqh_first;	\
-		struct __type **swap_last = (__head1)->tqh_last;	\
-		(__head1)->tqh_first = (__head2)->tqh_first;		\
-		(__head1)->tqh_last = (__head2)->tqh_last;		\
-		(__head2)->tqh_first = swap_first;			\
-		(__head2)->tqh_last = swap_last;			\
-		if (NULL != (swap_first = (__head1)->tqh_first)) {	\
-			swap_first->__field.tqe_prev = &(__head1)->tqh_first; \
-		} else {						\
-			(__head1)->tqh_last = &(__head1)->tqh_first;	\
-		}							\
-		if (NULL != (swap_first = (__head2)->tqh_first)) {	\
-			swap_first->__field.tqe_prev = &(__head2)->tqh_first; \
-		} else {						\
-			(__head2)->tqh_last = &(__head2)->tqh_first;	\
-		}							\
-	} while (0)
-#endif
-
-#ifndef TAILQ_PREV_PTR
-#	define TAILQ_PREV_PTR(elm, field)	((elm)->field.tqe_prev)
-#endif
-
-#ifndef s6_addr32
-#	define s6_addr32	__u6_addr.__u6_addr32
-#endif
-
-#ifndef ifr_ifindex
-#	define ifr_ifindex	ifr_ifru.ifru_index
-#endif
-
-
-#ifndef IN_LOOPBACK
-#	define IN_LOOPBACK(__x) (0x7f000000 == (0xff000000 & (uint32_t)(__x)))
-#endif
-
-#ifndef IN_BROADCAST
-#	define IN_BROADCAST(__x) (INADDR_BROADCAST == (uint32_t)(__x))
-#endif
-
-#ifndef IN_MULTICAST
-#	define IN_MULTICAST(__x) (0xe0000000 == (0xf0000000 & (uint32_t)(__x)))
-#endif
-
-#ifndef IN6_IS_ADDR_MULTICAST
-#	define IN6_IS_ADDR_MULTICAST(__x) (0xff == (__x)->s6_addr[0])
 #endif
 
 
@@ -180,11 +98,6 @@
 				  ('.' == (__name)[1] && 0 == (__name)[2])))
 
 
-#ifndef offsetof /* offsetof struct field */
-#	define offsetof(__type, __field)				\
-		((size_t)((const volatile void*)&((__type*)0)->__field))
-#endif
-
 #ifndef fieldsetof /* sizeof struct field */
 #	define fieldsetof(__type, __field) ((size_t)sizeof(((__type*)0)->__field))
 #endif
@@ -193,16 +106,6 @@
 	memcpy((__dst),							\
 	    (((const char*)(__sdata)) + offsetof(__stype, __sfield)),	\
 	    fieldsetof(__stype, __sfield))
-
-
-/* From linux: dirent.h */
-#ifndef _D_EXACT_NAMLEN
-#	ifdef _DIRENT_HAVE_D_NAMLEN
-#		define _D_EXACT_NAMLEN(__de)	((__de)->d_namlen)
-#	else
-#		define _D_EXACT_NAMLEN(__de)	(strnlen((__de)->d_name, sizeof((__de)->d_name)))
-#	endif
-#endif /* _D_EXACT_NAMLEN */
 
 
 #ifndef MTX_S
