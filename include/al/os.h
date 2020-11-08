@@ -53,4 +53,22 @@ int	pipe2(int fildes[2], int flags);
 #endif
 
 
+#ifndef HAVE_STRLCPY
+static inline size_t
+strlcpy(char * restrict dst, const char * restrict src, size_t size) {
+	size_t src_size, cp_size;
+
+	if (NULL == dst || NULL == src || 0 == size)
+		return (0);
+
+	src_size = strlen(src);
+	cp_size = ((src_size < size) ? src_size : (size - 1));
+	memcpy(dst, src, cp_size);
+	dst[cp_size] = 0x00;
+
+	return (src_size);
+}
+#endif
+
+
 #endif /* __ABSTRACTION_LAYER_OS_H__ */
