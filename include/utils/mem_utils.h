@@ -66,8 +66,12 @@ static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 #ifndef HAVE_MEMRCHR
 static inline void *
 memrchr(const void *buf, const int what_find, const size_t buf_size) {
-	register uint8_t *ptm = (((uint8_t*)buf) + buf_size - 1);
+	register uint8_t *ptm;
 
+	if (NULL == buf || 0 == buf_size)
+		return (NULL);
+
+	ptm = (((uint8_t*)buf) + buf_size - 1);
 	while (ptm >= buf) {
 		if ((*ptm) == (uint8_t)what_find)
 			return (ptm);
@@ -84,7 +88,7 @@ memmem(const void *buf, const size_t buf_size, const void *what_find,
 	register uint8_t *ptm;
 	register size_t buf_size_wrk;
 
-	if (0 == what_find_size || what_find_size > buf_size)
+	if (NULL == buf || 0 == what_find_size || what_find_size > buf_size)
 		return (NULL);
 	if (1 == what_find_size) /* use fast memchr() */
 		return ((void*)memchr(buf, (*((uint8_t*)what_find)), buf_size));
