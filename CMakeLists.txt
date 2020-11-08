@@ -84,6 +84,10 @@ chk_function_exists(accept4)
 # Check macros.
 chk_symbol_exists(sys/socket.h SOCK_NONBLOCK)
 
+# Disable some warnings.
+try_c_flag(W_NO_UNUSED_RESULT		"-Wno-unused-result")
+
+
 message(STATUS "liblcb configuring done!")
 
 ################################ SUBDIRS SECTION #######################

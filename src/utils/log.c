@@ -52,7 +52,7 @@ log_write_fd(uintptr_t fd, const char *data, size_t data_size) {
 
 	if ((uintptr_t)-1 == fd || NULL == data || 0 == data_size)
 		return;
-	(void)write((int)fd, data, data_size);
+	write((int)fd, data, data_size);
 }
 
 void
