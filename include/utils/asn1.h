@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,16 +31,8 @@
 #ifndef __ASN_1_H__
 #define __ASN_1_H__
 
-#ifdef _WINDOWS
-#	define EINVAL		ERROR_INVALID_HANDLE
-#	define ESPIPE		2
-#	define EBADMSG		3
-#	define EDOM		4
-#	define EOVERFLOW	ERROR_BUFFER_OVERFLOW
-#else
-#	include <sys/types.h>
-#	include <inttypes.h>
-#endif
+#include <sys/types.h>
+#include <inttypes.h>
 
 
 /* Identifier */

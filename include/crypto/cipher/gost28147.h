@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,36 +38,21 @@
 #ifndef __GOST28147_89_H__
 #define __GOST28147_89_H__
 
+#include <sys/param.h>
+#include <sys/types.h>
+#include <string.h> /* memcpy, memmove, memset... */
+#include <inttypes.h>
+#include <netinet/in.h> /* ntohs(), htons(), ntohl(), htonl() */
 
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	include <sys/types.h>
-#	ifdef _KERNEL
-#		include <sys/systm.h>
-#	else
-#		include <string.h> /* memcpy, memmove, memset... */
-#		include <inttypes.h>
-#		include <netinet/in.h> /* ntohs(), htons(), ntohl(), htonl() */
-#	endif
-	static void *(*volatile gost28147_memset_volatile)(void*, int, size_t) = memset;
-#	define gost28147_bzero(mem, size)	gost28147_memset_volatile(mem, 0, size)
-#	define gost28147_print(__fmt, args...)	fprintf(stdout, (__fmt), ##args)
-#else
-#	include <stdlib.h>
-#	include <string.h> /* memcpy, memmove, memset... */
-#	include <stdint.h>
-#	define uint8_t		unsigned char
-#	define uint32_t		DWORD
-#	define size_t		SIZE_T
-#	define EINVAL		ERROR_INVALID_PARAMETER
-#	define gost28147_bzero(mem, size)	SecureZeroMemory(mem, size)
-#	define gost28147_print()
-#endif
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #	define GOST28147_ALIGN(__n) __declspec(align(__n)) /* DECLSPEC_ALIGN() */
 #else /* GCC/clang */
 #	define GOST28147_ALIGN(__n) __attribute__((aligned(__n)))
 #endif
+
+static void *(*volatile gost28147_memset_volatile)(void*, int, size_t) = memset;
+#define gost28147_bzero(mem, size)	gost28147_memset_volatile(mem, 0, size)
+#define gost28147_print(__fmt, args...)	fprintf(stdout, (__fmt), ##args)
 
 
 /* Tunables. */

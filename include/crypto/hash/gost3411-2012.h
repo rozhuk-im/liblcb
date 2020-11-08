@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,27 +37,15 @@
 #ifndef __GOST3411_2012_H__INCLUDED__
 #define __GOST3411_2012_H__INCLUDED__
 
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	ifdef __linux__
-#		include <endian.h>
-#	else
-#		include <sys/endian.h>
-#	endif
-#	include <sys/types.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
-#	include <inttypes.h>
-	static void *(*volatile gost3411_2012_memset_volatile)(void *, int, size_t) = memset;
-#	define gost3411_2012_bzero(__mem, __size)	gost3411_2012_memset_volatile((__mem), 0x00, (__size))
-#	define gost3411_2012_print(__fmt, args...)	fprintf(stdout, (__fmt), ##args)
+#include <sys/param.h>
+#ifdef __linux__
+#	include <endian.h>
 #else
-#	define uint8_t		unsigned char
-#	define uint32_t		DWORD
-#	define uint64_t		DWORDLONG
-#	define size_t		SIZE_T
-#	define gost3411_2012_bzero(__mem, __size)	SecureZeroMemory((__mem), (__size))
-#	define gost3411_2012_print(__fmt, args...)
+#	include <sys/endian.h>
 #endif
+#include <sys/types.h>
+#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <inttypes.h>
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #	define GOST3411_2012_ALIGN(__n) __declspec(align(__n)) /* DECLSPEC_ALIGN() */
@@ -65,15 +53,10 @@
 #	define GOST3411_2012_ALIGN(__n) __attribute__ ((aligned(__n)))
 #endif
 
-#if defined(_WINDOWS) && defined(UNICODE)
-#	define gost3411_2012_hmac_get_digest_str gost3411_2012_hmac_get_digest_strW
-#	define gost3411_2012_get_digest_str	gost3411_2012_get_digest_strW
-#	define gost3411_2012_cvt_str		gost3411_2012_cvt_strW
-#else
-#	define gost3411_2012_hmac_get_digest_str gost3411_2012_hmac_get_digest_strA
-#	define gost3411_2012_get_digest_str	gost3411_2012_get_digest_strA
-#	define gost3411_2012_cvt_str		gost3411_2012_cvt_strA
-#endif
+static void *(*volatile gost3411_2012_memset_volatile)(void *, int, size_t) = memset;
+#define gost3411_2012_bzero(__mem, __size)	gost3411_2012_memset_volatile((__mem), 0x00, (__size))
+#define gost3411_2012_print(__fmt, args...)	fprintf(stdout, (__fmt), ##args)
+
 
 
 /* Tunables. */
@@ -2445,24 +2428,11 @@ gost3411_2012_cvt_hex(const uint8_t *bin, size_t bin_size, uint8_t *hex) {
 
 /* Other staff. */
 static inline void
-gost3411_2012_cvt_strA(const uint8_t *digest, size_t digest_size,
+gost3411_2012_cvt_str(const uint8_t *digest, size_t digest_size,
     char *digest_str) {
 
 	gost3411_2012_cvt_hex(digest, digest_size, (uint8_t*)digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-gost3411_2012_cvt_strW(const uint8_t *digest, size_t digest_size,
-    LPWSTR digest_str) {
-	register size_t i, j;
-
-	for (i = 0, j = 0; i < digest_size; i ++, j += 2) {
-		wsprintfW((LPWSTR)(digest_str + j), L"%02x", digest[i]);
-	}
-	digest_str[j] = 0;
-}
-#endif
 
 
 static inline void
@@ -2479,7 +2449,7 @@ gost3411_2012_get_digest(size_t bits, const void *data, size_t data_size,
 }
 
 static inline void
-gost3411_2012_get_digest_strA(size_t bits, const char *data, size_t data_size,
+gost3411_2012_get_digest_str(size_t bits, const char *data, size_t data_size,
     char *digest_str, size_t *digest_str_size) {
 	gost3411_2012_ctx_t ctx;
 	size_t digest_size;
@@ -2490,31 +2460,11 @@ gost3411_2012_get_digest_strA(size_t bits, const char *data, size_t data_size,
 	digest_size = ctx.hash_size;
 	gost3411_2012_final(&ctx, digest);
 
-	gost3411_2012_cvt_strA(digest, digest_size, digest_str);
+	gost3411_2012_cvt_str(digest, digest_size, digest_str);
 	if (NULL != digest_str_size) {
 		(*digest_str_size) = (digest_size * 2);
 	}
 }
-
-#ifdef _WINDOWS
-static inline void
-gost3411_2012_get_digest_strW(size_t bits, const LPWSTR data, size_t data_size,
-    LPWSTR digest_str, size_t *digest_str_size) {
-	gost3411_2012_ctx_t ctx;
-	size_t digest_size;
-	uint8_t digest[GOST3411_2012_HASH_MAX_SIZE];
-
-	gost3411_2012_init(bits, &ctx);
-	gost3411_2012_update(&ctx, (uint8_t*)data, data_size);
-	digest_size = ctx.hash_size;
-	gost3411_2012_final(&ctx, digest);
-
-	gost3411_2012_cvt_strW(digest, digest_size, digest_str);
-	if (NULL != digest_str_size) {
-		(*digest_str_size) = (digest_size * 2);
-	}
-}
-#endif
 
 
 static inline void
@@ -2526,34 +2476,18 @@ gost3411_2012_hmac_get_digest(size_t bits, const void *key, size_t key_size,
 }
 
 static inline void
-gost3411_2012_hmac_get_digest_strA(size_t bits, const char *key, size_t key_size,
+gost3411_2012_hmac_get_digest_str(size_t bits, const char *key, size_t key_size,
     const char *data, size_t data_size, char *digest_str, size_t *digest_str_size) {
 	size_t digest_size;
 	uint8_t digest[GOST3411_2012_HASH_MAX_SIZE];
 
 	hmac_gost3411_2012(bits, (const uint8_t*)key, key_size,
 	    (const uint8_t*)data, data_size, digest, &digest_size);
-	gost3411_2012_cvt_strA(digest, digest_size, digest_str);
+	gost3411_2012_cvt_str(digest, digest_size, digest_str);
 	if (NULL != digest_str_size) {
 		(*digest_str_size) = (digest_size * 2);
 	}
 }
-
-#ifdef _WINDOWS
-static inline void
-gost3411_2012_hmac_get_digest_strW(size_t bits, const LPWSTR key, size_t key_size,
-    const LPWSTR data, size_t data_size, LPWSTR digest_str, size_t *digest_str_size) {
-	size_t digest_size;
-	uint8_t digest[GOST3411_2012_HASH_MAX_SIZE];
-
-	hmac_gost3411_2012(bits, (const uint8_t*)key, key_size,
-	    (const uint8_t*)data, data_size, digest, &digest_size);
-	gost3411_2012_cvt_strW(digest, digest_size, digest_str);
-	if (NULL != digest_str_size) {
-		(*digest_str_size) = (digest_size * 2);
-	}
-}
-#endif
 
 
 
@@ -2690,7 +2624,7 @@ gost3411_2012_self_test() {
 	/* Test 1 - HASH. */
 	for (i = 0; NULL != gost3411_2012_hash_tst[i].msg; i ++) {
 		if (NULL != gost3411_2012_hash_tst[i].hash256) {
-			gost3411_2012_get_digest_strA(256,
+			gost3411_2012_get_digest_str(256,
 			    gost3411_2012_hash_tst[i].msg,
 			    gost3411_2012_hash_tst[i].msg_size,
 			    digest_str, &tm);
@@ -2703,7 +2637,7 @@ gost3411_2012_self_test() {
 			}
 		}
 		if (NULL != gost3411_2012_hash_tst[i].hash512) {
-			gost3411_2012_get_digest_strA(512,
+			gost3411_2012_get_digest_str(512,
 			    gost3411_2012_hash_tst[i].msg,
 			    gost3411_2012_hash_tst[i].msg_size,
 			    digest_str, &tm);
@@ -2730,7 +2664,7 @@ gost3411_2012_self_test() {
 				}
 				tm = ctx.hash_size;
 				gost3411_2012_final(&ctx, digest);
-				gost3411_2012_cvt_strA(digest, tm, digest_str);
+				gost3411_2012_cvt_str(digest, tm, digest_str);
 				if (0 != memcmp(digest_str, gost3411_2012_hash_tst[k].hash256, tm)) {
 					gost3411_2012_print("Test2: %zu/%zu - 256: FAIL!\nvec = %s\nres = %s\n",
 					    k, j, gost3411_2012_hash_tst[k].hash256, digest_str);
@@ -2747,7 +2681,7 @@ gost3411_2012_self_test() {
 				}
 				tm = ctx.hash_size;
 				gost3411_2012_final(&ctx, digest);
-				gost3411_2012_cvt_strA(digest, tm, digest_str);
+				gost3411_2012_cvt_str(digest, tm, digest_str);
 				if (0 != memcmp(digest_str, gost3411_2012_hash_tst[k].hash512, tm)) {
 					gost3411_2012_print("Test2: %zu/%zu - 512: FAIL!\nvec = %s\nres = %s\n",
 					    k, j, gost3411_2012_hash_tst[k].hash512, digest_str);
@@ -2760,7 +2694,7 @@ gost3411_2012_self_test() {
 	/* Test 3 - HMAC. */
 	for (i = 0; NULL != gost3411_2012_hmac_tst[i].msg; i ++) {
 		if (NULL != gost3411_2012_hmac_tst[i].hmac256) {
-			gost3411_2012_hmac_get_digest_strA(256,
+			gost3411_2012_hmac_get_digest_str(256,
 			    gost3411_2012_hmac_tst[i].key,
 			    gost3411_2012_hmac_tst[i].key_size,
 			    gost3411_2012_hmac_tst[i].msg,
@@ -2775,7 +2709,7 @@ gost3411_2012_self_test() {
 			}
 		}
 		if (NULL != gost3411_2012_hmac_tst[i].hmac512) {
-			gost3411_2012_hmac_get_digest_strA(512,
+			gost3411_2012_hmac_get_digest_str(512,
 			    gost3411_2012_hmac_tst[i].key,
 			    gost3411_2012_hmac_tst[i].key_size,
 			    gost3411_2012_hmac_tst[i].msg,
@@ -2796,4 +2730,4 @@ gost3411_2012_self_test() {
 #endif
 
 
-#endif // __GOST3411_2012_H__INCLUDED__
+#endif /* __GOST3411_2012_H__INCLUDED__ */

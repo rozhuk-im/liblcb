@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,25 +31,11 @@
 #ifndef __REASSEMBLE_HELPER_H__
 #define __REASSEMBLE_HELPER_H__
 
-
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	include <sys/types.h>
-#	ifdef _KERNEL
-#		include <sys/systm.h>
-#	else
-#		include <string.h> /* memcpy, memmove, memset... */
-#		include <inttypes.h>
-#	endif
-#else
-#	include <stdlib.h>
-#	define uint8_t		unsigned char
-#	define uint64_t		DWORDLONG
-#	define size_t		SIZE_T
-#	define EINVAL		ERROR_INVALID_PARAMETER
-#	define EBADMSG		ERROR_INVALID_DATA
-#	define ENOBUFS		ERROR_INSUFFICIENT_BUFFER
-#endif
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/systm.h>
+#include <string.h> /* memcpy, memmove, memset... */
+#include <inttypes.h>
 
 
 #ifndef UINT64_T_MAX

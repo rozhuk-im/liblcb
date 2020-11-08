@@ -201,4 +201,4 @@ void		http_cli_set_resp_p_flags(http_cli_p cli, uint32_t resp_p_flags);
 
 
 
-#endif // __CORE_HTTP_CLIENT_H__
+#endif /* __CORE_HTTP_CLIENT_H__ */

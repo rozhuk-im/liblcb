@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2014 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,36 +42,18 @@
 #ifndef __RADIUS_PKT_H__
 #define __RADIUS_PKT_H__
 
-#ifdef _WINDOWS
-#	define EINVAL		ERROR_INVALID_PARAMETER
-#	define EOVERFLOW	ERROR_INSUFFICIENT_BUFFER
-#	define ESPIPE		ERROR_NOT_FOUND
-#	define EBADMSG		ERROR_INVALID_DATA
-#	define EEXIST		ERROR_FILE_EXISTS
-#	define ECANCELED	ERROR_CANCELLED
-#	define ENOATTR		ERROR_NO_DATA
-#	define uint8_t		unsigned char
-#	define uint16_t		WORD
-#	define uint32_t		DWORD
-#	define uint64_t		DWORDLONG
-#	define size_t		SIZE_T
-#	define ssize_t		SSIZE_T
-#else
-#	include <sys/types.h>
-#	include <inttypes.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
-#	include <sys/socket.h>
-#	include <netinet/in.h> /* ntohs(), htons() */
-#	include <netinet/tcp.h>
-#	include <arpa/inet.h>
-#	ifndef ENOATTR
-#		define ENOATTR	ENODATA
-#	endif
-#endif
-
-
+#include <sys/types.h>
+#include <inttypes.h>
+#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <sys/socket.h>
+#include <netinet/in.h> /* ntohs(), htons() */
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
 #include "crypto/hash/md5.h"
 
+#ifndef ENOATTR
+#	define ENOATTR	ENODATA
+#endif
 
 
 #define RADIUS_SERVER_PORT			1812

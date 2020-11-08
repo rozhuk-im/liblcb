@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004 - 2014 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +32,10 @@
 #ifndef __DNSMESSAGE_H__
 #define __DNSMESSAGE_H__
 
-
-#ifdef _WINDOWS
-#	define EINVAL		ERROR_INVALID_PARAMETER
-#	define EOVERFLOW	ERROR_INSUFFICIENT_BUFFER
-#	define ESPIPE		ERROR_NOT_FOUND
-#	define EBADMSG		ERROR_INVALID_DATA // DNS_ERROR_BAD_PACKET
-#	define EOPNOTSUPP	ERROR_NOT_SUPPORTED
-#	define ELOOP		ERROR_DS_LOOP_DETECT
-#	define uint8_t		unsigned char
-#	define uint16_t		WORD
-#	define uint32_t		DWORD
-#	define size_t		SIZE_T
-#else
-#	include <sys/types.h>
-#	include <inttypes.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
-#	include <netinet/in.h> /* ntohs(), htons(), ntohl(), htonl() */
-#endif
-
+#include <sys/types.h>
+#include <inttypes.h>
+#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <netinet/in.h> /* ntohs(), htons(), ntohl(), htonl() */
 #include "utils/mem_utils.h"
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,25 +34,19 @@
 #ifndef __SHA2_H__INCLUDED__
 #define __SHA2_H__INCLUDED__
 
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	ifdef __linux__
-#		include <endian.h>
-#	else
-#		include <sys/endian.h>
-#	endif
-#	include <sys/types.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
-#	include <inttypes.h>
-	static void *(*volatile sha2_memset_volatile)(void*, int, size_t) = memset;
-#	define sha2_bzero(__mem, __size)	sha2_memset_volatile((__mem), 0x00, (__size))
+#include <sys/param.h>
+#ifdef __linux__
+#	include <endian.h>
 #else
-#	define uint8_t		unsigned char
-#	define uint32_t		DWORD
-#	define uint64_t		DWORDLONG
-#	define size_t		SIZE_T
-#	define sha2_bzero(__mem, __size)	SecureZeroMemory((__mem), (__size))
+#	include <sys/endian.h>
 #endif
+#include <sys/types.h>
+#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <inttypes.h>
+
+static void *(*volatile sha2_memset_volatile)(void*, int, size_t) = memset;
+#define sha2_bzero(__mem, __size)	sha2_memset_volatile((__mem), 0x00, (__size))
+
 
 #if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
 #	include <cpuid.h>
@@ -71,17 +65,6 @@
 #	define SHA2_ALIGN(__n)	__declspec(align(__n)) /* DECLSPEC_ALIGN() */
 #else /* GCC/clang */
 #	define SHA2_ALIGN(__n)	__attribute__ ((aligned(__n)))
-#endif
-
-
-#if defined(_WINDOWS) && defined(UNICODE)
-#	define sha2_hmac_get_digest_str		sha2_hmac_get_digest_strW
-#	define sha2_get_digest_str		sha2_get_digest_strW
-#	define sha2_cvt_str			sha2_cvt_strW
-#else
-#	define sha2_hmac_get_digest_str		sha2_hmac_get_digest_strA
-#	define sha2_get_digest_str		sha2_get_digest_strA
-#	define sha2_cvt_str			sha2_cvt_strA
 #endif
 
 
@@ -861,22 +844,10 @@ sha2_cvt_hex(const uint8_t *bin, const size_t bin_size, uint8_t *hex) {
 
 /* Other staff. */
 static inline void
-sha2_cvt_strA(const uint8_t *digest, const size_t digest_size, char *digest_str) {
+sha2_cvt_str(const uint8_t *digest, const size_t digest_size, char *digest_str) {
 
 	sha2_cvt_hex(digest, digest_size, (uint8_t*)digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-sha2_cvt_strW(const uint8_t *digest, size_t digest_size, LPWSTR digest_str) {
-	register size_t i, j;
-
-	for (i = 0, j = 0; i < digest_size; i ++, j += 2) {
-		wsprintfW((LPWSTR)(digest_str + j), L"%02x", digest[i]);
-	}
-	digest_str[j] = 0;
-}
-#endif
 
 
 static inline void
@@ -894,7 +865,7 @@ sha2_get_digest(const size_t bits, const void *data, const size_t data_size,
 
 
 static inline void
-sha2_get_digest_strA(const size_t bits, const char *data, const size_t data_size,
+sha2_get_digest_str(const size_t bits, const char *data, const size_t data_size,
     char *digest_str, size_t *digest_str_size) {
 	sha2_ctx_t ctx;
 	size_t digest_size;
@@ -905,31 +876,11 @@ sha2_get_digest_strA(const size_t bits, const char *data, const size_t data_size
 	digest_size = ctx.hash_size;
 	sha2_final(&ctx, digest);
 
-	sha2_cvt_strA(digest, digest_size, digest_str);
+	sha2_cvt_str(digest, digest_size, digest_str);
 	if (NULL != digest_str_size) {
 		(*digest_str_size) = (digest_size * 2);
 	}
 }
-
-#ifdef _WINDOWS
-static inline void
-sha2_get_digest_strW(const size_t bits, const LPWSTR data, const size_t data_size,
-    const LPWSTR digest_str, size_t *digest_str_size) {
-	sha2_ctx_t ctx;
-	size_t digest_size;
-	uint8_t digest[SHA2_HASH_MAX_SIZE];
-
-	sha2_init(bits, &ctx);
-	sha2_update(&ctx, (const uint8_t*)data, data_size);
-	digest_size = ctx.hash_size;
-	sha2_final(&ctx, digest);
-
-	sha2_cvt_strW(digest, digest_size, digest_str);
-	if (NULL != digest_str_size) {
-		(*digest_str_size) = (digest_size * 2);
-	}
-}
-#endif
 
 
 static inline void
@@ -943,7 +894,7 @@ sha2_hmac_get_digest(const size_t bits, const void *key, const size_t key_size,
 
 
 static inline void
-sha2_hmac_get_digest_strA(const size_t bits, const char *key, const size_t key_size,
+sha2_hmac_get_digest_str(const size_t bits, const char *key, const size_t key_size,
     const char *data, const size_t data_size, 
     char *digest_str, size_t *digest_str_size) {
 	size_t digest_size;
@@ -951,28 +902,11 @@ sha2_hmac_get_digest_strA(const size_t bits, const char *key, const size_t key_s
 
 	hmac_sha2(bits, (const uint8_t*)key, key_size,
 	    (const uint8_t*)data, data_size, digest, &digest_size);
-	sha2_cvt_strA(digest, digest_size, digest_str);
+	sha2_cvt_str(digest, digest_size, digest_str);
 	if (NULL != digest_str_size) {
 		(*digest_str_size) = (digest_size * 2);
 	}
 }
-
-#ifdef _WINDOWS
-static inline void
-sha2_hmac_get_digest_strW(const size_t bits, const LPWSTR key, const size_t key_size,
-    const LPWSTR data, const size_t data_size,
-    LPWSTR digest_str, size_t *digest_str_size) {
-	size_t digest_size;
-	uint8_t digest[SHA2_HASH_MAX_SIZE];
-
-	hmac_sha2(bits, (const uint8_t*)key, key_size,
-	    (const uint8_t*)data, data_size, digest, &digest_size);
-	sha2_cvt_strW(digest, digest_size, digest_str);
-	if (NULL != digest_str_size) {
-		(*digest_str_size) = (digest_size * 2);
-	}
-}
-#endif
 
 
 #ifdef SHA2_SELF_TEST
@@ -1166,25 +1100,25 @@ sha2_self_test(void) {
 	
 	/* 224 */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha2_get_digest_strA(224, data[i], data_size[i], digest_str, NULL);
+		sha2_get_digest_str(224, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest224[i], SHA2_224_HASH_STR_SIZE))
 			return (1);
 	}
 	/* 256 */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha2_get_digest_strA(256, data[i], data_size[i], digest_str, NULL);
+		sha2_get_digest_str(256, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest256[i], SHA2_256_HASH_STR_SIZE))
 			return (2);
 	}
 	/* 384 */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha2_get_digest_strA(384, data[i], data_size[i], digest_str, NULL);
+		sha2_get_digest_str(384, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest384[i], SHA2_384_HASH_STR_SIZE))
 			return (3);
 	}
 	/* 512 */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha2_get_digest_strA(512, data[i], data_size[i], digest_str, NULL);
+		sha2_get_digest_str(512, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest512[i], SHA2_512_HASH_STR_SIZE))
 			return (4);
 	}
@@ -1192,21 +1126,21 @@ sha2_self_test(void) {
 	/* HMAC test */
 	/* 256 */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha2_hmac_get_digest_strA(256, data[i], data_size[i], data[i],
+		sha2_hmac_get_digest_str(256, data[i], data_size[i], data[i],
 		    data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_hdigest256[i], SHA2_256_HASH_STR_SIZE))
 			return (5);
 	}
 	/* 384 */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha2_hmac_get_digest_strA(384, data[i], data_size[i], data[i],
+		sha2_hmac_get_digest_str(384, data[i], data_size[i], data[i],
 		    data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_hdigest384[i], SHA2_384_HASH_STR_SIZE))
 			return (6);
 	}
 	/* 512 */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha2_hmac_get_digest_strA(512, data[i], data_size[i], data[i],
+		sha2_hmac_get_digest_str(512, data[i], data_size[i], data[i],
 		    data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_hdigest512[i], SHA2_512_HASH_STR_SIZE))
 			return (7);

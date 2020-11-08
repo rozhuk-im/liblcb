@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,26 +63,19 @@
 #ifndef __SHA1_H__INCLUDED__
 #define __SHA1_H__INCLUDED__
 
-
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	ifdef __linux__
-#		include <endian.h>
-#	else
-#		include <sys/endian.h>
-#	endif
-#	include <sys/types.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
-#	include <inttypes.h>
-	static void *(*volatile sha1_memset_volatile)(void*, int, size_t) = memset;
-#	define sha1_bzero(__mem, __size)	sha1_memset_volatile((__mem), 0x00, (__size))
+#include <sys/param.h>
+#ifdef __linux__
+#	include <endian.h>
 #else
-#	define uint8_t		unsigned char
-#	define uint32_t		DWORD
-#	define uint64_t		DWORDLONG
-#	define size_t		SIZE_T
-#	define sha1_bzero(__mem, __size)	SecureZeroMemory((__mem), (__size))
+#	include <sys/endian.h>
 #endif
+#include <sys/types.h>
+#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <inttypes.h>
+
+static void *(*volatile sha1_memset_volatile)(void*, int, size_t) = memset;
+#define sha1_bzero(__mem, __size)	sha1_memset_volatile((__mem), 0x00, (__size))
+
 
 #ifdef __SSE2__
 #	include <cpuid.h>
@@ -104,17 +97,6 @@
 #	define SHA1_ALIGN(__n)	__declspec(align(__n)) /* DECLSPEC_ALIGN() */
 #else /* GCC/clang */
 #	define SHA1_ALIGN(__n)	__attribute__ ((aligned(__n)))
-#endif
-
-
-#if defined(_WINDOWS) && defined(UNICODE)
-#	define sha1_hmac_get_digest_str		sha1_hmac_get_digest_strW
-#	define sha1_get_digest_str		sha1_get_digest_strW
-#	define sha1_cvt_str			sha1_cvt_strW
-#else
-#	define sha1_hmac_get_digest_str		sha1_hmac_get_digest_strA
-#	define sha1_get_digest_str		sha1_get_digest_strA
-#	define sha1_cvt_str			sha1_cvt_strA
 #endif
 
 
@@ -950,22 +932,10 @@ sha1_cvt_hex(const uint8_t *bin, uint8_t *hex) {
 
 /* Other staff. */
 static inline void
-sha1_cvt_strA(const uint8_t *digest, char *digest_str) {
+sha1_cvt_str(const uint8_t *digest, char *digest_str) {
 
 	sha1_cvt_hex(digest, (uint8_t*)digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-sha1_cvt_strW(const uint8_t *digest, LPWSTR digest_str) {
-	register size_t i, j;
-
-	for (i = 0, j = 0; i < SHA1_HASH_SIZE; i ++, j += 2) {
-		wsprintfW((LPWSTR)(digest_str + j), L"%02x", digest[i]);
-	}
-	digest_str[j] = 0;
-}
-#endif
 
 
 static inline void
@@ -979,7 +949,7 @@ sha1_get_digest(const void *data, size_t data_size, uint8_t *digest) {
 
 
 static inline void
-sha1_get_digest_strA(const char *data, size_t data_size, char *digest_str) {
+sha1_get_digest_str(const char *data, size_t data_size, char *digest_str) {
 	sha1_ctx_t ctx;
 	uint8_t digest[SHA1_HASH_SIZE];
 
@@ -987,22 +957,8 @@ sha1_get_digest_strA(const char *data, size_t data_size, char *digest_str) {
 	sha1_update(&ctx, (const uint8_t*)data, data_size);
 	sha1_final(&ctx, digest);
 
-	sha1_cvt_strA(digest, digest_str);
+	sha1_cvt_str(digest, digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-sha1_get_digest_strW(const LPWSTR data, size_t data_size, LPWSTR digest_str) {
-	sha1_ctx_t ctx;
-	uint8_t digest[SHA1_HASH_SIZE];
-
-	sha1_init(&ctx);
-	sha1_update(&ctx, (const uint8_t*)data, data_size);
-	sha1_final(&ctx, digest);
-
-	sha1_cvt_strW(digest, digest_str);
-}
-#endif
 
 
 static inline void
@@ -1014,26 +970,14 @@ sha1_hmac_get_digest(const void *key, size_t key_size,
 
 
 static inline void
-sha1_hmac_get_digest_strA(const char *key, size_t key_size,
+sha1_hmac_get_digest_str(const char *key, size_t key_size,
     const char *data, size_t data_size, char *digest_str) {
 	uint8_t digest[SHA1_HASH_SIZE];
 
 	hmac_sha1((const uint8_t*)key, key_size,
 	    (const uint8_t*)data, data_size, digest);
-	sha1_cvt_strA(digest, digest_str);
+	sha1_cvt_str(digest, digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-sha1_hmac_get_digest_strW(const LPWSTR key, size_t key_size,
-    const LPWSTR data, size_t data_size, LPWSTR digest_str) {
-	uint8_t digest[SHA1_HASH_SIZE];
-
-	hmac_sha1((const uint8_t*)key, key_size,
-	    (const uint8_t*)data, data_size, digest);
-	sha1_cvt_strW(digest, digest_str);
-}
-#endif
 
 
 #ifdef SHA1_SELF_TEST
@@ -1120,7 +1064,7 @@ sha1_self_test(void) {
 	}
 	/* HMAC test */
 	for (i = 0; NULL != data[i]; i ++) {
-		sha1_hmac_get_digest_strA(data[i], data_size[i], data[i], data_size[i],
+		sha1_hmac_get_digest_str(data[i], data_size[i], data[i], data_size[i],
 		    (char*)digest_str);
 		if (0 != memcmp(digest_str, result_hdigest[i], SHA1_HASH_STR_SIZE))
 			return (2);

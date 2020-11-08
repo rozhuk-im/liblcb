@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2003 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,16 +29,8 @@
 #ifndef __BASE64_H__
 #define __BASE64_H__
 
-
-#ifndef _WINDOWS
-#	include <sys/types.h>
-#	include <inttypes.h>
-#else
-#	define EINVAL		ERROR_INVALID_HANDLE
-#	define ENOBUFS		ERROR_BUFFER_OVERFLOW
-#	define uint8_t		unsigned char
-#	define size_t		SIZE_T
-#endif
+#include <sys/types.h>
+#include <inttypes.h>
 
 /*
  *      BASE64 coding:
@@ -218,4 +210,4 @@ base64_decode_fmt(uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size, 
 }
 
 
-#endif // __BASE64_H__
+#endif /* __BASE64_H__ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,20 +31,8 @@
 #ifndef __STRH2NUM_H__
 #define __STRH2NUM_H__
 
-#ifdef _WINDOWS
-	#define int8_t		char
-	#define uint8_t		unsigned char
-	#define uint16_t	WORD
-	#define int32_t		LONG
-	#define uint32_t	DWORD
-	#define int64_t		LONGLONG
-	#define uint64_t	DWORDLONG
-	#define	size_t		SIZE_T
-	#define	ssize_t		SSIZE_T
-#else
-#	include <sys/types.h>
-#	include <inttypes.h>
-#endif
+#include <sys/types.h>
+#include <inttypes.h>
 
 
 #define STRH2NUM_SIGN(__str, __len, __sign)				\

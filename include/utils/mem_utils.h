@@ -31,23 +31,13 @@
 #ifndef __MEMORY_UTILS_H__
 #define __MEMORY_UTILS_H__
 
-
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	include <sys/types.h>
-#	include <sys/mman.h> /* mmap, munmap */
-#	include <inttypes.h>
-#	include <strings.h> /* strncasecmp() */
-#else
-#	define EINVAL		ERROR_INVALID_PARAMETER
-#	define ENOMEM		ERROR_OUTOFMEMORY
-#	define uint8_t		unsigned char
-#	define size_t		SIZE_T
-
-#	include <stdint.h>
-#endif
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/mman.h> /* mmap, munmap */
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h> /* memcpy, memmove, memset... */
+#include <strings.h> /* strncasecmp() */
 #include "al/os.h"
 
 
@@ -563,8 +553,6 @@ realloc_items(void **items, const size_t item_size,
 ////////////////////////////////////////////////////////////////////////
 /////////////////////// mmap() based allocator /////////////////////////
 ////////////////////////////////////////////////////////////////////////
-#ifndef _WINDOWS
-
 #define mapalloc(__size)	mapalloc_fd((uintptr_t)-1, (size_t)(__size))
 
 static inline void *
@@ -622,7 +610,5 @@ mapfree(void *buf, const size_t size) {
 		return;
 	munmap(buf, size);
 }
-
-#endif /* _WINDOWS */
 
 #endif /* __MEMORY_UTILS_H__ */

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,48 +32,30 @@
 #ifndef __CHACHA_H__
 #define __CHACHA_H__
 
-
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	ifdef __linux__
-#		include <endian.h>
-#	else
-#		include <sys/endian.h>
-#	endif
-#	include <sys/types.h>
-#	ifdef _KERNEL
-#		include <sys/systm.h>
-#	else
-#		include <string.h> /* memcpy, memmove, memset... */
-#		include <inttypes.h>
-#	endif
-#	if __x86_64__ || __ppc64__ || __LP64__
-#		define CHACHA_X64
-#	else
-#		define CHACHA_X32
-#	endif
-	static void *(*volatile chacha_memset_volatile)(void*, int, size_t) = memset;
-#	define chacha_bzero(mem, size)	chacha_memset_volatile(mem, 0, size)
+#include <sys/param.h>
+#ifdef __linux__
+#	include <endian.h>
 #else
-#	include <stdlib.h>
-#	define uint8_t		unsigned char
-#	define uint32_t		DWORD
-#	define size_t		SIZE_T
-#	define chacha_bzero(mem, size)	SecureZeroMemory(mem, size)
-#	define ROTL32(v, n)		_lrotl(v, n)
-#	define htole64(n)		n
-#	define le64toh(n)		n
-#	if _WIN64
-#		define CHACHA_X64
-#	else
-#		define CHACHA_X32
-#	endif
+#	include <sys/endian.h>
 #endif
+#include <sys/types.h>
+#include <string.h> /* memcpy, memmove, memset... */
+#include <inttypes.h>
+
+#if __x86_64__ || __ppc64__ || __LP64__
+#	define CHACHA_X64
+#else
+#	define CHACHA_X32
+#endif
+
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #	define CHACHA_ALIGN(__n) __declspec(align(__n)) /* DECLSPEC_ALIGN() */
 #else /* GCC/clang */
 #	define CHACHA_ALIGN(__n) __attribute__((aligned(__n)))
 #endif
+
+static void *(*volatile chacha_memset_volatile)(void*, int, size_t) = memset;
+#define chacha_bzero(mem, size)	chacha_memset_volatile(mem, 0, size)
 
 
 #define CHACHA_BLOCK_LEN	64

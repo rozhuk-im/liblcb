@@ -34,31 +34,13 @@
 #ifndef __MD5_H__INCLUDED__
 #define __MD5_H__INCLUDED__
 
+#include <sys/param.h>
+#include <sys/types.h>
+#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <inttypes.h>
 
-#ifndef _WINDOWS
-#	include <sys/param.h>
-#	include <sys/types.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
-#	include <inttypes.h>
-	static void *(*volatile md5_memset_volatile)(void*, int, size_t) = memset;
-#	define md5_bzero(__mem, __size)		md5_memset_volatile((__mem), 0x00, (__size))
-#else
-#	define uint8_t		unsigned char
-#	define uint32_t		DWORD
-#	define uint64_t		DWORDLONG
-#	define size_t		SIZE_T
-#	define md5_bzero(__mem, __size)		SecureZeroMemory((__mem), (__size))
-#endif
-
-#if defined(_WINDOWS) && defined(UNICODE)
-#	define md5_hmac_get_digest_str		md5_hmac_get_digest_strW
-#	define md5_get_digest_str		md5_get_digest_strW
-#	define md5_cvt_str			md5_cvt_strW
-#else
-#	define md5_hmac_get_digest_str		md5_hmac_get_digest_strA
-#	define md5_get_digest_str		md5_get_digest_strA
-#	define md5_cvt_str			md5_cvt_strA
-#endif
+static void *(*volatile md5_memset_volatile)(void*, int, size_t) = memset;
+#define md5_bzero(__mem, __size)		md5_memset_volatile((__mem), 0x00, (__size))
 
 
 /* HASH constants. */
@@ -401,22 +383,10 @@ md5_cvt_hex(const uint8_t *bin, uint8_t *hex) {
 
 /* Other staff. */
 static inline void
-md5_cvt_strA(const uint8_t *digest, char *digest_str) {
+md5_cvt_str(const uint8_t *digest, char *digest_str) {
 
 	md5_cvt_hex(digest, (uint8_t*)digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-md5_cvt_strW(const uint8_t *digest, LPWSTR digest_str) {
-	register size_t i, j;
-
-	for (i = 0, j = 0; i < MD5_HASH_SIZE; i ++, j += 2) {
-		wsprintfW((LPWSTR)(digest_str + j), L"%02x", digest[i]);
-	}
-	digest_str[j] = 0;
-}
-#endif
 
 
 static inline void
@@ -430,7 +400,7 @@ md5_get_digest(const void *data, const size_t data_size, uint8_t *digest) {
 
 
 static inline void
-md5_get_digest_strA(const char *data, const size_t data_size, char *digest_str) {
+md5_get_digest_str(const char *data, const size_t data_size, char *digest_str) {
 	md5_ctx_t ctx;
 	uint8_t digest[MD5_HASH_SIZE];
 
@@ -438,23 +408,8 @@ md5_get_digest_strA(const char *data, const size_t data_size, char *digest_str) 
 	md5_update(&ctx, (const uint8_t*)data, data_size);
 	md5_final(&ctx, digest);
 
-	md5_cvt_strA(digest, digest_str);
+	md5_cvt_str(digest, digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-md5_get_digest_strW(const LPWSTR data, const size_t data_size,
-    const LPWSTR digest_str) {
-	md5_ctx_t ctx;
-	uint8_t digest[MD5_HASH_SIZE];
-
-	md5_init(&ctx);
-	md5_update(&ctx, (const uint8_t*)data, data_size);
-	md5_final(&ctx, digest);
-
-	md5_cvt_strW(digest, digest_str);
-}
-#endif
 
 
 static inline void
@@ -466,26 +421,14 @@ md5_hmac_get_digest(const void *key, const size_t key_size,
 
 
 static inline void
-md5_hmac_get_digest_strA(const char *key, size_t key_size,
+md5_hmac_get_digest_str(const char *key, size_t key_size,
     const char *data, size_t data_size, char *digest_str) {
 	uint8_t digest[MD5_HASH_SIZE];
 
 	hmac_md5((const uint8_t*)key, key_size,
 	    (const uint8_t*)data, data_size, digest);
-	md5_cvt_strA(digest, digest_str);
+	md5_cvt_str(digest, digest_str);
 }
-
-#ifdef _WINDOWS
-static inline void
-md5_hmac_get_digest_strW(const LPWSTR key, const size_t key_size,
-    const LPWSTR data, const size_t data_size, LPWSTR digest_str) {
-	uint8_t digest[MD5_HASH_SIZE];
-
-	hmac_md5((const uint8_t*)key, key_size,
-	    (const uint8_t*)data, data_size, digest);
-	md5_cvt_strW(digest, digest_str);
-}
-#endif
 
 
 #ifdef MD5_SELF_TEST
@@ -550,13 +493,13 @@ md5_self_test(void) {
 	};
 
 	for (i = 0; NULL != data[i]; i ++) {
-		md5_get_digest_strA(data[i], data_size[i], (char*)digest_str);
+		md5_get_digest_str(data[i], data_size[i], (char*)digest_str);
 		if (0 != memcmp(digest_str, result_digest[i], MD5_HASH_STR_SIZE))
 			return (1);
 	}
 	/* HMAC test */
 	for (i = 0; NULL != data[i]; i ++) {
-		md5_hmac_get_digest_strA(data[i], data_size[i], data[i],
+		md5_hmac_get_digest_str(data[i], data_size[i], data[i],
 		    data_size[i], (char*)digest_str);
 		if (0 != memcmp(digest_str, result_hdigest[i], MD5_HASH_STR_SIZE)) {
 			return (2);
