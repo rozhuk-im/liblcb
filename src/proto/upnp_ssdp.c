@@ -870,7 +870,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	char straddr[STR_ADDR_LEN];
 	sockaddr_storage_t caddr, *addr = &caddr;
 	const uint8_t *ptm;
-	uint8_t *req_hdr, buf[4096];
+	uint8_t *req_hdr, buf[65536];
 	size_t tm, req_hdr_len;
 	http_req_line_data_t req_data;
 
@@ -1355,15 +1355,13 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    dev->config_id);
 		break;
 	}
-	if (0 == add_search_port) {
+	if (0 != add_search_port) {
 		IO_BUF_PRINTF(&buf,
-		    "CONTENT-LENGTH: 0\r\n\r\n");
-	} else {
-		IO_BUF_PRINTF(&buf,
-		    "SEARCHPORT.UPNP.ORG: %"PRIu32"\r\n"
-		    "CONTENT-LENGTH: 0\r\n\r\n",
+		    "SEARCHPORT.UPNP.ORG: %"PRIu32"\r\n",
 		    ssdp->search_port);
 	}
+	IO_BUF_COPYIN_CSTR(&buf,
+	    "CONTENT-LENGTH: 0\r\n\r\n");
 
 	if (-1 == sendto((int)skt, buf.data, buf.used, (MSG_DONTWAIT | MSG_NOSIGNAL),
 	    (sockaddr_p)addr, sa_size(addr))) {
