@@ -48,13 +48,14 @@
 #include <errno.h>
 
 #include "utils/mem_utils.h"
+#include "utils/num2str.h"
 #include "utils/str2num.h"
 #include "proto/http.h"
 
 #include "utils/macro.h"
 #include "threadpool/threadpool_task.h"
-#include "net/net_socket.h"
-#include "net/net_helpers.h"
+#include "net/socket.h"
+#include "net/utils.h"
 #include "utils/info.h"
 #include "net/hostname_list.h"
 #include "utils/log.h"
@@ -62,8 +63,9 @@
 
 
 
-#define CORE_HTTP_CLI_LIB_NAME		"HTTP core client by Rozhuk Ivan"
-#define CORE_HTTP_CLI_LIB_VER		"1.0"
+#define HTTP_LIB_NAME			"HTTP core server by Rozhuk Ivan"
+#define HTTP_LIB_VER			"1.7"
+#define HTTP_LIB_NAME_VER		HTTP_LIB_NAME"/"HTTP_LIB_VER
 
 #define HTTP_CLI_ALLOC_CNT		8
 
@@ -145,21 +147,24 @@ http_cli_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
 			s_ret->http_user_agent_size = 14;
 		}
 	}
-	if (NULL != app_ver) {
-		s_ret->http_user_agent_size += snprintf(
-		    (s_ret->http_user_agent + s_ret->http_user_agent_size),
-		    (sizeof(s_ret->http_user_agent) - s_ret->http_user_agent_size),
-		    "%s%s",
-		    ((0 != s_ret->http_user_agent_size) ? " " : ""), app_ver);
+	if (NULL != app_ver &&
+	    (sizeof(s_ret->http_server) - 2) > (app_ver_size = strlen(app_ver))) {
+		if (0 != s_ret->http_server_size) {
+			s_ret->http_server[s_ret->http_server_size ++] = ' ';
+		}
+		memcpy(s_ret->http_server, app_ver, app_ver_size);
+		s_ret->http_server_size = app_ver_size;
 	}
-	if (0 != add_lib_ver) {
-		s_ret->http_user_agent_size += snprintf(
-		    (s_ret->http_user_agent + s_ret->http_user_agent_size),
-		    (sizeof(s_ret->http_user_agent) - s_ret->http_user_agent_size),
-		    "%s"CORE_HTTP_LIB_NAME"/"CORE_HTTP_LIB_VER,
-		    ((0 != s_ret->http_user_agent_size) ? " " : ""));
+	if (0 != add_lib_ver &&
+	    (sizeof(s_ret->http_server) - 2) > sizeof(HTTP_LIB_NAME_VER)) {
+		if (0 != s_ret->http_server_size) {
+			s_ret->http_server[s_ret->http_server_size ++] = ' ';
+		}
+		memcpy(s_ret->http_server, HTTP_LIB_NAME_VER,
+		    sizeof(HTTP_LIB_NAME_VER));
+		s_ret->http_server_size = (sizeof(HTTP_LIB_NAME_VER) - 1);
 	}
-	s_ret->http_user_agent[s_ret->http_user_agent_size] = 0;
+	s_ret->http_server[s_ret->http_server_size] = 0;
 }
 
 
@@ -218,7 +223,6 @@ err_out:
 
 void
 http_cli_destroy(http_cli_p cli) {
-	size_t i;
 
 	LOGD_EV("...");
 	if (NULL == cli)
@@ -266,7 +270,6 @@ http_cli_set_udata(http_cli_p cli, void *udata) {
 int
 http_cli_conn_create(http_cli_p cli, thrpt_p thrpt, http_cli_cb ccb,
     void *udata, http_cli_conn_p *cli_conn_ret) {
-	http_cli_conn_p conn;
 	
 	if (NULL == cli || NULL == cli_conn_ret)
 		return (EINVAL);
@@ -496,13 +499,13 @@ http_cli_conn_req_head_set(http_cli_conn_p cli_conn, uint32_t req_p_flags,
 	}
 	/* Content-Length */
 	if (0 != (HTTP_CLI_REQ_P_F_CONN_CLOSE & req_p_flags)) {
-		IO_BUF_PRINTF(&cli_conn->snd_hdrs_buf,
+		error = io_buf_printf(&cli_conn->snd_hdrs_buf,
 		    "Content-Length: %"PRIu64"\r\n",
 		    content_len);
 	}
 	/* Transfer-Encoding */
 	if (HTTP_REQ_TE_UNKNOWN != transfer_encoding_code) {
-		IO_BUF_PRINTF(&cli_conn->snd_hdrs_buf,
+		error = io_buf_printf(&cli_conn->snd_hdrs_buf,
 		    "Transfer-Encoding: %s\r\n",
 		    HTTPTransferEncoding[transfer_encoding_code]);
 	}
@@ -1203,7 +1206,8 @@ http_srv_gen_resp_hdrs(uint32_t http_ver, uint32_t status_code,
     uint32_t resp_p_flags, const char *reason_phrase, size_t reason_phrase_size,
     const char *http_user_agent, size_t http_user_agent_size,
     uint64_t content_len, char *buf, size_t buf_size, size_t *buf_size_ret) {
-	size_t hdrs_size;
+	int error;
+	size_t hdrs_size, sztm;
 
 	if (NULL == buf || 0 == buf_size)
 		return (EINVAL);
@@ -1231,32 +1235,47 @@ http_srv_gen_resp_hdrs(uint32_t http_ver, uint32_t status_code,
 		memcpy(buf, "HTTP/1.0 ", 9);
 	}
 	hdrs_size = 9;
-	hdrs_size += snprintf((buf + hdrs_size), (buf_size - hdrs_size),
-	    "%"PRIu32" ", status_code);
+
+	error = u322str(status_code,
+	    (buf + hdrs_size), (buf_size - hdrs_size), &sztm);
+	if (0 != error)
+		return (error);
+	hdrs_size += sztm;
+	buf[hdrs_size ++] = ' ';
 	memcpy((buf + hdrs_size), reason_phrase, reason_phrase_size);
 	hdrs_size += reason_phrase_size;
-	memcpy((buf + hdrs_size), "\r\n", 2);
-	hdrs_size += 2;
-	
+	buf[hdrs_size ++] = '\r';
+	buf[hdrs_size ++] = '\n';
+
 	if (0 != (resp_p_flags & HTTP_CLI_RESP_P_F_SERVER)) {
 		memcpy((buf + hdrs_size), "Server: ", 8);
 		hdrs_size += 8;
 		memcpy((buf + hdrs_size), http_user_agent, http_user_agent_size);
 		hdrs_size += http_user_agent_size;
-		memcpy((buf + hdrs_size), "\r\n", 2);
-		hdrs_size += 2;
+		buf[hdrs_size ++] = '\r';
+		buf[hdrs_size ++] = '\n';
 	}
 	if (0 != (resp_p_flags & HTTP_CLI_RESP_P_F_CONTENT_SIZE)) {
-		hdrs_size += snprintf((buf + hdrs_size), (buf_size - hdrs_size),
-		    "Content-Length: %"PRIu64"\r\n", content_len);
+		memcpy((buf + hdrs_size), "Content-Length: ", 16);
+		hdrs_size += 16;
+		error = u642str(content_len, (buf + hdrs_size),
+		    (buf_size - hdrs_size), &sztm);
+		if (0 != error)
+			return (error);
+		hdrs_size += sztm;
+		buf[hdrs_size ++] = '\r';
+		buf[hdrs_size ++] = '\n';
 	}
 	if (0 != (HTTP_CLI_RESP_P_F_CONN_CLOSE & resp_p_flags)) { /* Conn close. */
 		memcpy((buf + hdrs_size), "Connection: close\r\n", 19);
 		hdrs_size += 19;
 	}
+
 	buf[hdrs_size] = 0;
-	if (NULL != buf_size_ret)
+	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = hdrs_size;
+	}
+
 	return (0);
 }
 

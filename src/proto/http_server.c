@@ -44,6 +44,7 @@
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
+#include "utils/num2str.h"
 #include "utils/str2num.h"
 #include "proto/http.h"
 
@@ -63,6 +64,7 @@
 
 #define HTTP_LIB_NAME			"HTTP core server by Rozhuk Ivan"
 #define HTTP_LIB_VER			"1.7"
+#define HTTP_LIB_NAME_VER		HTTP_LIB_NAME"/"HTTP_LIB_VER
 
 #define HTTP_SRV_ALLOC_CNT		8
 
@@ -135,7 +137,7 @@ static int	http_srv_snd(http_srv_cli_p cli);
 void
 http_srv_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
     http_srv_settings_p s_ret) {
-	size_t tm;
+	size_t app_ver_size;
 
 	if (NULL == s_ret)
 		return;
@@ -168,27 +170,29 @@ http_srv_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
 	/* 'OS/version UPnP/1.1 product/version' */
 	s_ret->http_server_size = 0;
 	if (0 != add_os_ver) {
-		if (0 == info_get_os_ver("/", 1, s_ret->http_server,
-		    (sizeof(s_ret->http_server) - 1), &tm)) {
-			s_ret->http_server_size = tm;
-		} else {
+		if (0 != info_get_os_ver("/", 1, s_ret->http_server,
+		    (sizeof(s_ret->http_server) - 1),
+		    &s_ret->http_server_size)) {
 			memcpy(s_ret->http_server, "Generic OS/1.0", 15);
 			s_ret->http_server_size = 14;
 		}
 	}
-	if (NULL != app_ver) {
-		s_ret->http_server_size += (size_t)snprintf(
-		    (s_ret->http_server + s_ret->http_server_size),
-		    (sizeof(s_ret->http_server) - s_ret->http_server_size),
-		    "%s%s",
-		    ((0 != s_ret->http_server_size) ? " " : ""), app_ver);
+	if (NULL != app_ver &&
+	    (sizeof(s_ret->http_server) - 2) > (app_ver_size = strlen(app_ver))) {
+		if (0 != s_ret->http_server_size) {
+			s_ret->http_server[s_ret->http_server_size ++] = ' ';
+		}
+		memcpy(s_ret->http_server, app_ver, app_ver_size);
+		s_ret->http_server_size = app_ver_size;
 	}
-	if (0 != add_lib_ver) {
-		s_ret->http_server_size += (size_t)snprintf(
-		    (s_ret->http_server + s_ret->http_server_size),
-		    (sizeof(s_ret->http_server) - s_ret->http_server_size),
-		    "%s"HTTP_LIB_NAME"/"HTTP_LIB_VER,
-		    ((0 != s_ret->http_server_size) ? " " : ""));
+	if (0 != add_lib_ver &&
+	    (sizeof(s_ret->http_server) - 2) > sizeof(HTTP_LIB_NAME_VER)) {
+		if (0 != s_ret->http_server_size) {
+			s_ret->http_server[s_ret->http_server_size ++] = ' ';
+		}
+		memcpy(s_ret->http_server, HTTP_LIB_NAME_VER,
+		    sizeof(HTTP_LIB_NAME_VER));
+		s_ret->http_server_size = (sizeof(HTTP_LIB_NAME_VER) - 1);
 	}
 	s_ret->http_server[s_ret->http_server_size] = 0;
 }
@@ -1624,7 +1628,7 @@ http_srv_snd(http_srv_cli_p cli) {
 	http_srv_p srv;
 	http_srv_resp_p resp;
 	uint8_t	*wr_pos;
-	size_t reason_phrase_size, hdrs_buf_size, hdrs_size,  i;
+	size_t reason_phrase_size, hdrs_buf_size, hdrs_size, sztm, i;
 	ssize_t ios = 0;
 	uint64_t data_size;
 	char hdrs[1024];
@@ -1671,19 +1675,47 @@ http_srv_snd(http_srv_cli_p cli) {
 		}
 	}
 
-	/* HTTP responce line + standart headers. */
+	/* Check buf size: HTTP responce line + standart headers. */
 	hdrs_buf_size = (sizeof(hdrs) - 1);
 	if (hdrs_buf_size < (256 + reason_phrase_size + 
 	    ((0 != (HTTP_SRV_RESP_P_F_SERVER & resp->p_flags)) ? srv->s.http_server_size : 0)))
 		return (ENOMEM); /* Not enough space in buf hdrs. */
+
 	/* HTTP header. */
+
 	/* Responce line. */
-	hdrs_size = (size_t)snprintf(hdrs, hdrs_buf_size,
-	    "HTTP/%"PRIu16".%"PRIu16" %"PRIu32" %.*s\r\n",
-	    HIWORD(cli->req.line.proto_ver),
-	    LOWORD(cli->req.line.proto_ver),
-	    resp->status_code,
-	    (int)reason_phrase_size, reason_phrase);
+	memcpy(hdrs, "HTTP/", 5);
+	hdrs_size = 5;
+
+	error = u162str(HIWORD(cli->req.line.proto_ver),
+	    (hdrs + hdrs_size), (hdrs_buf_size - hdrs_size), &sztm);
+	if (0 != error)
+		return (error);
+	hdrs_size += sztm;
+
+	hdrs[hdrs_size ++] = '.';
+
+	error = u162str(LOWORD(cli->req.line.proto_ver),
+	    (hdrs + hdrs_size), (hdrs_buf_size - hdrs_size), &sztm);
+	if (0 != error)
+		return (error);
+	hdrs_size += sztm;
+
+	hdrs[hdrs_size ++] = ' ';
+
+	error = u322str(resp->status_code,
+	    (hdrs + hdrs_size), (hdrs_buf_size - hdrs_size), &sztm);
+	if (0 != error)
+		return (error);
+	hdrs_size += sztm;
+
+	hdrs[hdrs_size ++] = ' ';
+
+	memcpy((hdrs + hdrs_size), reason_phrase, reason_phrase_size);
+	hdrs_size += reason_phrase_size;
+	hdrs[hdrs_size ++] = '\r';
+	hdrs[hdrs_size ++] = '\n';
+
 	/* Headers. */
 	if (0 != (resp->p_flags & HTTP_SRV_RESP_P_F_SERVER)) {
 		memcpy((hdrs + hdrs_size), "Server: ", 8);
@@ -1691,25 +1723,36 @@ http_srv_snd(http_srv_cli_p cli) {
 		memcpy((hdrs + hdrs_size), srv->s.http_server,
 		    srv->s.http_server_size);
 		hdrs_size += srv->s.http_server_size;
-		memcpy((hdrs + hdrs_size), "\r\n", 2);
-		hdrs_size += 2;
+		hdrs[hdrs_size ++] = '\r';
+		hdrs[hdrs_size ++] = '\n';
 	}
 	if (0 != (resp->p_flags & HTTP_SRV_RESP_P_F_CONTENT_LEN)) {
-		hdrs_size += (size_t)snprintf((hdrs + hdrs_size),
-		    (hdrs_buf_size - hdrs_size),
-		    "Content-Length: %"PRIu64"\r\n",
-		    data_size);
+		memcpy((hdrs + hdrs_size), "Content-Length: ", 16);
+		hdrs_size += 16;
+		error = u642str(data_size, (hdrs + hdrs_size),
+		    (hdrs_buf_size - hdrs_size), &sztm);
+		if (0 != error)
+			return (error);
+		hdrs_size += sztm;
+		hdrs[hdrs_size ++] = '\r';
+		hdrs[hdrs_size ++] = '\n';
 	}
 	if (0 != (HTTP_SRV_RESP_P_F_CONN_CLOSE & resp->p_flags)) { /* Conn close. */
 		memcpy((hdrs + hdrs_size), "Connection: close\r\n", 19);
 		hdrs_size += 19;
 	} else if (HTTP_VER_1_1 == cli->req.line.proto_ver &&
 	    0 != cli->bnd->s.skt_opts.rcv_timeout) { /* HTTP/1.1 client - keepalive. */
-		hdrs_size += (size_t)snprintf((hdrs + hdrs_size),
-		    (hdrs_buf_size - hdrs_size),
+		memcpy((hdrs + hdrs_size),
 		    "Connection: keep-alive\r\n"
-		    "Keep-Alive: timeout=%"PRIu64"\r\n",
-		    (cli->bnd->s.skt_opts.rcv_timeout / 1000));
+		    "Keep-Alive: timeout=", 44);
+		hdrs_size += 44;
+		error = u642str((cli->bnd->s.skt_opts.rcv_timeout / 1000),
+		    (hdrs + hdrs_size), (hdrs_buf_size - hdrs_size), &sztm);
+		if (0 != error)
+			return (error);
+		hdrs_size += sztm;
+		hdrs[hdrs_size ++] = '\r';
+		hdrs[hdrs_size ++] = '\n';
 	}
 
 	LOGD_EV_FMT("\r\n%.*s", (int)hdrs_size, hdrs);
@@ -1738,7 +1781,7 @@ http_srv_snd(http_srv_cli_p cli) {
 		}
 		/* Data. */
 		data_size = cli->buf->used;
-		IO_BUF_PRINTF(cli->buf,
+		error = io_buf_printf(cli->buf,
 		    "<html>\r\n"
 		    "	<head><title>%"PRIu32" %.*s</title></head>\r\n"
 		    "	<body bgcolor=\"white\">\r\n"
@@ -1748,6 +1791,8 @@ http_srv_snd(http_srv_cli_p cli) {
 		    "</html>\r\n",
 		    resp->status_code, (int)reason_phrase_size, reason_phrase,
 		    resp->status_code, (int)reason_phrase_size, reason_phrase);
+		if (0 != error)
+			return (error);
 		data_size = (cli->buf->used - data_size);
 	} else {
 		/* Custom headers pre process. */

@@ -42,7 +42,7 @@
 
 int	sysctl_str_to_buf(int *mib, uint32_t mib_cnt,
 	    const char *descr, size_t descr_size,
-	    uint8_t *buf, size_t buf_size, size_t *buf_size_ret);
+	    char *buf, size_t buf_size, size_t *buf_size_ret);
 int	info_get_os_ver(const char *separator, size_t separator_size,
 	    char *buf, size_t buf_size, size_t *buf_size_ret);
 
@@ -54,12 +54,12 @@ typedef struct info_sysres_s {
 } info_sysres_t, *info_sysres_p;
 
 
-int	info_sysres(info_sysres_p sysres, uint8_t *buf, size_t buf_size,
+int	info_sysres(info_sysres_p sysres, char *buf, size_t buf_size,
 	    size_t *buf_size_ret);
 
-int	info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret);
+int	info_limits(char *buf, size_t buf_size, size_t *buf_size_ret);
 
-int	info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret);
+int	info_sysinfo(char *buf, size_t buf_size, size_t *buf_size_ret);
 
 
 #endif /* __INFO_H__ */

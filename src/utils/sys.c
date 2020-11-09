@@ -89,20 +89,21 @@ make_daemon(void) {
 
 int
 write_pid(const char *file_name) {
-	int fd;
-	char data[64];
-	size_t data_size;
+	int rc, fd;
+	char data[16];
 	ssize_t ios;
 
 	if (NULL == file_name)
 		return (EINVAL);
 
+	rc = snprintf(data, sizeof(data), "%d", getpid());
+	if (0 > rc || sizeof(data) <= (size_t)rc)
+		return (EFAULT);
 	fd = open(file_name, (O_WRONLY | O_CREAT | O_TRUNC), 0644);
 	if (-1 == fd)
 		return (errno);
-	data_size = (size_t)snprintf(data, sizeof(data), "%d", getpid());
-	ios = write(fd, data, data_size);
-	if ((size_t)ios != data_size) {
+	ios = write(fd, data, (size_t)rc);
+	if ((size_t)ios != (size_t)rc) {
 		close(fd);
 		unlink(file_name);
 		return (errno);

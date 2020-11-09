@@ -186,8 +186,9 @@ buf_get_next_line(const uint8_t *buf, size_t buf_size,
 
 size_t
 fmt_as_uptime(time_t *ut, char *buf, size_t buf_size) {
+	int rc;
 	uint64_t uptime, days, hrs, mins, secs;
-	
+
 	if (NULL == ut)
 		return (0);
 	uptime = (uint64_t)(*ut);
@@ -199,8 +200,13 @@ fmt_as_uptime(time_t *ut, char *buf, size_t buf_size) {
 	mins = (uptime / 60);
 	secs = (uptime % 60);
 
-	return ((size_t)snprintf(buf, buf_size, "%"PRIu64"+%02"PRIu64":%02"PRIu64":%02"PRIu64"",
-	    days, hrs, mins, secs));
+	rc = snprintf(buf, buf_size, "%"PRIu64"+%02"PRIu64":%02"PRIu64":%02"PRIu64"",
+	    days, hrs, mins, secs);
+	if (0 > rc) /* Error. */
+		return (0);
+	if (buf_size <= (size_t)rc) /* Truncated. */
+		return ((buf_size - 1));
+	return ((size_t)rc);
 }
 
 

@@ -58,6 +58,7 @@
 
 #define PRODUCT				"SSDP announcer by Rozhuk Ivan"
 #define PRODUCT_VER			"1.0"
+#define PRODUCT_SRV_STR_PART		"UPnP/1.1 "PRODUCT"/"PRODUCT_VER
 
 #define UPNP_UUID_SIZE			36
 #define UPNP_NT_UUID_SIZE		(5 + UPNP_UUID_SIZE) /* uuid:... */
@@ -250,10 +251,14 @@ upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret) {
 		memcpy(s_ret->http_server, "Generic OS/1.0", 15);
 		s_ret->http_server_size = 14;
 	}
-	s_ret->http_server_size += (size_t)snprintf(
-	    (s_ret->http_server + s_ret->http_server_size),
-	    (sizeof(s_ret->http_server) - s_ret->http_server_size),
-	    " UPnP/1.1 "PRODUCT"/"PRODUCT_VER);
+	if ((sizeof(s_ret->http_server) - 2) > sizeof(PRODUCT_SRV_STR_PART)) {
+		if (0 != s_ret->http_server_size) {
+			s_ret->http_server[s_ret->http_server_size ++] = ' ';
+		}
+		memcpy(s_ret->http_server, PRODUCT_SRV_STR_PART,
+		    sizeof(PRODUCT_SRV_STR_PART));
+		s_ret->http_server_size = (sizeof(PRODUCT_SRV_STR_PART) - 1);
+	}
 	s_ret->http_server[s_ret->http_server_size] = 0;
 }
 
@@ -394,7 +399,7 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
     const char *type, size_t type_size, const uint32_t ver,
     uint32_t boot_id, uint32_t config_id, uint32_t max_age, uint32_t ann_interval,
     upnp_ssdp_dev_p *dev_ret) {
-	int error;
+	int error, rc;
 	upnp_ssdp_dev_p dev, *root_devs_new;
 	size_t nt_size, tot_size;
 
@@ -451,8 +456,13 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	memcpy(dev->uuid, uuid, UPNP_UUID_SIZE);
 	memcpy(dev->domain_name, domain_name, domain_name_size);
 	memcpy(dev->type, type, type_size);
-	dev->nt_size = (size_t)snprintf((char*)dev->nt, nt_size, "urn:%s:device:%s:%"PRIu32"",
+	rc = snprintf((char*)dev->nt, nt_size, "urn:%s:device:%s:%"PRIu32,
 	    dev->domain_name, dev->type, dev->ver);
+	if (IS_SNPRINTF_FAIL(rc, nt_size)) {
+		error = EFAULT;
+		goto err_out;
+	}
+	dev->nt_size = (size_t)rc;
 	/* Timer. */
 	dev->ann_tmr.cb_func = upnp_ssdp_timer_cb;
 	dev->ann_tmr.ident = (uintptr_t)dev;
@@ -467,15 +477,18 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	root_devs_new = reallocarray(ssdp->root_devs,
 	    (ssdp->root_devs_cnt + 4), sizeof(upnp_ssdp_dev_p));
 	if (NULL == root_devs_new) { /* Reallocate failed. */
-		free(dev);
-		return (ENOMEM);
+		error = ENOMEM;
+		goto err_out;
 	}
 	ssdp->root_devs = root_devs_new;
 	ssdp->root_devs[ssdp->root_devs_cnt] = dev;
 	ssdp->root_devs_cnt ++;
 	(*dev_ret) = dev;
 
+	return (0);
+
 err_out:
+	free(dev);
 	return (error);
 }
 
@@ -531,13 +544,15 @@ int
 upnp_ssdp_svc_add(upnp_ssdp_dev_p dev,
     const char *domain_name, size_t domain_name_size,
     const char *type, size_t type_size, const uint32_t ver) {
+	int error, rc;
 	upnp_ssdp_svc_p svc, *serviceList_new;
 	size_t nt_size, tot_size;
 
 	if (NULL == dev || NULL == domain_name || NULL == type)
 		return (EINVAL);
-	if (0 == domain_name_size)
+	if (0 == domain_name_size) {
 		domain_name_size = strlen(domain_name);
+	}
 	if (0 == type_size) {
 		type_size = strlen(type);
 	}
@@ -555,20 +570,29 @@ upnp_ssdp_svc_add(upnp_ssdp_dev_p dev,
 	//svc->nt_size;
 	memcpy(svc->domain_name, domain_name, domain_name_size);
 	memcpy(svc->type, type, type_size);
-	svc->nt_size = (size_t)snprintf((char*)svc->nt, nt_size, "urn:%s:service:%s:%"PRIu32"",
+	rc = snprintf((char*)svc->nt, nt_size, "urn:%s:service:%s:%"PRIu32,
 	    svc->domain_name, svc->type, svc->ver);
+	if (IS_SNPRINTF_FAIL(rc, nt_size)) {
+		error = EFAULT;
+		goto err_out;
+	}
+	svc->nt_size = (size_t)rc;
 	/* Need more space? */
 	serviceList_new = reallocarray(dev->serviceList,
 	    (dev->serviceList_cnt + 4), sizeof(upnp_ssdp_svc_p));
 	if (NULL == serviceList_new) { /* Reallocate failed. */
-		free(svc);
-		return (ENOMEM);
+		error = ENOMEM;
+		goto err_out;
 	}
 	dev->serviceList = serviceList_new;
 	dev->serviceList[dev->serviceList_cnt] = svc;
 	dev->serviceList_cnt ++;
 
 	return (0);
+
+err_out:
+	free(svc);
+	return (error);
 }
 
 
@@ -1286,7 +1310,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 
 	switch (action) {
 	case UPNP_SSDP_S_A_BYEBYE: /* 1.2.3 Device unavailable -- NOTIFY with ssdp:byebye. */
-		IO_BUF_PRINTF(&buf,
+		error = io_buf_printf(&buf,
 		    "NOTIFY * HTTP/1.1\r\n"
 		    "HOST: %s:1900\r\n"
 		    "NT: %s\r\n"
@@ -1298,10 +1322,12 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    "CONFIGID.UPNP.ORG: %"PRIu32"\r\n",
 		    dhost_addr, nt_loc, dev->boot_id, dev->uuid, usn_pre_nt, usn_nt,
 		    dev->boot_id, dev->config_id);
+		if (0 != error)
+			return (error);
 		break;
 	case UPNP_SSDP_S_A_ALIVE: /* 1.2.2 Device available - NOTIFY with ssdp:alive. */
 		add_search_port = (UPNP_SSDP_PORT != ssdp->search_port);
-		IO_BUF_PRINTF(&buf,
+		error = io_buf_printf(&buf,
 		    "NOTIFY * HTTP/1.1\r\n"
 		    "HOST: %s:1900\r\n"
 		    "CACHE-CONTROL: max-age=%"PRIu32"\r\n"
@@ -1317,10 +1343,12 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    dhost_addr, dev->max_age, url,
 		    dev->boot_id, nt_loc, ssdp->http_server,
 		    dev->uuid, usn_pre_nt, usn_nt, dev->boot_id, dev->config_id);
+		if (0 != error)
+			return (error);
 		break;
 	case UPNP_SSDP_S_A_UPDATE: /* 1.2.4 Device Update NOTIFY with ssdp:update. */
 		add_search_port = (UPNP_SSDP_PORT != ssdp->search_port);
-		IO_BUF_PRINTF(&buf,
+		error = io_buf_printf(&buf,
 		    "NOTIFY * HTTP/1.1\r\n"
 		    "HOST: %s:1900\r\n"
 		    "LOCATION: %s\r\n"
@@ -1335,10 +1363,12 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    dhost_addr, url, nt_loc, dev->boot_id, dev->uuid, usn_pre_nt, usn_nt,
 		    dev->boot_id,
 		    dev->config_id, (dev->boot_id + 1));
+		if (0 != error)
+			return (error);
 		break;
 	case UPNP_SSDP_S_A_SRESPONSE: /* 1.3.3 Discovery: Search: Response. */
 		add_search_port = (UPNP_SSDP_PORT != ssdp->search_port);
-		IO_BUF_PRINTF(&buf,
+		error = io_buf_printf(&buf,
 		    "HTTP/1.1 200 OK\r\n"
 		    "CACHE-CONTROL: max-age=%"PRIu32"\r\n"
 		    "EXT:\r\n"
@@ -1353,15 +1383,21 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		    dev->max_age, url, ssdp->http_server,
 		    dev->boot_id, nt_loc, dev->uuid, usn_pre_nt, usn_nt, dev->boot_id,
 		    dev->config_id);
+		if (0 != error)
+			return (error);
 		break;
 	}
 	if (0 != add_search_port) {
-		IO_BUF_PRINTF(&buf,
+		error = io_buf_printf(&buf,
 		    "SEARCHPORT.UPNP.ORG: %"PRIu32"\r\n",
 		    ssdp->search_port);
+		if (0 != error)
+			return (error);
 	}
-	IO_BUF_COPYIN_CSTR(&buf,
+	error = IO_BUF_COPYIN_CSTR(&buf,
 	    "CONTENT-LENGTH: 0\r\n\r\n");
+	if (0 != error)
+		return (error);
 
 	if (-1 == sendto((int)skt, buf.data, buf.used, (MSG_DONTWAIT | MSG_NOSIGNAL),
 	    (sockaddr_p)addr, sa_size(addr))) {

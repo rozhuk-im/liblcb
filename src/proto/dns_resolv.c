@@ -658,13 +658,14 @@ dns_resolver_tpt_get(dns_rslvr_p rslvr) {
 
 int
 data_cache_enum_cb_fn(void *udata, hbucket_entry_p entry) {
+	int rc;
 	dns_rslvr_cache_dump_t *cd = udata;
 	dns_rslvr_cache_entry_p cache_entry = entry->data;
 
 	if ((cd->buf_size - cd->cur_off) < DNS_MAX_NAME_LENGTH)
 		return (1); /* No buf space, stop enum. */
 	if (DNS_R_CD_F_CNAME & cache_entry->flags) {
-		cd->cur_off += (size_t)snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
+		rc = snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
 		    "%-32s [ addrs: cn,	ttl: %-2"PRIi32",	"
 		    "upd/task q len: %zu,	ret count: %"PRIu64",	data: %s ]\r\n",
 		    cache_entry->name,
@@ -672,7 +673,7 @@ data_cache_enum_cb_fn(void *udata, hbucket_entry_p entry) {
 		    ((DNS_R_CD_F_UPDATING & cache_entry->flags) ? (1 + cache_entry->tasks_count) : 0),
 		    cache_entry->returned_count, cache_entry->data_alias_name);
 	} else {
-		cd->cur_off += (size_t)snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
+		rc = snprintf((cd->buf + cd->cur_off), (cd->buf_size - cd->cur_off),
 		    "%-32s [ addrs: %"PRIu16",	ttl: %-2"PRIi32",	"
 		    "upd/task q len: %zu,	ret count: %"PRIu64",	data: IPs ]\r\n",
 		    cache_entry->name, (int)cache_entry->data_count,
@@ -681,12 +682,21 @@ data_cache_enum_cb_fn(void *udata, hbucket_entry_p entry) {
 		    cache_entry->returned_count);
 	}
 
+	if (0 > rc) /* Error. */
+		return (EFAULT);
+	if ((cd->buf_size - cd->cur_off) <= (size_t)rc) { /* Truncated. */
+		cd->cur_off = cd->buf_size;
+		return (ENOSPC);
+	}
+	cd->cur_off += (size_t)rc;
+
 	return (0);
 }
 
 int
 dns_resolver_cache_text_dump(dns_rslvr_p rslvr, char *buf, size_t buf_size,
     size_t *size_ret) {
+	int rc;
 	dns_rslvr_cache_dump_t cache_dump;
 
 	if (NULL == rslvr)
@@ -696,11 +706,20 @@ dns_resolver_cache_text_dump(dns_rslvr_p rslvr, char *buf, size_t buf_size,
 	cache_dump.buf_size = buf_size;
 	cache_dump.cur_off = 0;
 	hbucket_entry_enum(rslvr->hbskt, data_cache_enum_cb_fn, &cache_dump);
-	cache_dump.cur_off += (size_t)snprintf((cache_dump.buf + cache_dump.cur_off),
+	rc = snprintf((cache_dump.buf + cache_dump.cur_off),
 	    (cache_dump.buf_size - cache_dump.cur_off),
 	    "entries count: %zu\r\n"
 	    "tasks queued count: %"PRIu16"\r\n",
 	    rslvr->hbskt->count, rslvr->tasks_count);
+
+	if (0 > rc) /* Error. */
+		return (EFAULT);
+	if ((cache_dump.buf_size - cache_dump.cur_off) <= (size_t)rc) { /* Truncated. */
+		cache_dump.cur_off = cache_dump.buf_size;
+		(*size_ret) = cache_dump.cur_off; /* XXX */
+		return (ENOSPC);
+	}
+	cache_dump.cur_off += (size_t)rc;
 	(*size_ret) = cache_dump.cur_off;
 
 	return (0);

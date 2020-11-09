@@ -37,11 +37,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include <stdio.h> /* snprintf, fprintf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
+#include "utils/num2str.h"
 #include "utils/str2num.h"
 #include "net/socket_address.h"
 
@@ -500,15 +500,14 @@ sa_addr_to_str(const sockaddr_storage_t *addr, char *buf,
 
 	switch (addr->ss_family) {
 	case AF_LOCAL:
-		size_ret = strlcpy(buf, sin_addr,
-		    MIN(buf_size, sizeof(((const sockaddr_un_t*)addr)->sun_path)));
+		size_ret = strlcpy(buf, sin_addr, buf_size);
 		break;
 	case AF_INET:
 	case AF_INET6:
 		if (NULL == inet_ntop(addr->ss_family, sin_addr,
 		    buf, (buf_size - 1)))
 			return (errno);
-		buf[(buf_size - 1)] = 0;
+		buf[(buf_size - 1)] = 0; /* Should be not nessesary. */
 		size_ret = strnlen(buf, buf_size);
 		break;
 	default:
@@ -519,54 +518,59 @@ sa_addr_to_str(const sockaddr_storage_t *addr, char *buf,
 		(*buf_size_ret) = size_ret;
 	}
 
-	return (0);
+	return (((buf_size > size_ret) ? 0 : ENOSPC));
 }
 
 int
 sa_addr_port_to_str(const sockaddr_storage_t *addr, char *buf,
     size_t buf_size, size_t *buf_size_ret) {
-	void *sin_addr;
+	int error;
 	uint16_t port;
-	size_t size_ret = 0;
-	char straddr[STR_ADDR_LEN];
+	size_t size_ret = 0, port_srt_size = 0;
 
 	if (NULL == addr || NULL == buf || 0 == buf_size)
 		return (EINVAL);
 
-	sin_addr = sa_addr_get(addr);
-	if (NULL == sin_addr)
-		return (EAFNOSUPPORT);
-
 	switch (addr->ss_family) {
 	case AF_LOCAL:
-		size_ret = strlcpy(buf, sin_addr,
-		    MIN(buf_size, sizeof(((const sockaddr_un_t*)addr)->sun_path)));
-		break;
 	case AF_INET:
+		error = sa_addr_to_str(addr, buf, buf_size, &size_ret);
+		if (0 != error)
+			goto err_out;
+		break;
 	case AF_INET6:
-		if (NULL == inet_ntop(addr->ss_family, sin_addr,
-		    straddr, (STR_ADDR_LEN - 1)))
-			return (errno);
-		straddr[(STR_ADDR_LEN - 1)] = 0;
-		if (AF_INET == addr->ss_family) {
-			size_ret = strlcpy(buf, straddr, buf_size);
-		} else {
-			size_ret = (size_t)snprintf(buf, buf_size,
-			    "[%s]", straddr);
-		}
-		port = sa_port_get(addr);
-		if (0 == port)
-			break;
-		size_ret += (size_t)snprintf((buf + size_ret),
-		    (size_t)(buf_size - size_ret), ":%hu", port);
+		error = sa_addr_to_str(addr, (buf + 1), (buf_size - 2),
+		    &size_ret);
+		if (0 != error)
+			goto err_out;
+		buf[0] = '[';
+		buf[size_ret + 0] = ']';
+		buf[size_ret + 1] = 0x00;
+		size_ret ++;
 		break;
 	default:
 		return (EAFNOSUPPORT);
 	}
 
+	port = sa_port_get(addr);
+	if (0 != port) {
+		if (buf_size < (size_ret + 7)) {
+			size_ret += 7; /* 5 digits + ':' + zero. */
+			error = ENOSPC;
+			goto err_out;
+		}
+		buf[size_ret++] = ':';
+		error = u162str(port, (buf + size_ret),
+		    (size_t)(buf_size - size_ret), &port_srt_size);
+		if (0 != error)
+			return (error);
+		size_ret += port_srt_size;
+	}
+
+err_out:
 	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = size_ret;
 	}
 
-	return (0);
+	return (error);
 }

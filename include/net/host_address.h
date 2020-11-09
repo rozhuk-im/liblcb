@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,12 +36,12 @@
 #include <inttypes.h>
 #include <netdb.h>
 #include <errno.h>
-#include <stdio.h> /* snprintf, fprintf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <stdlib.h> /* malloc, exit */
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
+#include "utils/num2str.h"
 #include "utils/str2num.h"
 #include "net/socket_address.h"
 
@@ -194,7 +194,7 @@ static inline int
 host_addr_resolv(host_addr_p haddr) {
 	int error;
 	struct addrinfo hints, *res, *res0;
-	char servname[32];
+	char servname[8];
 
 	if (NULL == haddr)
 		return (EINVAL);
@@ -202,7 +202,7 @@ host_addr_resolv(host_addr_p haddr) {
 	mem_bzero(&hints, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_flags = AI_NUMERICSERV;
-	snprintf(servname, sizeof(servname), "%hu", haddr->port);
+	u162str(haddr->port, servname, sizeof(servname), NULL); /* Should not fail. */
 	error = getaddrinfo((char*)haddr->name, servname, &hints, &res0);
 	if (0 != error)  /* NOTREACHED */
 		return (error);

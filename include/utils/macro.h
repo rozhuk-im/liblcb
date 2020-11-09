@@ -91,6 +91,10 @@
 #endif
 
 
+#define IS_SNPRINTF_FAIL(__rc, __buf_size)				\
+    (0 > (__rc) || (__buf_size) <= (size_t)(__rc))
+
+
 #define is_space(__c)		(' ' == (__c) || ('\t' <= (__c) && '\r' >= (__c)))
 
 #define IS_NAME_DOTS(__name)	('.' == (__name)[0] &&			\

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,7 @@
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
+#include "utils/num2str.h"
 
 #include "al/os.h"
 #include "net/socket_address.h"
@@ -663,7 +664,7 @@ skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
 	mem_bzero(&hints, sizeof(hints));
 	hints.ai_family = ai_family;
 	hints.ai_flags = AI_NUMERICSERV;
-	snprintf(servname, sizeof(servname), "%hu", port);
+	u162str(port, servname, sizeof(servname), NULL); /* Should not fail. */
 	error = getaddrinfo(hname, servname, &hints, &res0);
 	if (0 != error)  /* NOTREACHED */
 		return (error);
@@ -697,7 +698,7 @@ skt_sync_resolv_connect(const char *hname, uint16_t port,
 	hints.ai_flags = AI_NUMERICSERV;
 	hints.ai_socktype = type;
 	hints.ai_protocol = protocol;
-	snprintf(servname, sizeof(servname), "%hu", port);
+	u162str(port, servname, sizeof(servname), NULL); /* Should not fail. */
 	error = getaddrinfo(hname, servname, &hints, &res0);
 	if (0 != error)  /* NOTREACHED */
 		goto err_out;
@@ -724,43 +725,58 @@ err_out: /* Error. */
 int
 skt_tcp_stat_text(uintptr_t skt, const char *tabs,
     char *buf, size_t buf_size, size_t *buf_size_ret) {
+	int rc = 0;
 	socklen_t optlen;
 	struct tcp_info info;
 	char topts[128];
-	size_t topts_used = 0;
+	size_t i, topts_used = 0;
+	const uint8_t tcpi_options_flags[] = {
+		TCPI_OPT_TIMESTAMPS,
+		TCPI_OPT_SACK,
+		TCPI_OPT_WSCALE,
+		TCPI_OPT_ECN,
+#ifdef BSD
+		TCPI_OPT_TOE,
+#endif
+	};
+	const char *tcpi_options_flags_str[] = {
+		"TIMESTAMPS",
+		"SACK",
+		"WSCALE",
+		"ECN",
+#ifdef BSD
+		"TOE"
+#endif
+	};
 
 	if (NULL == buf || NULL == buf_size_ret)
 		return (EINVAL);
 
 	optlen = sizeof(info);
+	mem_bzero(&info, sizeof(info));
 	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_INFO, &info, &optlen))
 		return (errno);
 	if (10 < info.tcpi_state) {
 		info.tcpi_state = 11; /* UNKNOWN */
 	}
 
-	if (0 != (info.tcpi_options & TCPI_OPT_TIMESTAMPS)) {
-		topts_used += (size_t)snprintf((topts + topts_used),
-		    (sizeof(topts) - topts_used), "TIMESTAMPS ");
+	/* Generate string with TCP options flags. */
+	for (i = 0; i < nitems(tcpi_options_flags); i ++) {
+		if (0 == (info.tcpi_options & tcpi_options_flags[i]))
+			continue;
+		topts_used += strlcpy((topts + topts_used),
+		    tcpi_options_flags_str[i], (sizeof(topts) - topts_used));
+		if ((sizeof(topts) - 2) < topts_used)
+			return (ENOSPC);
+		topts[topts_used ++] = ' ';
 	}
-	if (0 != (info.tcpi_options & TCPI_OPT_SACK)) {
-		topts_used += (size_t)snprintf((topts + topts_used),
-		    (sizeof(topts) - topts_used), "SACK ");
+	/* Remove trailing space and make sure that 0x00 at the end of string. */
+	if (0 != topts_used) {
+		topts_used --;
 	}
-	if (0 != (info.tcpi_options & TCPI_OPT_WSCALE)) {
-		topts_used += (size_t)snprintf((topts + topts_used),
-		    (sizeof(topts) - topts_used), "WSCALE ");
-	}
-	if (0 != (info.tcpi_options & TCPI_OPT_ECN)) {
-		topts_used += (size_t)snprintf((topts + topts_used),
-		    (sizeof(topts) - topts_used), "ECN ");
-	}
-#ifdef BSD /* BSD specific code. */
-	if (0 != (info.tcpi_options & TCPI_OPT_TOE)) {
-		topts_used += (size_t)snprintf((topts + topts_used),
-		    (sizeof(topts) - topts_used), "TOE ");
-	}
+	topts[topts_used] = 0x00;
 
+#ifdef BSD /* BSD specific code. */
 	const char *tcpi_state[] = {
 		"CLOSED",
 		"LISTEN",
@@ -776,7 +792,7 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 		"UNKNOWN"
 	};
 
-	(*buf_size_ret) = (size_t)snprintf(buf, buf_size,
+	rc = snprintf(buf, buf_size,
 	    "%sTCP FSM state: %s\r\n"
 	    "%sOptions enabled on conn: %s\r\n"
 	    "%sRFC1323 send shift value: %"PRIu8"\r\n"
@@ -825,7 +841,7 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 		"UNKNOWN"
 	};
 
-	(*buf_size_ret) = (size_t)snprintf(buf, buf_size,
+	rc = snprintf(buf, buf_size,
 	    "%sTCP FSM state: %s\r\n"
 	    "%sca_state: %"PRIu8"\r\n"
 	    "%sretransmits: %"PRIu8"\r\n"
@@ -878,5 +894,10 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 	    );
 #endif /* Linux specific code. */
 
+	if (0 > rc) /* Error. */
+		return (EFAULT);
+	(*buf_size_ret) = (size_t)rc;
+	if (buf_size <= (size_t)rc) /* Truncated. */
+		return (ENOSPC);
 	return (0);
 }

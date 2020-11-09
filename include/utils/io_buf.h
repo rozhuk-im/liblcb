@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,9 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
+#include <stdio.h> /* snprintf, fprintf */
+#include <stdarg.h> /* va_start, va_arg */
+
 
 
 typedef struct io_buf_s {
@@ -177,7 +180,8 @@ io_buf_sign_set__int(io_buf_p io_buf) {
  * size - data size, sizeof(io_buf_t) is NOT included!!!
  */
 static inline io_buf_p
-io_buf_init(io_buf_p io_buf, uint32_t flags, uint8_t *data, size_t size) {
+io_buf_init(io_buf_p io_buf, const uint32_t flags, uint8_t *data,
+    const size_t size) {
 
 	if (NULL == io_buf)
 		return (io_buf);
@@ -199,7 +203,7 @@ io_buf_init(io_buf_p io_buf, uint32_t flags, uint8_t *data, size_t size) {
 }
 
 static inline io_buf_p
-io_buf_alloc(uint32_t flags, size_t size) {
+io_buf_alloc(const uint32_t flags, const size_t size) {
 	io_buf_p io_buf;
 	uint8_t *data = NULL;
 	
@@ -231,7 +235,7 @@ io_buf_alloc(uint32_t flags, size_t size) {
 }
 
 static inline int
-io_buf_realloc(io_buf_p *pio_buf, uint32_t flags, size_t size) {
+io_buf_realloc(io_buf_p *pio_buf, const uint32_t flags, const size_t size) {
 	io_buf_p io_buf;
 	uint8_t *data;
 
@@ -277,6 +281,7 @@ io_buf_realloc(io_buf_p *pio_buf, uint32_t flags, size_t size) {
 	if (io_buf->transfer_size > io_buf->used) {
 		io_buf->transfer_size = io_buf->used;
 	}
+
 	return (0);
 }
 
@@ -297,10 +302,29 @@ io_buf_free(io_buf_p io_buf) {
 	}
 }
 
-#define IO_BUF_PRINTF(__iobuf, __fmt, __args...)			\
-	    IO_BUF_USED_INC((__iobuf),					\
-		snprintf((char*)IO_BUF_FREE_GET((__iobuf)),		\
-		    IO_BUF_FREE_SIZE((__iobuf)), (__fmt), ##__args))
+static inline int
+io_buf_printf(io_buf_p io_buf, const char *fmt, ...) {
+	int rc;
+	size_t free_size;
+	va_list ap;
+
+	if (NULL == io_buf || NULL == fmt)
+		return (EINVAL);
+
+	free_size = IO_BUF_FREE_SIZE(io_buf);
+
+	va_start(ap, fmt);
+	rc = vsnprintf((char*)IO_BUF_FREE_GET(io_buf), free_size, fmt, ap);
+	va_end(ap);
+
+	if (0 > rc) /* Error. */
+		return (EFAULT);
+	if (free_size <= (size_t)rc) /* Truncated. */
+		return (ENOSPC);
+	io_buf->used += (size_t)rc;
+
+	return (0);
+}
 
 static inline int
 io_buf_copy_buf(io_buf_p dst, io_buf_p src) {
@@ -316,11 +340,12 @@ io_buf_copy_buf(io_buf_p dst, io_buf_p src) {
 	dst->used = src->used;
 	dst->offset = src->offset;
 	dst->transfer_size = src->transfer_size;
+
 	return (0);
 }
 
 static inline int
-io_buf_copyin(io_buf_p io_buf, const void *data, size_t data_size) {
+io_buf_copyin(io_buf_p io_buf, const void *data, const size_t data_size) {
 
 	if (0 == data_size)
 		return (0); /* Not copyed, but OK. */
@@ -329,7 +354,8 @@ io_buf_copyin(io_buf_p io_buf, const void *data, size_t data_size) {
 	if (IO_BUF_FREE_SIZE(io_buf) < data_size)
 		return (ENOBUFS);
 	memcpy(IO_BUF_FREE_GET(io_buf), data, data_size);
-	IO_BUF_USED_INC(io_buf, data_size);
+	io_buf->used += data_size;
+
 	return (0);
 }
 static inline int

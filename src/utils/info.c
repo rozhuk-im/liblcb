@@ -41,6 +41,7 @@
 #include <time.h>
 #include <errno.h>
 
+#include "utils/macro.h"
 #include "utils/mem_utils.h"
 #include "utils/info.h"
 #include "utils/sys.h"
@@ -48,13 +49,12 @@
 
 int
 sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_size,
-    uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
+    char *buf, size_t buf_size, size_t *buf_size_ret) {
 	size_t tm;
 #ifdef __linux__
-	int error;
+	int error, rc;
 	const char *l1, *l2;
 	char path[1024];
-	size_t path_size;
 #endif
 
 	if (NULL == descr || descr_size >= buf_size)
@@ -97,8 +97,10 @@ sysctl_str_to_buf(int *mib, uint32_t mib_cnt, const char *descr, size_t descr_si
 		return (EINVAL);
 	}
 
-	path_size = (size_t)snprintf(path, sizeof(path), "/proc/sys/%s/%s", l1, l2);
-	error = read_file_buf(path, path_size, (buf + descr_size), tm, &tm);
+	rc = snprintf(path, sizeof(path), "/proc/sys/%s/%s", l1, l2);
+	if (IS_SNPRINTF_FAIL(rc, sizeof(path)))
+		return (ENOSPC);
+	error = read_file_buf(path, (size_t)rc, (buf + descr_size), tm, &tm);
 	if (0 != error)
 		return (error);
 #endif /* Linux specific code. */
@@ -128,7 +130,7 @@ info_get_os_ver(const char *separator, size_t separator_size,
 	mib[0] = CTL_KERN;
 
 	mib[1] = KERN_OSTYPE;
-	error = sysctl_str_to_buf(mib, 2, NULL, 0, (uint8_t*)(buf + buf_used),
+	error = sysctl_str_to_buf(mib, 2, NULL, 0, (buf + buf_used),
 	    (buf_size - buf_used), &tm);
 	if (0 != error)
 		return (error);
@@ -136,7 +138,7 @@ info_get_os_ver(const char *separator, size_t separator_size,
 
 	mib[1] = KERN_OSRELEASE;
 	error = sysctl_str_to_buf(mib, 2, separator, separator_size,
-	    (uint8_t*)(buf + buf_used), (buf_size - buf_used), &tm);
+	    (buf + buf_used), (buf_size - buf_used), &tm);
 	if (0 != error)
 		return (error);
 	buf_used += tm;
@@ -151,9 +153,9 @@ info_get_os_ver(const char *separator, size_t separator_size,
 
 
 int
-info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
+info_sysinfo(char *buf, size_t buf_size, size_t *buf_size_ret) {
 	size_t tm, buf_used = 0;
-	int mib[4];
+	int rc, mib[4];
 #ifdef BSD /* BSD specific code. */
 	size_t itm;
 #endif /* BSD specific code. */
@@ -164,8 +166,12 @@ info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 #endif /* Linux specific code. */
 
 	/* Kernel */
-	buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
-	    "System info");
+	rc = (int)strlcpy((buf + buf_used),
+	    "System info", (buf_size - buf_used));
+	if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+		goto err_out_snprintf;
+	buf_used += (size_t)rc;
+
 	mib[0] = CTL_KERN;
 
 	mib[1] = KERN_OSTYPE;
@@ -206,10 +212,13 @@ info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 		buf_used += tm;
 	}
 
-	buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+	rc = (int)strlcpy((buf + buf_used),
 	    "\r\n"
 	    "\r\n"
-	    "Hardware");
+	    "Hardware", (buf_size - buf_used));
+	if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+		goto err_out_snprintf;
+	buf_used += (size_t)rc;
 
 	/* Hardware */
 #ifdef BSD /* BSD specific code. */
@@ -235,24 +244,33 @@ info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 	itm = 0;
 	tm = sizeof(itm);
 	if (0 == sysctlbyname("hw.clockrate", &itm, &tm, NULL, 0)) {
-		buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+		rc = snprintf((buf + buf_used), (buf_size - buf_used),
 		    "\r\nClockrate: %zu mHz", itm);
+		if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+			goto err_out_snprintf;
+		buf_used += (size_t)rc;
 	}
 
 	mib[1] = HW_NCPU;
 	itm = 0;
 	tm = sizeof(itm);
 	if (0 == sysctl(mib, 2, &itm, &tm, NULL, 0)) {
-		buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+		rc = snprintf((buf + buf_used), (buf_size - buf_used),
 		    "\r\nCPU count: %zu", itm);
+		if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+			goto err_out_snprintf;
+		buf_used += (size_t)rc;
 	}
 
 	mib[1] = HW_PHYSMEM;
 	itm = 0;
 	tm = sizeof(itm);
 	if (0 == sysctl(mib, 2, &itm, &tm, NULL, 0)) {
-		buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+		rc = snprintf((buf + buf_used), (buf_size - buf_used),
 		    "\r\nPhys mem: %zu mb", (itm / (1024 * 1024)));
+		if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+			goto err_out_snprintf;
+		buf_used += (size_t)rc;
 	}
 #endif /* BSD specific code. */
 #ifdef __linux__ /* Linux specific code. */
@@ -283,7 +301,7 @@ info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 	tm64 = sysconf(_SC_PHYS_PAGES);
 	tm64 *= sysconf(_SC_PAGE_SIZE);
 	tm64 /= (1024 * 1024);
-	buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+	rc = snprintf((buf + buf_used), (buf_size - buf_used),
 	    "\r\n"
 	    "Model: %s\r\n"
 	    "Clockrate: %s\r\n"
@@ -293,21 +311,33 @@ info_sysinfo(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 	    cl_rate,
 	    sysconf(_SC_NPROCESSORS_CONF),
 	    tm64);
+	if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+		goto err_out_snprintf;
+	buf_used += (size_t)rc;
 #endif /* Linux specific code. */
-	buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used), "\r\n\r\n");
+
 	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = buf_used;
 	}
 
 	return (0);
+
+err_out_snprintf:
+	if (0 > rc) /* Error. */
+		return (EFAULT);
+	if (NULL != buf_size_ret) {
+		(*buf_size_ret) = (buf_used + (size_t)rc);
+	}
+	return (ENOSPC); /* Truncated. */
 }
 
 
 int
-info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
+info_limits(char *buf, size_t buf_size, size_t *buf_size_ret) {
+	int rc;
 	size_t i, buf_used = 0;
 	struct rlimit rlp;
-	int resource[] = {
+	const int resource[] = {
 		RLIMIT_NOFILE,
 		RLIMIT_AS,
 		RLIMIT_MEMLOCK,
@@ -323,7 +353,6 @@ info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 		RLIMIT_SWAP,
 		RLIMIT_NPTS,
 #endif
-		-1
 	};
 	const char *res_descr[] = {
 		"Max open files",
@@ -341,45 +370,72 @@ info_limits(uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 		"Pseudo-terminals max count"
 	};
 
-	buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+	rc = snprintf((buf + buf_used), (buf_size - buf_used),
 	    "Limits\r\n"
 	    "CPU count: %li\r\n"
 	    "IOV maximum: %li\r\n",
 	    sysconf(_SC_NPROCESSORS_ONLN),
 	    sysconf(_SC_IOV_MAX));
-	for (i = 0; -1 != resource[i]; i ++) {
+	if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+		goto err_out_snprintf;
+	buf_used += (size_t)rc;
+
+	for (i = 0; i < nitems(resource); i ++) {
 		if (0 != getrlimit(resource[i], &rlp))
 			continue;
-		buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+
+		/* Res name. */
+		rc = snprintf((buf + buf_used), (buf_size - buf_used),
 		    "%s: ", res_descr[i]);
+		if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+			goto err_out_snprintf;
+		buf_used += (size_t)rc;
+
+		/* Res current value. */
 		if (RLIM_INFINITY == rlp.rlim_cur) {
-			buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
-			    "infinity / ");
+			rc = (int)strlcpy((buf + buf_used),
+			    "infinity / ", (buf_size - buf_used));
 		} else {
-			buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+			rc = snprintf((buf + buf_used), (buf_size - buf_used),
 			    "%zu / ", (size_t)rlp.rlim_cur);
 		}
+		if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+			goto err_out_snprintf;
+		buf_used += (size_t)rc;
+
+		/* Res current value. */
 		if (RLIM_INFINITY == rlp.rlim_max) {
-			buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
-			    "infinity\r\n");
+			rc = (int)strlcpy((buf + buf_used),
+			    "infinity\r\n", (buf_size - buf_used));
 		} else {
-			buf_used += (size_t)snprintf((char*)(buf + buf_used), (buf_size - buf_used),
+			rc = snprintf((buf + buf_used), (buf_size - buf_used),
 			    "%zu\r\n", (size_t)rlp.rlim_max);
 		}
+		if (IS_SNPRINTF_FAIL(rc, (buf_size - buf_used)))
+			goto err_out_snprintf;
+		buf_used += (size_t)rc;
 	}
+
 	if (NULL != buf_size_ret) {
 		(*buf_size_ret) = buf_used;
 	}
 
 	return (0);
+
+err_out_snprintf:
+	if (0 > rc) /* Error. */
+		return (EFAULT);
+	if (NULL != buf_size_ret) {
+		(*buf_size_ret) = (buf_used + (size_t)rc);
+	}
+	return (ENOSPC); /* Truncated. */
 }
 
 
-
 int
-info_sysres(info_sysres_p sysres, uint8_t *buf, size_t buf_size,
+info_sysres(info_sysres_p sysres, char *buf, size_t buf_size,
     size_t *buf_size_ret) {
-	size_t tm = 0;
+	int rc = 0;
 	struct timespec ts;
 	struct rusage rusage;
 	uint64_t tpd, utime, stime;
@@ -404,7 +460,7 @@ info_sysres(info_sysres_p sysres, uint8_t *buf, size_t buf_size,
 	stime += ((uint64_t)rusage.ru_stime.tv_usec - (uint64_t)sysres->ru_stime.tv_usec);
 	stime = ((stime * 10000000) / tpd);
 	tpd = (utime + stime);
-	tm = (size_t)snprintf((char*)buf, buf_size,
+	rc = snprintf(buf, buf_size,
 	    "Res usage\r\n"
 	    "CPU usage system: %"PRIu64",%02"PRIu64"%%\r\n"
 	    "CPU usage user: %"PRIu64",%02"PRIu64"%%\r\n"
@@ -422,8 +478,7 @@ info_sysres(info_sysres_p sysres, uint8_t *buf, size_t buf_size,
 	    "IPC messages received: %li\r\n"
 	    "Signals received: %li\r\n"
 	    "Voluntary context switches: %li\r\n"
-	    "Involuntary context switches: %li\r\n"
-	    "\r\n\r\n",
+	    "Involuntary context switches: %li\r\n",
 	    (stime / 100), (stime % 100),
 	    (utime / 100), (utime % 100),
 	    (tpd / 100), (tpd % 100),
@@ -441,9 +496,13 @@ upd_int_data: /* Update internal data. */
 		memcpy(&sysres->ru_utime, &rusage.ru_utime, sizeof(struct timeval));
 		memcpy(&sysres->ru_stime, &rusage.ru_stime, sizeof(struct timeval));
 	}
-	if (NULL != buf_size_ret) {
-		(*buf_size_ret) = tm;
-	}
 
+	if (0 > rc) /* Error. */
+		return (EFAULT);
+	if (NULL != buf_size_ret) {
+		(*buf_size_ret) = (size_t)rc;
+	}
+	if (buf_size <= (size_t)rc) /* Truncated. */
+		return (ENOSPC);
 	return (0);
 }
