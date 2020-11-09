@@ -59,28 +59,36 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 };
 
 
-#define UNUM2STR(__num, __type, __buf, __size)				\
+#define UNUM2STR(__num, __type, __buf, __size, __size_ret) do {		\
 	size_t __len;							\
 	if (NULL == (__buf) || 0 == (__size))				\
-		return (0);						\
+		return (EINVAL);					\
 	for (__len = 0;							\
 	     __len < POW10LST_COUNT && ((uint64_t)(__num)) > pow10lst[__len]; \
 	     __len ++)							\
 		;							\
-	if ((__len + 1) >= (__size))					\
-		return ((__len + 2));					\
+	if ((__len + 1) > (__size)) {					\
+		if (NULL != (__size_ret)) {				\
+			*(__size_ret) = (__len + 1);			\
+		}							\
+		return (ENOSPC);					\
+	}								\
 	(__buf) += __len;						\
 	(__buf)[1] = 0;							\
 	do {								\
 		(*(__buf) --) = (__type)('0' + ((__num) % 10));		\
 		(__num) /= 10;						\
 	} while ((__num));						\
-	return (__len);
+	if (NULL != (__size_ret)) {					\
+		*(__size_ret) = __len;					\
+	}								\
+	return (0);							\
+} while (0)
 
-#define SNUM2STR(__num, __type, __buf, __size)				\
+#define SNUM2STR(__num, __type, __buf, __size, __size_ret) do {		\
 	size_t __len, __neg = 0;					\
 	if (NULL == (__buf) || 0 == (__size))				\
-		return (0);						\
+		return (EINVAL);					\
 	if (0 > (__num)) {						\
 		(__num) = - (__num);					\
 		__neg = 1;						\
@@ -90,8 +98,12 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 	     __len ++)							\
 		;							\
 	__len += __neg;							\
-	if ((__len + 1) >= (__size))					\
-		return ((__len + 2));					\
+	if ((__len + 1) > (__size)) {					\
+		if (NULL != (__size_ret)) {				\
+			*(__size_ret) = (__len + 1);			\
+		}							\
+		return (ENOSPC);					\
+	}								\
 	if (__neg) {							\
 		(*(__buf)) = '-';					\
 	}								\
@@ -101,130 +113,134 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 		(*(__buf) --) = (__type)('0' + ((__num) % 10));		\
 		(__num) /= 10;						\
 	} while ((__num));						\
-	return (__len);
+	if (NULL != (__size_ret)) {					\
+		*(__size_ret) = __len;					\
+	}								\
+	return (0);							\
+} while (0)
 
 
-static inline size_t
-usize2str(size_t num, char *buf, size_t buf_size) {
+static inline int
+usize2str(size_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, char, buf, buf_size);
+	UNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-usize2ustr(size_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+usize2ustr(size_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, uint8_t, buf, buf_size);
+	UNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u82str(uint8_t num, char *buf, size_t buf_size) {
+static inline int
+u82str(uint8_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, char, buf, buf_size);
+	UNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u82ustr(uint8_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+u82ustr(uint8_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, uint8_t, buf, buf_size);
+	UNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u162str(uint16_t num, char *buf, size_t buf_size) {
+static inline int
+u162str(uint16_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, char, buf, buf_size);
+	UNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u162ustr(uint16_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+u162ustr(uint16_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, uint8_t, buf, buf_size);
+	UNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u322str(uint32_t num, char *buf, size_t buf_size) {
+static inline int
+u322str(uint32_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, char, buf, buf_size);
+	UNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u322ustr(uint32_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+u322ustr(uint32_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, uint8_t, buf, buf_size);
+	UNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u642str(uint64_t num, char *buf, size_t buf_size) {
+static inline int
+u642str(uint64_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, char, buf, buf_size);
+	UNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-u642ustr(uint64_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+u642ustr(uint64_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	UNUM2STR(num, uint8_t, buf, buf_size);
+	UNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
 
 /* Signed. */
 
-static inline ssize_t
-ssize2str(ssize_t num, char *buf, size_t buf_size) {
+static inline int
+ssize2str(ssize_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, char, buf, buf_size);
+	SNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline ssize_t
-ssize2ustr(ssize_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+ssize2ustr(ssize_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, uint8_t, buf, buf_size);
+	SNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s82str(int8_t num, char *buf, size_t buf_size) {
+static inline int
+s82str(int8_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, char, buf, buf_size);
+	SNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s82ustr(int8_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+s82ustr(int8_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, uint8_t, buf, buf_size);
+	SNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s162str(int16_t num, char *buf, size_t buf_size) {
+static inline int
+s162str(int16_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, char, buf, buf_size);
+	SNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s162ustr(int16_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+s162ustr(int16_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, uint8_t, buf, buf_size);
+	SNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s322str(int32_t num, char *buf, size_t buf_size) {
+static inline int
+s322str(int32_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, char, buf, buf_size);
+	SNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s322ustr(int32_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+s322ustr(int32_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, uint8_t, buf, buf_size);
+	SNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s642str(int64_t num, char *buf, size_t buf_size) {
+static inline int
+s642str(int64_t num, char *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, char, buf, buf_size);
+	SNUM2STR(num, char, buf, buf_size, buf_size_ret);
 }
 
-static inline size_t
-s642ustr(int64_t num, uint8_t *buf, size_t buf_size) {
+static inline int
+s642ustr(int64_t num, uint8_t *buf, size_t buf_size, size_t *buf_size_ret) {
 
-	SNUM2STR(num, uint8_t, buf, buf_size);
+	SNUM2STR(num, uint8_t, buf, buf_size, buf_size_ret);
 }
 
 
