@@ -34,11 +34,11 @@
 #include <errno.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <stdlib.h> /* malloc, exit */
-#include <stdio.h> /* snprintf, fprintf */
 
 #include "utils/mem_utils.h"
 #include "utils/str2num.h"
 #include "utils/buf_str.h"
+#include "utils/num2str.h"
 #include "utils/ini.h"
 
 #define INI_LINE_ALLOC_PADDING		16
@@ -672,11 +672,13 @@ int
 ini_val_set_int(const ini_p ini,
     const uint8_t *sect_name, const size_t sect_name_size,
     const uint8_t *val_name, const size_t val_name_size, ssize_t val) {
+	int error;
 	char buf[64];
 	size_t buf_size;
 
-	buf_size = (size_t)snprintf(buf, sizeof(buf), "%zi", val);
-
+	error = ssize2str(val, buf, sizeof(buf), &buf_size);
+	if (0 != error)
+		return (error);
 	return (ini_val_set(ini, sect_name, sect_name_size,
 	    val_name, val_name_size, (const uint8_t*)buf, buf_size));
 }
@@ -685,11 +687,13 @@ int
 ini_val_set_uint(const ini_p ini,
     const uint8_t *sect_name, const size_t sect_name_size,
     const uint8_t *val_name, const size_t val_name_size, size_t val) {
+	int error;
 	char buf[64];
 	size_t buf_size;
 
-	buf_size = (size_t)snprintf(buf, sizeof(buf), "%zu", val);
-
+	error = usize2str(val, buf, sizeof(buf), &buf_size);
+	if (0 != error)
+		return (error);
 	return (ini_val_set(ini, sect_name, sect_name_size,
 	    val_name, val_name_size, (const uint8_t*)buf, buf_size));
 }
