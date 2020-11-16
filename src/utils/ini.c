@@ -215,7 +215,7 @@ int
 ini_buf_gen(const ini_p ini, uint8_t *buf, const size_t buf_size,
     size_t *buf_size_ret) {
 	int error = 0;
-	size_t i, off, tm;
+	size_t i, off;
 
 	if (NULL == ini || NULL == buf || 0 == buf_size ||
 	    NULL == buf_size_ret)
@@ -225,15 +225,15 @@ ini_buf_gen(const ini_p ini, uint8_t *buf, const size_t buf_size,
 	for (i = 0, off = 0; i < ini->lines_count; i ++) {
 		if (NULL == ini->lines[i])
 			continue;
-		tm = (ini->lines[i]->data_size + 2);
-		if ((off + tm) > buf_size) {
+		if ((ini->lines[i]->data_size + 2) > buf_size) {
 			error = -1;
 			break;
 		}
 		memcpy((buf + off), ini->lines[i]->data,
 		    ini->lines[i]->data_size);
-		memcpy((buf + off + ini->lines[i]->data_size), "\r\n", 2);
-		off += tm;
+		off += ini->lines[i]->data_size;
+		buf[off ++] = '\r';
+		buf[off ++] = '\n';
 	}
 	(*buf_size_ret) = off;
 
