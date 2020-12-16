@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="liblcb" Database="" Version="10.0.0">
+  <Project Name="lib" Path="lib.project" Active="No"/>
+  <Project Name="test-threadpool" Path="tests/threadpool/test-threadpool.project" Active="No"/>
+  <Project Name="test-ecdsa" Path="tests/ecdsa/test-ecdsa.project" Active="Yes"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
+      <Environment/>
+      <Project Name="lib" ConfigName="Debug"/>
+      <Project Name="test-threadpool" ConfigName="Debug"/>
+      <Project Name="test-ecdsa" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Environment/>
+      <Project Name="lib" ConfigName="Debug"/>
+      <Project Name="test-threadpool" ConfigName="Debug"/>
+      <Project Name="test-ecdsa" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>
