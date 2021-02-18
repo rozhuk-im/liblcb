@@ -53,6 +53,7 @@ int	file_size_get(const char *file_name, size_t file_name_size,
 	    off_t *file_size);
 
 int	get_cpu_count(void);
+time_t	gettime_monotonic(void);
 int	fd_set_nonblocking(uintptr_t fd, int nonblocked);
 
 

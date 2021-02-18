@@ -43,6 +43,7 @@
 #include <stdlib.h> /* malloc, exit */
 #include <signal.h>
 
+#include "al/os.h"
 #include "utils/sys.h"
 
 
@@ -322,6 +323,15 @@ get_cpu_count(void) {
 	}
 
 	return (ret);
+}
+
+time_t
+gettime_monotonic(void) {
+	struct timespec ts;
+
+	if (0 != clock_gettime(CLOCK_MONOTONIC_FAST, &ts))
+		return (0);
+	return (ts.tv_sec);
 }
 
 /* Set file/socket to non blocking mode */
