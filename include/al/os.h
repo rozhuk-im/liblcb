@@ -36,6 +36,7 @@
 #include <sys/socket.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <time.h>
 #include <fcntl.h> /* open, fcntl */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #include <unistd.h> /* close, write, sysconf */
