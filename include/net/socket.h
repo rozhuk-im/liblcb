@@ -95,15 +95,21 @@ ssize_t	skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 
 int	skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size,
 	    int flags, off_t *transfered_size);
-#ifdef BSD /* BSD specific code. */
-#	define SKT_SF_F_NODISKIO	SF_NODISKIO
-#	define SKT_SF_F_MNOWAIT		SF_MNOWAIT
-#	define SKT_SF_F_SYNC		SF_SYNC
-#else /* BSD specific code. */
-#	define SKT_SF_F_NODISKIO	0
-#	define SKT_SF_F_MNOWAIT		0
-#	define SKT_SF_F_SYNC		0
+
+/* Auto flags, to allow build on Linux and MacOS. */
+#ifndef SF_NODISKIO
+#define SF_NODISKIO 0
 #endif
+#ifndef SF_MNOWAIT
+#define SF_MNOWAIT 0
+#endif
+#ifndef SF_SYNC
+#define SF_SYNC 0
+#endif
+
+#define SKT_SF_F_NODISKIO	SF_NODISKIO
+#define SKT_SF_F_MNOWAIT	SF_MNOWAIT
+#define SKT_SF_F_SYNC		SF_SYNC
 
 int	skt_listen(uintptr_t skt, int backlog);
 
