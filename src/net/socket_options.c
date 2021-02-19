@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -649,8 +649,12 @@ skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
 	/* SO_F_TCP_CONGESTION */
 	if (0 != (SO_F_TCP_CONGESTION & _mask) &&
 	    0 != opts->tcp_cc_size) {
+#ifdef TCP_CONGESTION
 		if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_CONGESTION,
 		    &opts->tcp_cc, opts->tcp_cc_size)) {
+#else
+		if (0) {
+#endif
 			error = errno;
 			error_mask |= SO_F_TCP_CONGESTION;
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))

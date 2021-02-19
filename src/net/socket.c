@@ -101,11 +101,15 @@ skt_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size) {
 	if (NULL == cc || 0 == cc_size || TCP_CA_NAME_MAX <= cc_size)
 		return (EINVAL);
 
+#ifdef TCP_CONGESTION
 	if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_CONGESTION,
 	    cc, (socklen_t)cc_size))
 		return (errno);
 
 	return (0);
+#else
+	return (ENOSYS);
+#endif
 }
 
 int
@@ -115,6 +119,7 @@ skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 	if (NULL == cc || 0 == cc_size)
 		return (EINVAL);
 
+#ifdef TCP_CONGESTION
 	optlen = (socklen_t)cc_size;
 	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_CONGESTION,
 	    cc, &optlen))
@@ -124,6 +129,9 @@ skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 	}
 
 	return (0);
+#else
+	return (ENOSYS);
+#endif
 }
 
 /* Check is congestion control algorithm avaible. */
@@ -134,6 +142,7 @@ skt_is_tcp_cc_avail(const char *cc, size_t cc_size) {
 	if (NULL == cc || 0 == cc_size || TCP_CA_NAME_MAX <= cc_size)
 		return (0);
 
+#ifdef TCP_CONGESTION
 	skt = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (-1 == skt) {
 		skt = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP); /* Re try with IPv6 socket. */
@@ -145,6 +154,9 @@ skt_is_tcp_cc_avail(const char *cc, size_t cc_size) {
 	close(skt);
 
 	return (res);
+#else
+	return (ENOSYS);
+#endif
 }
 
 int
