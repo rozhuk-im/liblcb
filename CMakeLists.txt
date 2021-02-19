@@ -56,6 +56,10 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	add_definitions(-D_BSD_SOURCE -DDARWIN)
 endif()
+if (APPLE)
+	# For IPV6_PKTINFO.
+	add_definitions(-D__APPLE_USE_RFC_3542)
+endif()
 
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
