@@ -196,7 +196,7 @@ memrchr(const void *buf, const int what_find, const size_t buf_size) {
 		return (NULL);
 
 	ptm = (((uint8_t*)buf) + buf_size - 1);
-	while (ptm >= buf) {
+	while (ptm >= (uint8_t*)buf) {
 		if ((*ptm) == (uint8_t)what_find)
 			return (ptm);
 		ptm --;
