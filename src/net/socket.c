@@ -265,7 +265,7 @@ skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
 int
 skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
     size_t ifname_size, const sockaddr_storage_t *mc_addr) {
-	struct ifreq ifr;
+	unsigned int ifindex;
 
 	if (NULL == ifname || IFNAMSIZ <= ifname_size)
 		return (EINVAL);
@@ -273,13 +273,28 @@ skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 	if (0 == ifname_size) {
 		ifname_size = strnlen(ifname, (IFNAMSIZ - 1));
 	}
+
+#ifdef SIOCGIFINDEX
+	struct ifreq ifr;
+
 	mem_bzero(&ifr, sizeof(ifr));
 	memcpy(ifr.ifr_name, ifname, ifname_size);
 	ifr.ifr_name[ifname_size] = 0;
 	if (-1 == ioctl((int)skt, SIOCGIFINDEX, &ifr))
 		return (errno); /* Cant get if index */
+	ifindex = (unsigned int)ifr.ifr_ifindex;
+#else
+	char ifname_buf[IFNAMSIZ];
 
-	return (skt_mc_join(skt, join, (uint32_t)ifr.ifr_ifindex, mc_addr));
+	memcpy(ifname_buf, ifname, ifname_size);
+	ifname_buf[ifname_size] = 0;
+
+	ifindex = if_nametoindex(ifname_buf);
+	if (0 == ifindex)
+		return (errno);
+#endif
+
+	return (skt_mc_join(skt, join, (uint32_t)ifindex, mc_addr));
 }
 
 int
