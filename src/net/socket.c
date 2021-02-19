@@ -737,6 +737,7 @@ err_out: /* Error. */
 int
 skt_tcp_stat_text(uintptr_t skt, const char *tabs,
     char *buf, size_t buf_size, size_t *buf_size_ret) {
+#ifdef TCP_INFO
 	int rc = 0;
 	socklen_t optlen;
 	struct tcp_info info;
@@ -912,4 +913,7 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 	if (buf_size <= (size_t)rc) /* Truncated. */
 		return (ENOSPC);
 	return (0);
+#else
+	return (ENOSYS);
+#endif
 }
