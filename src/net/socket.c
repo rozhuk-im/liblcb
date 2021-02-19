@@ -515,16 +515,13 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 	struct cmsghdr *cm;
 	uint8_t rcvcmsgbuf[1024 +
 #if defined(IP_RECVIF) /* FreeBSD */
-		CMSG_SPACE(sizeof(struct sockaddr_dl))
+		CMSG_SPACE(sizeof(struct sockaddr_dl)) +
 #endif
 #if defined(IP_PKTINFO) /* Linux/win */
-		CMSG_SPACE(sizeof(struct in_pktinfo))
-#endif
-#if (defined(IP_RECVIF) || defined(IP_PKTINFO))
-		+
+		CMSG_SPACE(sizeof(struct in_pktinfo)) +
 #endif
 		CMSG_SPACE(sizeof(struct in6_pktinfo))
-		];
+	];
 
 	/* Initialize msghdr for receiving packets. */
 	//mem_bzero(&rcvcmsgbuf, sizeof(struct cmsghdr));
