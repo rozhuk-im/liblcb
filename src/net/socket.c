@@ -586,8 +586,18 @@ skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size, int flags,
 		goto err_out;
 
 #ifdef BSD /* BSD specific code. */
+#ifdef DARWIN
+	off_t tr_size = (off_t)size;
+	if (0 == sendfile((int)fd, (int)skt, offset, &tr_size, NULL, flags)) { /* OK. */
+		if (NULL != transfered_size) {
+			(*transfered_size) = tr_size;
+		}
+		return (0);
+	}
+#else
 	if (0 == sendfile((int)fd, (int)skt, offset, size, NULL, transfered_size, flags))
 		return (0); /* OK. */
+#endif
 	/* Error, but some data possible transfered. */
 	/* transfered_size - is set by sendfile() */
 	return (errno);
