@@ -73,6 +73,14 @@ static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 #	define TCP_KEEPIDLE	TCP_KEEPALIVE
 #endif
 
+#if !defined(NOTE_ABSTIME) && defined(NOTE_ABSOLUTE)
+#	define NOTE_ABSTIME	NOTE_ABSOLUTE
+#endif
+
+#ifndef NOTE_MSECONDS
+#	define NOTE_MSECONDS	0
+#endif
+
 
 
 /* Struct field access. */

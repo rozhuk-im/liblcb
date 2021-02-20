@@ -58,6 +58,7 @@
 #include <time.h>
 
 #include "utils/macro.h"
+#include "al/os.h"
 #include "utils/mem_utils.h"
 #include "utils/log.h"
 #include "threadpool/threadpool.h"
