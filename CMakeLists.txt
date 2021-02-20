@@ -84,6 +84,7 @@ chk_function_exists(reallocarray)
 chk_function_exists(freezero)
 chk_function_exists(pipe2)
 chk_function_exists(accept4)
+chk_function_exists(rtprio)
 
 # Check macros.
 chk_symbol_exists(sys/socket.h SOCK_NONBLOCK)

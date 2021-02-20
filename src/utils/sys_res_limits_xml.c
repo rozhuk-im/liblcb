@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,9 +36,9 @@
 #include <stdio.h>  /* snprintf, fprintf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #include <stdlib.h> /* malloc, exit */
-#ifdef BSD /* BSD specific code. */
+#ifdef HAVE_RTPRIO
 #	include <sys/rtprio.h>
-#endif /* BSD specific code. */
+#endif
 #include "utils/mem_utils.h"
 #include "utils/str2num.h"
 #include "utils/xml.h"
@@ -114,7 +114,7 @@ sys_res_limits_xml(const uint8_t *buf, size_t buf_size) {
 	}
 	if (0 == xml_get_val_int32_args(buf, buf_size, NULL,
 	    &itm, (const uint8_t*)"processPriority2", NULL)) {
-#ifdef BSD /* BSD specific code. */
+#ifdef HAVE_RTPRIO
 		struct rtprio rtp;
 		rtp.type = RTP_PRIO_REALTIME;
 		rtp.prio = (u_short)itm;
@@ -124,7 +124,7 @@ sys_res_limits_xml(const uint8_t *buf, size_t buf_size) {
 			fprintf(stderr, "rtprio() error: %i - %s\n",
 			    error, err_descr);
 		}
-#endif /* BSD specific code. */
+#endif
 	}
 }
 
