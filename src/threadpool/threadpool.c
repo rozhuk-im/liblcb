@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,10 @@
 
 #ifdef BSD /* BSD specific code. */
 #	include <sys/event.h>
-#	include <pthread_np.h>
-	typedef cpuset_t cpu_set_t;
+#	ifndef DARWIN
+#		include <pthread_np.h>
+		typedef cpuset_t cpu_set_t;
+#	endif
 #endif /* BSD specific code. */
 
 #ifdef __linux__ /* Linux specific code. */
@@ -1069,7 +1071,6 @@ static void *
 tp_thread_proc(void *data) {
 	tpt_p tpt = data;
 	sigset_t sig_set;
-	cpu_set_t cs;
 
 	if (NULL == tpt) {
 		LOG_ERR(EINVAL, "invalid data");
@@ -1085,8 +1086,11 @@ tp_thread_proc(void *data) {
 	if (0 != pthread_sigmask(SIG_BLOCK, &sig_set, NULL)) {
 		LOG_ERR(errno, "can't block the SIGPIPE signal");
 	}
+
+#ifndef DARWIN
 	if (-1 != tpt->cpu_id) {
-		/* Bind this thread to a single cpu. */
+		cpu_set_t cs;
+		/* Bind this thread to a single cpu core. */
 		CPU_ZERO(&cs);
 		CPU_SET(tpt->cpu_id, &cs);
 		if (0 == pthread_setaffinity_np(pthread_self(),
@@ -1095,6 +1099,8 @@ tp_thread_proc(void *data) {
 			    tpt->thread_num, tpt->cpu_id);
 		}
 	}
+#endif
+
 	tpt_loop(tpt);
 
 	tpt->pt_id = 0;
