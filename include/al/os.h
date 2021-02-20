@@ -69,6 +69,11 @@ static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
 #	define CLOCK_MONOTONIC_FAST	CLOCK_MONOTONIC
 #endif
 
+#if !defined(TCP_KEEPIDLE) && defined(TCP_KEEPALIVE)
+#	define TCP_KEEPIDLE	TCP_KEEPALIVE
+#endif
+
+
 
 /* Struct field access. */
 #ifndef s6_addr32
