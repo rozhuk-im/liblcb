@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@
 #include <unistd.h> /* close, write, sysconf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <errno.h>
-#include <pthread.h>
+#include <sched.h>
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
@@ -419,7 +419,7 @@ tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags,
 		tm_cnt = tpt_msg_active_thr_count_dec(msg_data, src, tm_cnt);
 		while (0 != tm_cnt) {
 			if (0 == (TP_BMSG_F_SYNC_USLEEP & flags)) {
-				pthread_yield();
+				sched_yield();
 			} else {
 				nanosleep(&rqts, NULL);
 			}
