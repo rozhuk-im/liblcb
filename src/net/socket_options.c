@@ -444,8 +444,12 @@ skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
 		/* SO_F_TCP_KEEPIDLE */
 		if (0 != (SO_F_TCP_KEEPIDLE & _mask) &&
 		    0 != opts->tcp_keep_idle) {
+#ifdef TCP_KEEPIDLE
 			if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_KEEPIDLE,
 			    &opts->tcp_keep_idle, sizeof(uint32_t))) {
+#else
+			if (0) {
+#endif
 				error = errno;
 				error_mask |= SO_F_TCP_KEEPIDLE;
 				if (0 != (SO_F_FAIL_ON_ERR & _mask))
@@ -455,8 +459,12 @@ skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
 		/* SO_F_TCP_KEEPINTVL */
 		if (0 != (SO_F_TCP_KEEPINTVL & _mask) &&
 		    0 != opts->tcp_keep_intvl) {
+#ifdef TCP_KEEPINTVL
 			if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_KEEPINTVL,
 			    &opts->tcp_keep_intvl, sizeof(uint32_t))) {
+#else
+			if (0) {
+#endif
 				error = errno;
 				error_mask |= SO_F_TCP_KEEPINTVL;
 				if (0 != (SO_F_FAIL_ON_ERR & _mask))
@@ -466,8 +474,12 @@ skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
 		/* SO_F_TCP_KEEPCNT */
 		if (0 != (SO_F_TCP_KEEPCNT & _mask) &&
 		    0 != opts->tcp_keep_cnt) {
+#ifdef TCP_KEEPCNT
 			if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_KEEPCNT,
 			    &opts->tcp_keep_cnt, sizeof(uint32_t))) {
+#else
+			if (0) {
+#endif
 				error = errno;
 				error_mask |= SO_F_TCP_KEEPCNT;
 				if (0 != (SO_F_FAIL_ON_ERR & _mask))
