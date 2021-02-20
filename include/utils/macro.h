@@ -35,6 +35,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <inttypes.h>
+#include <pthread.h>
 
 #ifndef IOV_MAX
 #	include <limits.h>
@@ -113,7 +114,6 @@
 
 
 #ifndef MTX_S
-//#	include <pthread.h>
 #	define MTX_S			pthread_mutex_t
 #	define MTX_INIT(__mutex) do {					\
 		pthread_mutexattr_t attr;				\
@@ -130,7 +130,6 @@
 
 
 #ifndef COND_VAR_S
-//#	include <pthread.h>
 #	define COND_VAR_S		pthread_cond_t
 #	define COND_VAR_INIT(__cond, __shared) do {			\
 		pthread_condattr_t attr;				\
