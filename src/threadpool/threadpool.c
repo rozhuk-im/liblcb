@@ -419,6 +419,8 @@ tpt_loop(tpt_p tpt) {
 			continue;
 		}
 		if (0 > cnt) { /* Error / Exit */
+			if (EINTR == errno)
+				continue; /* Non fatal error. */
 			LOG_ERR(errno, "kevent()");
 			break;
 		}
@@ -717,6 +719,8 @@ tpt_loop(tpt_p tpt) {
 		if (0 == cnt) /* Timeout */
 			continue;
 		if (-1 == cnt) { /* Error / Exit */
+			if (EINTR == errno)
+				continue; /* Non fatal error. */
 			LOG_ERR(errno, "epoll_wait()");
 			debugd_break();
 			break;
