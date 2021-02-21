@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,6 @@
 #include <sys/types.h>
 #include <sys/time.h> /* For getrusage. */
 #include <sys/resource.h>
-#include <sys/sysctl.h>
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h> /* snprintf, fprintf */
@@ -40,11 +39,24 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <time.h>
 #include <errno.h>
+#ifdef BSD /* BSD specific code. */
+#include <sys/sysctl.h>
+#endif /* BSD specific code. */
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
 #include "utils/info.h"
 #include "utils/sys.h"
+
+#ifdef __linux__ /* Linux specific code. */
+#define CTL_KERN	0
+
+#define KERN_OSTYPE	0
+#define KERN_OSRELEASE	1
+#define KERN_NODENAME	2
+#define KERN_DOMAINNAME	3
+#define KERN_VERSION	4
+#endif /* Linux specific code. */
 
 
 int
