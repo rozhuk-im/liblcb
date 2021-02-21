@@ -1105,6 +1105,7 @@ tp_thread_proc(void *data) {
 	tpt_loop(tpt);
 
 	tpt->pt_id = 0;
+	tpt->running = 0; /* Reset state on exit or on error. */
 	tpt->tp->threads_cnt --;
 	pthread_setspecific(tp_tls_key_tpt, NULL);
 	LOG_INFO_FMT("Thread %zu exited...", tpt->thread_num);
