@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,9 @@
 #include <inttypes.h>
 
 
-#define POW10LST_COUNT		19
+#define POW10LST_COUNT		20
 static const uint64_t pow10lst[POW10LST_COUNT] = {
+	0ull,
 	10ull,
 	100ull,
 	1000ull,
@@ -63,7 +64,7 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 	size_t __len;							\
 	if (NULL == (__buf) || 0 == (__size))				\
 		return (EINVAL);					\
-	for (__len = 0;							\
+	for (__len = 1;							\
 	     __len < POW10LST_COUNT && ((uint64_t)(__num)) > pow10lst[__len]; \
 	     __len ++)							\
 		;							\
@@ -74,9 +75,10 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 		return (ENOSPC);					\
 	}								\
 	(__buf) += __len;						\
-	(__buf)[1] = 0;							\
+	(*(__buf)) = 0;							\
 	do {								\
-		(*(__buf) --) = (__type)('0' + ((__num) % 10));		\
+		(__buf) --;						\
+		(*(__buf)) = (__type)('0' + ((__num) % 10));		\
 		(__num) /= 10;						\
 	} while ((__num));						\
 	if (NULL != (__size_ret)) {					\
@@ -93,7 +95,7 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 		(__num) = - (__num);					\
 		__neg = 1;						\
 	}								\
-	for (__len = 0;							\
+	for (__len = 1;							\
 	     __len < POW10LST_COUNT && ((uint64_t)(__num)) > pow10lst[__len]; \
 	     __len ++)							\
 		;							\
@@ -108,9 +110,10 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 		(*(__buf)) = '-';					\
 	}								\
 	(__buf) += __len;						\
-	(__buf)[1] = 0;							\
+	(*(__buf)) = 0;							\
 	do {								\
-		(*(__buf) --) = (__type)('0' + ((__num) % 10));		\
+		(__buf) --;						\
+		(*(__buf)) = (__type)('0' + ((__num) % 10));		\
 		(__num) /= 10;						\
 	} while ((__num));						\
 	if (NULL != (__size_ret)) {					\
