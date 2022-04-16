@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004 - 2022 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -109,9 +109,9 @@ typedef union dns_ex_flags_u { /* RFC 2671 (Extension Mechanisms for DNS (EDNS0)
 	struct dns_ex_flags_s {
 #if BYTE_ORDER == BIG_ENDIAN
 		uint8_t d0	:1; //QR RFC 3225 (Indicating Resolver Support of DNSSEC): "DNSSEC OK"
-		uint8_t __zero0	:7; //--
+		uint8_t _zero0	:7; //--
 #else
-		uint8_t __zero0	:7; //--
+		uint8_t _zero0	:7; //--
 		uint8_t d0	:1; //QR RFC 3225 (Indicating Resolver Support of DNSSEC): "DNSSEC OK"
 #endif
 		uint8_t z	:8; //--

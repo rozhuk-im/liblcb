@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2022 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,64 +60,64 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 };
 
 
-#define UNUM2STR(__num, __type, __buf, __size, __size_ret) do {		\
-	size_t __len;							\
-	if (NULL == (__buf) || 0 == (__size))				\
+#define UNUM2STR(_num, _type, _buf, _size, _size_ret) do {		\
+	size_t _len;							\
+	if (NULL == (_buf) || 0 == (_size))				\
 		return (EINVAL);					\
-	for (__len = 1;							\
-	     __len < POW10LST_COUNT && ((uint64_t)(__num)) > pow10lst[__len]; \
-	     __len ++)							\
+	for (_len = 1;							\
+	     _len < POW10LST_COUNT && ((uint64_t)(_num)) > pow10lst[_len]; \
+	     _len ++)							\
 		;							\
-	if ((__len + 1) > (__size)) {					\
-		if (NULL != (__size_ret)) {				\
-			*(__size_ret) = (__len + 1);			\
+	if ((_len + 1) > (_size)) {					\
+		if (NULL != (_size_ret)) {				\
+			*(_size_ret) = (_len + 1);			\
 		}							\
 		return (ENOSPC);					\
 	}								\
-	(__buf) += __len;						\
-	(*(__buf)) = 0;							\
+	(_buf) += _len;							\
+	(*(_buf)) = 0;							\
 	do {								\
-		(__buf) --;						\
-		(*(__buf)) = (__type)('0' + ((__num) % 10));		\
-		(__num) /= 10;						\
-	} while ((__num));						\
-	if (NULL != (__size_ret)) {					\
-		*(__size_ret) = __len;					\
+		(_buf) --;						\
+		(*(_buf)) = (_type)('0' + ((_num) % 10));		\
+		(_num) /= 10;						\
+	} while ((_num));						\
+	if (NULL != (_size_ret)) {					\
+		*(_size_ret) = _len;					\
 	}								\
 	return (0);							\
 } while (0)
 
-#define SNUM2STR(__num, __type, __buf, __size, __size_ret) do {		\
-	size_t __len, __neg = 0;					\
-	if (NULL == (__buf) || 0 == (__size))				\
+#define SNUM2STR(_num, _type, _buf, _size, _size_ret) do {		\
+	size_t _len, _neg = 0;						\
+	if (NULL == (_buf) || 0 == (_size))				\
 		return (EINVAL);					\
-	if (0 > (__num)) {						\
-		(__num) = - (__num);					\
-		__neg = 1;						\
+	if (0 > (_num)) {						\
+		(_num) = - (_num);					\
+		_neg = 1;						\
 	}								\
-	for (__len = 1;							\
-	     __len < POW10LST_COUNT && ((uint64_t)(__num)) > pow10lst[__len]; \
-	     __len ++)							\
+	for (_len = 1;							\
+	     _len < POW10LST_COUNT && ((uint64_t)(_num)) > pow10lst[_len]; \
+	     _len ++)							\
 		;							\
-	__len += __neg;							\
-	if ((__len + 1) > (__size)) {					\
-		if (NULL != (__size_ret)) {				\
-			*(__size_ret) = (__len + 1);			\
+	_len += _neg;							\
+	if ((_len + 1) > (_size)) {					\
+		if (NULL != (_size_ret)) {				\
+			*(_size_ret) = (_len + 1);			\
 		}							\
 		return (ENOSPC);					\
 	}								\
-	if (__neg) {							\
-		(*(__buf)) = '-';					\
+	if (_neg) {							\
+		(*(_buf)) = '-';					\
 	}								\
-	(__buf) += __len;						\
-	(*(__buf)) = 0;							\
+	(_buf) += _len;							\
+	(*(_buf)) = 0;							\
 	do {								\
-		(__buf) --;						\
-		(*(__buf)) = (__type)('0' + ((__num) % 10));		\
-		(__num) /= 10;						\
-	} while ((__num));						\
-	if (NULL != (__size_ret)) {					\
-		*(__size_ret) = __len;					\
+		(_buf) --;						\
+		(*(_buf)) = (_type)('0' + ((_num) % 10));		\
+		(_num) /= 10;						\
+	} while ((_num));						\
+	if (NULL != (_size_ret)) {					\
+		*(_size_ret) = _len;					\
 	}								\
 	return (0);							\
 } while (0)

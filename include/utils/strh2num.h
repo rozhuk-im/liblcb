@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2022 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,49 +35,49 @@
 #include <inttypes.h>
 
 
-#define STRH2NUM_SIGN(__str, __len, __sign)				\
-	for (size_t __i = 0; __i < (__len); __i ++) {			\
-		uint8_t __cval = ((const uint8_t*)(__str))[__i];	\
-		if ('-' == __cval) {					\
-			(__sign) = -1;					\
-		} else if ('+' == __cval) {				\
-			(__sign) = 1;					\
+#define STRH2NUM_SIGN(_str, _len, _sign)				\
+	for (size_t _i = 0; _i < (_len); _i ++) {			\
+		uint8_t _cval = ((const uint8_t*)(_str))[_i];		\
+		if ('-' == _cval) {					\
+			(_sign) = -1;					\
+		} else if ('+' == _cval) {				\
+			(_sign) = 1;					\
 		} else {						\
 			break;						\
 		}							\
 	}
 
-#define STRH2NUM(__str, __len, __type, __res)				\
-	for (size_t __i = 0; __i < (__len); __i ++) {			\
-		uint8_t __cval = ((const uint8_t*)(__str))[__i];	\
-		if ('0' <= __cval && '9' >= __cval) {			\
-			__cval -= '0';					\
-		} else if ('a' <= __cval && 'f' >= __cval) {		\
-			__cval -= ('a' - 10);				\
-		} else if ('A' <= __cval && 'F' >= __cval) {		\
-			__cval -= ('A' - 10);				\
+#define STRH2NUM(_str, _len, _type, _res)				\
+	for (size_t _i = 0; _i < (_len); _i ++) {			\
+		uint8_t _cval = ((const uint8_t*)(_str))[_i];		\
+		if ('0' <= _cval && '9' >= _cval) {			\
+			_cval -= '0';					\
+		} else if ('a' <= _cval && 'f' >= _cval) {		\
+			_cval -= ('a' - 10);				\
+		} else if ('A' <= _cval && 'F' >= _cval) {		\
+			_cval -= ('A' - 10);				\
 		} else {						\
 			continue;					\
 		}							\
-		(__res) = (((__type)((__res) << 4)) | __cval);		\
+		(_res) = (_type)(((_type)((_res) << 4)) | _cval);	\
 	}
 
-#define STRH2UNUM(__str, __len, __type) do {				\
-		__type __res = 0;					\
-		if (NULL == (__str) || 0 == (__len))			\
+#define STRH2UNUM(_str, _len, _type) do {				\
+		_type _res = 0;						\
+		if (NULL == (_str) || 0 == (_len))			\
 			return (0);					\
-		STRH2NUM((__str), (__len), __type, __res);		\
-		return (__res);						\
+		STRH2NUM((_str), (_len), _type, _res);			\
+		return (_res);						\
 } while (0)
 
-#define STRH2SNUM(__str, __len, __type)	do {				\
-		__type __res = 0, __sign = 1;				\
-		if (NULL == (__str) || 0 == (__len))			\
+#define STRH2SNUM(_str, _len, _type)	do {				\
+		_type _res = 0, _sign = 1;				\
+		if (NULL == (_str) || 0 == (_len))			\
 			return (0);					\
-		STRH2NUM_SIGN((__str), (__len), __sign);		\
-		STRH2NUM((__str), (__len), __type, __res);		\
-		__res *= __sign;					\
-		return (__res);						\
+		STRH2NUM_SIGN((_str), (_len), _sign);			\
+		STRH2NUM((_str), (_len), _type, _res);			\
+		_res *= _sign;						\
+		return (_res);						\
 } while (0)
 
 

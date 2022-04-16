@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011 - 2022 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,8 +70,9 @@ host_addr_alloc(const uint8_t *name, size_t name_size, uint16_t def_port) {
 	ptm_end = mem_rchr(name, name_size, ':');
 	if (NULL != ptm_end) { /* Port after hostname. */
 		ptm_end ++;
-		def_port = ustr2u32(ptm_end, ((name + name_size) - ptm_end));
-		name_size = (ptm_end - name - 1);
+		def_port = ustr2u16(ptm_end,
+		    (size_t)((name + name_size) - ptm_end));
+		name_size = (size_t)(ptm_end - name - 1);
 	}
 
 	haddr = zalloc((sizeof(host_addr_t) + name_size + sizeof(void*)));

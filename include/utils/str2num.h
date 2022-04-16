@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2005 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005 - 2022 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,50 +28,50 @@
  */
 
 
-#ifndef __STR2NUM_H__
-#define __STR2NUM_H__
+#ifndef _STR2NUM_H_
+#define _STR2NUM_H_
 
 #include <sys/types.h>
 #include <inttypes.h>
 
 
-#define STR2NUM_SIGN(__str, __len, __sign)				\
-	for (size_t __i = 0; __i < (__len); __i ++) {			\
-		uint8_t __cval = ((const uint8_t*)(__str))[__i];	\
-		if ('-' == __cval) {					\
-			(__sign) = -1;					\
-		} else if ('+' == __cval) {				\
-			(__sign) = 1;					\
+#define STR2NUM_SIGN(_str, _len, _sign)					\
+	for (size_t _i = 0; _i < (_len); _i ++) {			\
+		uint8_t _cval = ((const uint8_t*)(_str))[_i];		\
+		if ('-' == _cval) {					\
+			(_sign) = -1;					\
+		} else if ('+' == _cval) {				\
+			(_sign) = 1;					\
 		} else {						\
 			break;						\
 		}							\
 	}
 
-#define STR2NUM(__str, __len, __res)					\
-	for (size_t __i = 0; __i < (__len); __i ++) {			\
-		uint8_t __cval = (((const uint8_t*)(__str))[__i] - '0'); \
-		if (9 < __cval)						\
+#define STR2NUM(_str, _len, _res)					\
+	for (size_t _i = 0; _i < (_len); _i ++) {			\
+		uint8_t _cval = (((const uint8_t*)(_str))[_i] - '0');	\
+		if (9 < _cval)						\
 			continue;					\
-		(__res) *= 10;						\
-		(__res) += __cval;					\
+		(_res) *= 10;						\
+		(_res) += _cval;					\
 	}
 
-#define STR2UNUM(__str, __len, __type) do {				\
-		__type __res = 0;					\
-		if (NULL == (__str) || 0 == (__len))			\
+#define STR2UNUM(_str, _len, _type) do {				\
+		_type _res = 0;						\
+		if (NULL == (_str) || 0 == (_len))			\
 			return (0);					\
-		STR2NUM((__str), (__len), __res);			\
-		return (__res);						\
+		STR2NUM((_str), (_len), _res);				\
+		return (_res);						\
 } while (0)
 
-#define STR2SNUM(__str, __len, __type) do {				\
-		__type __res = 0, __sign = 1;				\
-		if (NULL == (__str) || 0 == (__len))			\
+#define STR2SNUM(_str, _len, _type) do {				\
+		_type _res = 0, _sign = 1;				\
+		if (NULL == (_str) || 0 == (_len))			\
 			return (0);					\
-		STR2NUM_SIGN((__str), (__len), __sign);			\
-		STR2NUM((__str), (__len), __res);			\
-		__res *= __sign;					\
-		return (__res);						\
+		STR2NUM_SIGN((_str), (_len), _sign);			\
+		STR2NUM((_str), (_len), _res);				\
+		_res *= _sign;						\
+		return (_res);						\
 } while (0)
 
 
@@ -199,4 +199,4 @@ ustr2s64(const uint8_t *str, size_t str_len) {
 }
 
 
-#endif /* __STR2NUM_H__ */
+#endif /* _STR2NUM_H_ */
