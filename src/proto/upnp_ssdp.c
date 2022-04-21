@@ -889,6 +889,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	upnp_ssdp_p ssdp = arg;
 	uint32_t if_index = 0;
 	size_t transfered_size = 0;
+	uintptr_t ident;
 	ssize_t ios;
 	upnp_ssdp_if_p s_if;
 	char straddr[STR_ADDR_LEN];
@@ -903,9 +904,10 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 		return (TP_TASK_CB_CONTINUE);
 	}
 
+	ident = tp_task_ident_get(tptask);
 	while (transfered_size < data2transfer_size) { /* Recv loop. */
-		ios = skt_recvfrom(tp_task_ident_get(tptask),
-		    buf, sizeof(buf), MSG_DONTWAIT, addr, &if_index);
+		ios = skt_recvfrom(ident, buf, sizeof(buf), MSG_DONTWAIT,
+		    addr, &if_index);
 		if (-1 == ios) {
 			error = errno;
 			if (0 == error)
