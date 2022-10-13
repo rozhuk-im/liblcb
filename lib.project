@@ -67,9 +67,9 @@
       <File Name="include/net/hostname_list.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="proto">
+      <File Name="include/proto/dhcpv4.h"/>
       <File Name="include/proto/http_client.h"/>
       <File Name="include/proto/dns_resolv.h"/>
-      <File Name="include/proto/dhcp.h"/>
       <File Name="include/proto/dns.h"/>
       <File Name="include/proto/mpeg2ts.h"/>
       <File Name="include/proto/rtp.h"/>
