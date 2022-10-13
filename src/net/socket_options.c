@@ -321,7 +321,7 @@ skt_opts_init(const uint32_t mask, const uint32_t bit_vals,
 	mem_bzero(opts, sizeof(skt_opts_t));
 	opts->mask = (SO_F_BIT_VALS_MASK & mask);
 	opts->bit_vals = bit_vals;
-	opts->backlog = -1;
+	opts->backlog = INT_MAX;
 }
 
 void
