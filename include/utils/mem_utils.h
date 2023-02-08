@@ -427,6 +427,11 @@ mem_scmp(const void *buf1, const void *buf2, const size_t size) {
 
 static inline int
 mem_cmpi(const void *buf1, const void *buf2, const size_t size) {
+#ifndef HAVE_STRNCASECMP
+	register uint8_t tm1, tm2;
+	register const uint8_t *buf1_byte, *buf2_byte;
+	register const uint8_t *buf1_max;
+#endif
 
 	if (0 == size || buf1 == buf2)
 		return (0);
@@ -437,10 +442,6 @@ mem_cmpi(const void *buf1, const void *buf2, const size_t size) {
 #ifdef HAVE_STRNCASECMP
 	return (strncasecmp((const char*)buf1, (const char*)buf2, size));
 #else
-	register uint8_t tm1, tm2;
-	register const uint8_t *buf1_byte, *buf2_byte;
-	register const uint8_t *buf1_max;
-
 	buf1_byte = ((const uint8_t*)buf1);
 	buf1_max = (buf1_byte + size);
 	buf2_byte = ((const uint8_t*)buf2);

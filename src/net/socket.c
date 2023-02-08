@@ -218,13 +218,17 @@ skt_set_tcp_nopush(uintptr_t skt, int val) {
 
 int
 skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
+#ifdef SO_ACCEPTFILTER
+	struct accept_filter_arg afa;
+#endif
+#ifdef TCP_DEFER_ACCEPT
+	int ival = (int)accf_size;
+#endif
 
 	if (NULL == accf || 0 == accf_size)
 		return (EINVAL);
 
 #ifdef SO_ACCEPTFILTER
-	struct accept_filter_arg afa;
-
 	accf_size = ((sizeof(afa.af_name) - 1) > accf_size) ?
 	    accf_size : (sizeof(afa.af_name) - 1);
 	memcpy(afa.af_name, accf, accf_size);
@@ -234,7 +238,6 @@ skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size) {
 		return (errno);
 #endif
 #ifdef TCP_DEFER_ACCEPT
-	int ival = (int)accf_size;
 	if (0 != setsockopt((int)skt, IPPROTO_TCP, TCP_DEFER_ACCEPT, &ival, sizeof(int)))
 		return (errno);
 #endif
@@ -269,6 +272,9 @@ int
 skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
     size_t ifname_size, const sockaddr_storage_t *mc_addr) {
 	unsigned int ifindex;
+#ifdef SIOCGIFINDEX
+	struct ifreq ifr;
+#endif
 
 	if (NULL == ifname || IFNAMSIZ <= ifname_size)
 		return (EINVAL);
@@ -278,8 +284,6 @@ skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 	}
 
 #ifdef SIOCGIFINDEX
-	struct ifreq ifr;
-
 	mem_bzero(&ifr, sizeof(ifr));
 	memcpy(ifr.ifr_name, ifname, ifname_size);
 	ifr.ifr_name[ifname_size] = 0;
@@ -416,6 +420,9 @@ int
 skt_accept(uintptr_t skt, sockaddr_storage_t *addr, socklen_t *addrlen,
     uint32_t flags, uintptr_t *skt_ret) {
 	uintptr_t s;
+#ifdef SO_NOSIGPIPE
+	int on = 1;
+#endif
 
 	if (NULL == skt_ret)
 		return (EINVAL);
@@ -429,7 +436,6 @@ skt_accept(uintptr_t skt, sockaddr_storage_t *addr, socklen_t *addrlen,
 	if ((uintptr_t)-1 == s)
 		return (errno);
 #ifdef SO_NOSIGPIPE
-	int on = 1;
 	setsockopt((int)s, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));
 #endif
 	(*skt_ret) = s;
@@ -786,6 +792,38 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 		"TOE"
 #endif
 	};
+#ifdef BSD /* BSD specific code. */
+	const char *tcpi_state[] = {
+		"CLOSED",
+		"LISTEN",
+		"SYN_SENT",
+		"SYN_RECEIVED",
+		"ESTABLISHED",
+		"CLOSE_WAIT",
+		"FIN_WAIT_1",
+		"CLOSING",
+		"LAST_ACK",
+		"FIN_WAIT_2",
+		"TIME_WAIT",
+		"UNKNOWN"
+	};
+#endif
+#ifdef __linux__ /* Linux specific code. */
+	const char *tcpi_state[] = {
+		"ESTABLISHED",
+		"SYN_SENT",
+		"SYN_RECEIVED",
+		"FIN_WAIT_1",
+		"FIN_WAIT_2",
+		"TIME_WAIT",
+		"CLOSED",
+		"CLOSE_WAIT",
+		"LAST_ACK",
+		"LISTEN",
+		"CLOSING",
+		"UNKNOWN"
+	};
+#endif
 
 	if (NULL == buf || NULL == buf_size_ret)
 		return (EINVAL);
@@ -815,21 +853,6 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 	topts[topts_used] = 0x00;
 
 #ifdef BSD /* BSD specific code. */
-	const char *tcpi_state[] = {
-		"CLOSED",
-		"LISTEN",
-		"SYN_SENT",
-		"SYN_RECEIVED",
-		"ESTABLISHED",
-		"CLOSE_WAIT",
-		"FIN_WAIT_1",
-		"CLOSING",
-		"LAST_ACK",
-		"FIN_WAIT_2",
-		"TIME_WAIT",
-		"UNKNOWN"
-	};
-
 	rc = snprintf(buf, buf_size,
 	    "%sTCP FSM state: %s\r\n"
 	    "%sOptions enabled on conn: %s\r\n"
@@ -864,21 +887,6 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 	    tabs, info.tcpi_rcv_ooopack, tabs, info.tcpi_snd_zerowin);
 #endif /* BSD specific code. */
 #ifdef __linux__ /* Linux specific code. */
-	const char *tcpi_state[] = {
-		"ESTABLISHED",
-		"SYN_SENT",
-		"SYN_RECEIVED",
-		"FIN_WAIT_1",
-		"FIN_WAIT_2",
-		"TIME_WAIT",
-		"CLOSED",
-		"CLOSE_WAIT",
-		"LAST_ACK",
-		"LISTEN",
-		"CLOSING",
-		"UNKNOWN"
-	};
-
 	rc = snprintf(buf, buf_size,
 	    "%sTCP FSM state: %s\r\n"
 	    "%sca_state: %"PRIu8"\r\n"
