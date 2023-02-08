@@ -1038,7 +1038,8 @@ tp_threads_create(tp_p tp, int skip_first) {
 		if (NULL == tpt->tp)
 			continue;
 		tpt->running = 1;
-		if (0 == pthread_create(&tpt->pt_id, NULL, tp_thread_proc, tpt)) {
+		if (0 == pthread_create_eagain(&tpt->pt_id, NULL,
+		    tp_thread_proc, tpt)) {
 			tp->threads_cnt ++;
 		} else {
 			tpt->running = 0;
