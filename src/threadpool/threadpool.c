@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -992,17 +992,16 @@ tpt_msg_shutdown_cb(tpt_p tpt, void *udata __unused) {
 void
 tp_shutdown_wait(tp_p tp) {
 	size_t cnt;
-	struct timespec rqtp;
+	/* 1 sec = 1000000000 nanoseconds */
+	struct timespec rqts = { .tv_sec = 0, .tv_nsec = 100000000 };
 
 	if (NULL == tp)
 		return;
 	/* Wait all threads before return. */
-	rqtp.tv_sec = 0;
-	rqtp.tv_nsec = 100000000; /* 1 sec = 1000000000 nanoseconds */
 	cnt = tp->threads_cnt;
 	while (0 != cnt) {
 		cnt = tp_thread_count_get(tp);
-		nanosleep(&rqtp, NULL);
+		nanosleep(&rqts, NULL); /* Ignore early wakeup and errors. */
 	}
 }
 

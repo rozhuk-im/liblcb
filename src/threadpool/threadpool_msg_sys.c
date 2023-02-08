@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -421,7 +421,7 @@ tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags,
 			if (0 == (TP_BMSG_F_SYNC_USLEEP & flags)) {
 				sched_yield();
 			} else {
-				nanosleep(&rqts, NULL);
+				nanosleep(&rqts, NULL); /* Ignore early wakeup and errors. */
 			}
 			MTX_LOCK(&msg_data->lock);
 			tm_cnt = msg_data->active_thr_count;

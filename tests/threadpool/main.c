@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -233,14 +233,19 @@ main(int argc, char *argv[]) {
 
 
 static void
-test_sleep(time_t sec, long nsec) { /* 1 sec = 1000000000 nanoseconds */
-	struct timespec rqtp;
+test_sleep(const time_t sec, const long nsec) { 
+	struct timespec rqts;
 
-	rqtp.tv_sec = sec;
-	rqtp.tv_nsec = nsec;
-	for (;;) {
-		if (0 == nanosleep(&rqtp, &rqtp) ||
-		    EINTR != errno)
+	/* 1 sec = 1000000000 nanoseconds */
+	if (nsec < 1000000000) {
+		rqts.tv_sec = sec;
+		rqts.tv_nsec = nsec;
+	} else {
+		rqts.tv_nsec = (nsec % 1000000000ul);
+		rqts.tv_sec = (sec + (nsec / 1000000000ul));
+	}
+	for (; 0 != nanosleep(&rqts, &rqts);) {
+		if (EINTR != errno)
 			break;
 	}
 }
