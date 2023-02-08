@@ -21,7 +21,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="clang system" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g -Wall" C_Options="-g -Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Compiler Options="-g -Wall" C_Options="-g -Wall -Weverything;-Wwrite-strings;-Wsign-compare;-Wpointer-arith;-Wnested-externs;-Wmissing-prototypes;-Wmissing-declarations;-Winline;-Wmain;-Wformat-security;-Wformat;-Wchar-subscripts;-Wcast-align;-g -DDEBUG;-W;-Wall;-Wno-gnu-zero-variadic-macro-arguments;-Wno-variadic-macros;-Wno-padded;-Wno-packed;-Wno-unused-macros;-Wno-format-nonliteral;-Wno-cast-qual;-Wno-reserved-id-macro;-Wno-date-time;-Wno-unused-local-typedef;-Wno-documentation-unknown-command;-Wno-thread-safety-analysis;-Wimplicit-fallthrough" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
       <Linker Options="-O0" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="$(ConfigurationName)" Command="$(OutputFile)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>

@@ -124,7 +124,7 @@ static void	test_tpt_ev_add_ex_tmr_edge(void);
 
 
 int
-main(int argc, char *argv[]) {
+main(int argc __unused, char *argv[] __unused) {
 	CU_pSuite psuite = NULL;
 
 	core_log_fd = (uintptr_t)open("/dev/stdout", (O_WRONLY | O_APPEND));
@@ -141,13 +141,11 @@ main(int argc, char *argv[]) {
 
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
-		return (CU_get_error());
+		goto err_out;
 	/* add a suite to the registry */
 	psuite = CU_add_suite("Core Thread Poll", init_suite, clean_suite);
-	if (NULL == psuite) {
-		CU_cleanup_registry();
-		return (CU_get_error());
-	}
+	if (NULL == psuite)
+		goto err_out;
 
 	/* add the tests to the suite */
 	if (NULL == CU_add_test(psuite, "test of test_tp_init1() - threads count = 1", test_tp_init1) ||
@@ -210,8 +208,7 @@ main(int argc, char *argv[]) {
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
 	    NULL == CU_add_test(psuite, "test of test_tp_destroy()", test_tp_destroy) ||
 	    0) {
-		CU_cleanup_registry();
-		return (CU_get_error());
+		goto err_out;
 	}
 
 	/* Run all tests using the basic interface */
@@ -225,10 +222,11 @@ main(int argc, char *argv[]) {
 	CU_automated_run_tests();
 	CU_list_tests_to_file();
 
+err_out:
 	/* Clean up registry and return */
 	CU_cleanup_registry();
 
-	return (CU_get_error());
+	return ((int)CU_get_error());
 }
 
 
@@ -241,8 +239,8 @@ test_sleep(const time_t sec, const long nsec) {
 		rqts.tv_sec = sec;
 		rqts.tv_nsec = nsec;
 	} else {
-		rqts.tv_nsec = (nsec % 1000000000ul);
-		rqts.tv_sec = (sec + (nsec / 1000000000ul));
+		rqts.tv_nsec = (nsec % 1000000000l);
+		rqts.tv_sec = (sec + (nsec / 1000000000l));
 	}
 	for (; 0 != nanosleep(&rqts, &rqts);) {
 		if (EINTR != errno)
@@ -283,7 +281,7 @@ test_tp_init1(void) {
 	s.threads_max = 1;
 	s.flags = (TP_S_F_BIND2CPU );
 	error = tp_create(&s, &tp);
-	CU_ASSERT(0 == error);
+	CU_ASSERT(0 == error)
 	if (0 != error)
 		return;
 	/* Wait for all threads start. */
@@ -297,7 +295,7 @@ test_tp_destroy(void) {
 	tp_shutdown_wait(tp);
 	tp_destroy(tp);
 	tp = NULL;
-	CU_PASS("tp_destroy()");
+	CU_PASS("tp_destroy()")
 }
 
 static void
@@ -310,7 +308,7 @@ test_tp_init16(void) {
 	s.threads_max = THREADS_COUNT_MAX;
 	s.flags = (TP_S_F_BIND2CPU);
 	error = tp_create(&s, &tp);
-	CU_ASSERT(0 == error);
+	CU_ASSERT(0 == error)
 	if (0 != error)
 		return;
 	/* Wait for all threads start. */
@@ -320,19 +318,19 @@ test_tp_init16(void) {
 static void
 test_tp_threads_create(void) {
 
-	CU_ASSERT(0 == tp_threads_create(tp, 0));
+	CU_ASSERT(0 == tp_threads_create(tp, 0))
 }
 
 static void
 test_tp_thread_count_max_get(void) {
 
-	CU_ASSERT(threads_count == tp_thread_count_max_get(tp));
+	CU_ASSERT(threads_count == tp_thread_count_max_get(tp))
 }
 
 static void
 test_tp_thread_count_get(void) {
 
-	CU_ASSERT(threads_count == tp_thread_count_get(tp));
+	CU_ASSERT(threads_count == tp_thread_count_get(tp))
 }
 
 static void
@@ -341,41 +339,41 @@ test_tp_thread_get(void) {
 
 	for (i = 0; i < threads_count; i ++) {
 		if (i != tp_thread_get_num(tp_thread_get(tp, i))) {
-			CU_FAIL("tp_thread_get_num()");
+			CU_FAIL("tp_thread_get_num()")
 			return; /* Fail. */
 		}
 	}
-	CU_PASS("tp_thread_get_num()");
+	CU_PASS("tp_thread_get_num()")
 }
 
 static void
 test_tp_thread_get_current(void) {
 
-	CU_ASSERT(NULL == tp_thread_get_current());
+	CU_ASSERT(NULL == tp_thread_get_current())
 }
 
 static void
 test_tp_thread_get_rr(void) {
 
-	CU_ASSERT(NULL != tp_thread_get_rr(tp));
+	CU_ASSERT(NULL != tp_thread_get_rr(tp))
 }
 
 static void
 test_tp_thread_get_pvt(void) {
 
-	CU_ASSERT(NULL != tp_thread_get_pvt(tp));
+	CU_ASSERT(NULL != tp_thread_get_pvt(tp))
 }
 
 static void
 test_tp_thread_get_cpu_id(void) {
 
-	CU_ASSERT(0 == tp_thread_get_cpu_id(tp_thread_get(tp, 0)));
+	CU_ASSERT(0 == tp_thread_get_cpu_id(tp_thread_get(tp, 0)))
 }
 
 static void
 test_tpt_get_tp(void) {
 
-	CU_ASSERT(tp == tpt_get_tp(tp_thread_get(tp, 0)));
+	CU_ASSERT(tp == tpt_get_tp(tp_thread_get(tp, 0)))
 }
 
 
@@ -383,7 +381,7 @@ test_tpt_get_tp(void) {
 static void
 msg_send_cb(tpt_p tpt, void *udata) {
 
-	CU_ASSERT((size_t)udata == tp_thread_get_num(tpt));
+	CU_ASSERT((size_t)udata == tp_thread_get_num(tpt))
 
 	if ((size_t)udata == tp_thread_get_num(tpt)) {
 		thr_arr[(size_t)udata] = (((size_t)udata) & 0xff);
@@ -398,7 +396,7 @@ test_tpt_msg_send(void) {
 	for (i = 0; i < threads_count; i ++) {
 		if (0 != tpt_msg_send(tp_thread_get(tp, i), NULL,
 		    0, msg_send_cb, (void*)i)) {
-			CU_FAIL("tpt_msg_send()");
+			CU_FAIL("tpt_msg_send()")
 			return; /* Fail. */
 		}
 	}
@@ -406,17 +404,17 @@ test_tpt_msg_send(void) {
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	for (i = 0; i < threads_count; i ++) {
 		if (i != thr_arr[i]) {
-			CU_FAIL("tpt_msg_send() - not work.");
+			CU_FAIL("tpt_msg_send() - not work.")
 			return; /* Fail. */
 		}
 	}
-	CU_PASS("tpt_msg_send()");
+	CU_PASS("tpt_msg_send()")
 }
 
 static void
 msg_bsend_cb(tpt_p tpt, void *udata) {
 
-	CU_ASSERT(udata == (void*)tpt_get_tp(tpt));
+	CU_ASSERT(udata == (void*)tpt_get_tp(tpt))
 
 	if (udata == (void*)tpt_get_tp(tpt)) {
 		thr_arr[tp_thread_get_num(tpt)] = (uint8_t)tp_thread_get_num(tpt);
@@ -433,7 +431,7 @@ test_tpt_msg_bsend_ex1(void) {
 
 	if (0 != tpt_msg_bsend_ex(tp, NULL, 0, msg_bsend_cb,
 	    (void*)tp, &send_msg_cnt, &error_cnt)) {
-		CU_FAIL("tpt_msg_bsend_ex()");
+		CU_FAIL("tpt_msg_bsend_ex()")
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
@@ -441,17 +439,17 @@ test_tpt_msg_bsend_ex1(void) {
 
 	if (threads_count != send_msg_cnt ||
 	    0 != error_cnt) {
-		CU_FAIL("tpt_msg_bsend_ex() - not all received.");
+		CU_FAIL("tpt_msg_bsend_ex() - not all received.")
 		return; /* Fail. */
 	}
 
 	for (i = 0; i < threads_count; i ++) {
 		if (i != thr_arr[i]) {
-			CU_FAIL("tpt_msg_bsend_ex() - not work.");
+			CU_FAIL("tpt_msg_bsend_ex() - not work.")
 			return; /* Fail. */
 		}
 	}
-	CU_PASS("tpt_msg_bsend_ex()");
+	CU_PASS("tpt_msg_bsend_ex()")
 }
 static void
 test_tpt_msg_bsend_ex2(void) {
@@ -462,23 +460,23 @@ test_tpt_msg_bsend_ex2(void) {
 
 	if (0 != tpt_msg_bsend_ex(tp, NULL, TP_BMSG_F_SYNC, msg_bsend_cb,
 	    (void*)tp, &send_msg_cnt, &error_cnt)) {
-		CU_FAIL("tpt_msg_bsend_ex(TP_BMSG_F_SYNC)");
+		CU_FAIL("tpt_msg_bsend_ex(TP_BMSG_F_SYNC)")
 		return; /* Fail. */
 	}
 
 	if (threads_count != send_msg_cnt ||
 	    0 != error_cnt) {
-		CU_FAIL("tpt_msg_bsend_ex(TP_BMSG_F_SYNC) - not all received.");
+		CU_FAIL("tpt_msg_bsend_ex(TP_BMSG_F_SYNC) - not all received.")
 		return; /* Fail. */
 	}
 
 	for (i = 0; i < threads_count; i ++) {
 		if (i != thr_arr[i]) {
-			CU_FAIL("tpt_msg_bsend_ex(TP_BMSG_F_SYNC) - not work.");
+			CU_FAIL("tpt_msg_bsend_ex(TP_BMSG_F_SYNC) - not work.")
 			return; /* Fail. */
 		}
 	}
-	CU_PASS("tpt_msg_bsend_ex(TP_BMSG_F_SYNC)");
+	CU_PASS("tpt_msg_bsend_ex(TP_BMSG_F_SYNC)")
 }
 static void
 test_tpt_msg_bsend_ex3(void) {
@@ -490,29 +488,29 @@ test_tpt_msg_bsend_ex3(void) {
 	if (0 != tpt_msg_bsend_ex(tp, NULL,
 	    (TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP), msg_bsend_cb,
 	    (void*)tp, &send_msg_cnt, &error_cnt)) {
-		CU_FAIL("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP))");
+		CU_FAIL("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP))")
 		return; /* Fail. */
 	}
 
 	if (threads_count != send_msg_cnt ||
 	    0 != error_cnt) {
-		CU_FAIL("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP)) - not all received.");
+		CU_FAIL("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP)) - not all received.")
 		return; /* Fail. */
 	}
 
 	for (i = 0; i < threads_count; i ++) {
 		if (i != thr_arr[i]) {
-			CU_FAIL("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP)) - not work.");
+			CU_FAIL("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP)) - not work.")
 			return; /* Fail. */
 		}
 	}
-	CU_PASS("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP))");
+	CU_PASS("tpt_msg_bsend_ex((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP))")
 }
 
 static void
 msg_cbsend_cb(tpt_p tpt, void *udata) {
 
-	CU_ASSERT(udata == (void*)tpt_get_tp(tpt));
+	CU_ASSERT(udata == (void*)tpt_get_tp(tpt))
 
 	if (udata == (void*)tpt_get_tp(tpt)) {
 		thr_arr[tp_thread_get_num(tpt)] = (uint8_t)tp_thread_get_num(tpt);
@@ -522,9 +520,9 @@ static void
 msg_cbsend_done_cb(tpt_p tpt, size_t send_msg_cnt,
     size_t error_cnt, void *udata) {
 
-	CU_ASSERT(udata == (void*)tpt_get_tp(tpt));
-	CU_ASSERT(threads_count == send_msg_cnt);
-	CU_ASSERT(0 == error_cnt);
+	CU_ASSERT(udata == (void*)tpt_get_tp(tpt))
+	CU_ASSERT(threads_count == send_msg_cnt)
+	CU_ASSERT(0 == error_cnt)
 
 	if (udata == (void*)tpt_get_tp(tpt) &&
 	    threads_count == send_msg_cnt &&
@@ -540,18 +538,18 @@ test_tpt_msg_cbsend1(void) {
 
 	if (0 != tpt_msg_cbsend(tp, tp_thread_get(tp, 0),
 	    0, msg_cbsend_cb, (void*)tp, msg_cbsend_done_cb)) {
-		CU_FAIL("tpt_msg_cbsend()");
+		CU_FAIL("tpt_msg_cbsend()")
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	for (i = 0; i < (threads_count + 1); i ++) {
 		if (i != thr_arr[i]) {
-			CU_FAIL("tpt_msg_cbsend() - not work.");
+			CU_FAIL("tpt_msg_cbsend() - not work.")
 			return; /* Fail. */
 		}
 	}
-	CU_PASS("tpt_msg_cbsend()");
+	CU_PASS("tpt_msg_cbsend()")
 }
 static void
 test_tpt_msg_cbsend2(void) {
@@ -562,28 +560,28 @@ test_tpt_msg_cbsend2(void) {
 	if (0 != tpt_msg_cbsend(tp, tp_thread_get(tp, 0),
 	    TP_CBMSG_F_ONE_BY_ONE, msg_cbsend_cb, (void*)tp,
 	    msg_cbsend_done_cb)) {
-		CU_FAIL("tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE)");
+		CU_FAIL("tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE)")
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	for (i = 0; i < (threads_count + 1); i ++) {
 		if (i != thr_arr[i]) {
-			CU_FAIL("tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE) - not work.");
+			CU_FAIL("tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE) - not work.")
 			return; /* Fail. */
 		}
 	}
-	CU_PASS("tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE)");
+	CU_PASS("tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE)")
 }
 
 
 static void
 tpt_ev_add_r_cb(tp_event_p ev, tp_udata_p tp_udata) {
 
-	CU_ASSERT(0 != ev->data);
-	CU_ASSERT(TP_EV_READ == ev->event);
-	CU_ASSERT(tpt_ev_add_r_cb == tp_udata->cb_func);
-	CU_ASSERT(pipe_fd[0] == (int)tp_udata->ident);
+	CU_ASSERT(0 != ev->data)
+	CU_ASSERT(TP_EV_READ == ev->event)
+	CU_ASSERT(tpt_ev_add_r_cb == tp_udata->cb_func)
+	CU_ASSERT(pipe_fd[0] == (int)tp_udata->ident)
 
 	//read(pipe_fd[0], buf, sizeof(buf));
 	if (0 != ev->data &&
@@ -610,24 +608,24 @@ test_tpt_ev_add_ex_rd(uint16_t flags, uint8_t res, int remove_ok) {
 	tp_udata.ident = (uintptr_t)pipe_fd[0];
 	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_READ,
 	    flags, 0, 0, &tp_udata)) {
-		CU_FAIL("tpt_ev_add_args(TP_EV_READ)"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_READ)") /* Fail. */
 		read(pipe_fd[0], buf, sizeof(buf));
 		tpt_ev_del_args1(TP_EV_READ, &tp_udata);
 		return; /* Fail. */
 	}
-	CU_ASSERT(1 == write(pipe_fd[1], "1", 1));
+	CU_ASSERT(1 == write(pipe_fd[1], "1", 1))
 	/* Wait for all threads process. */
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	if (res != thr_arr[0]) {
-		CU_FAIL("tpt_ev_add_args(TP_EV_READ) - not work"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_READ) - not work") /* Fail. */
 		LOG_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	read(pipe_fd[0], buf, sizeof(buf));
 	if (0 != remove_ok) {
-		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_READ, &tp_udata));
+		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_READ, &tp_udata))
 	}
-	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_READ, &tp_udata));
+	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_READ, &tp_udata))
 }
 static void
 test_tpt_ev_add_ex_rd_0(void) {
@@ -654,10 +652,10 @@ test_tpt_ev_add_ex_rd_edge(void) {
 static void
 tpt_ev_add_w_cb(tp_event_p ev, tp_udata_p tp_udata) {
 
-	CU_ASSERT(0 != ev->data);
-	CU_ASSERT(TP_EV_WRITE == ev->event);
-	CU_ASSERT(tpt_ev_add_w_cb == tp_udata->cb_func);
-	CU_ASSERT(pipe_fd[1] == (int)tp_udata->ident);
+	CU_ASSERT(0 != ev->data)
+	CU_ASSERT(TP_EV_WRITE == ev->event)
+	CU_ASSERT(tpt_ev_add_w_cb == tp_udata->cb_func)
+	CU_ASSERT(pipe_fd[1] == (int)tp_udata->ident)
 
 	if (0 != ev->data &&
 	    TP_EV_WRITE == ev->event &&
@@ -685,24 +683,24 @@ test_tpt_ev_add_ex_rw(uint16_t flags, uint8_t res, int remove_ok) {
 	tp_udata.ident = (uintptr_t)pipe_fd[1];
 	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_WRITE,
 	    flags, 0, 0, &tp_udata)) {
-		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE)"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE)") /* Fail. */
 		read(pipe_fd[0], buf, sizeof(buf));
 		tpt_ev_del_args1(TP_EV_WRITE, &tp_udata);
 		return; /* Fail. */
 	}
-	CU_ASSERT(1 == write(pipe_fd[1], "1", 1));
+	CU_ASSERT(1 == write(pipe_fd[1], "1", 1))
 	/* Wait for all threads process. */
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	if (res != thr_arr[0]) {
-		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE) - not work"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE) - not work") /* Fail. */
 		LOG_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	read(pipe_fd[0], buf, sizeof(buf));
 	if (0 != remove_ok) {
-		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_WRITE, &tp_udata));
+		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_WRITE, &tp_udata))
 	}
-	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_WRITE, &tp_udata));
+	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_WRITE, &tp_udata))
 }
 static void
 test_tpt_ev_add_ex_rw_0(void) {
@@ -729,9 +727,9 @@ test_tpt_ev_add_ex_rw_edge(void) {
 static void
 tpt_ev_add_tmr_cb(tp_event_p ev, tp_udata_p tp_udata) {
 
-	CU_ASSERT(TP_EV_TIMER == ev->event);
-	CU_ASSERT(tpt_ev_add_tmr_cb == tp_udata->cb_func);
-	CU_ASSERT(TEST_TIMER_ID == tp_udata->ident);
+	CU_ASSERT(TP_EV_TIMER == ev->event)
+	CU_ASSERT(tpt_ev_add_tmr_cb == tp_udata->cb_func)
+	CU_ASSERT(TEST_TIMER_ID == tp_udata->ident)
 
 	if (TP_EV_TIMER == ev->event &&
 	    tpt_ev_add_tmr_cb == tp_udata->cb_func &&
@@ -754,21 +752,21 @@ test_tpt_ev_add_ex_tmr(uint16_t flags, uint8_t res, int remove_ok) {
 	tp_udata.ident = TEST_TIMER_ID;
 	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_TIMER,
 	    flags, 0, TEST_TIMER_INTERVAL, &tp_udata)) {
-		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER)"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER)") /* Fail. */
 		tpt_ev_del_args1(TP_EV_TIMER, &tp_udata);
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
 	test_sleep(0, 300000000);
 	if (res != thr_arr[0]) {
-		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER) - not work"); /* Fail. */
+		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER) - not work") /* Fail. */
 		LOG_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	if (0 != remove_ok) {
-		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_TIMER, &tp_udata));
+		CU_ASSERT(0 == tpt_ev_del_args1(TP_EV_TIMER, &tp_udata))
 	}
-	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_TIMER, &tp_udata));
+	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_TIMER, &tp_udata))
 }
 static void
 test_tpt_ev_add_ex_tmr_0(void) {
