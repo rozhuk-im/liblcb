@@ -11,7 +11,7 @@
   <Dependencies Name="Debug"/>
   <Settings Type="Executable">
     <GlobalSettings>
-      <Compiler Options="" C_Options="-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_EXPLICIT_BZERO;-DHAVE_MEMSET_S;-Wimplicit-fallthrough" Assembler="">
+      <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_EXPLICIT_BZERO;-DHAVE_MEMSET_S;-Wimplicit-fallthrough" Assembler="">
         <IncludePath Value="../../include"/>
       </Compiler>
       <Linker Options="">
@@ -21,11 +21,8 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="clang system" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g -Wall" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
-      <Linker Options="-O0" Required="yes">
-        <LibraryPath Value="."/>
-        <LibraryPath Value="Debug"/>
-      </Linker>
+      <Compiler Options="-g -Wall" C_Options="-g -Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Linker Options="-O0" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="$(ConfigurationName)" Command="$(OutputFile)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
