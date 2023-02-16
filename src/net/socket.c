@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -117,7 +117,9 @@ skt_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size) {
 
 int
 skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
+#ifdef TCP_CONGESTION
 	socklen_t optlen;
+#endif
 
 	if (NULL == cc || 0 == cc_size)
 		return (EINVAL);
@@ -140,7 +142,9 @@ skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 /* Check is congestion control algorithm avaible. */
 int
 skt_is_tcp_cc_avail(const char *cc, size_t cc_size) {
+#ifdef TCP_CONGESTION
 	int skt, res = 0;
+#endif
 
 	if (NULL == cc || 0 == cc_size || TCP_CA_NAME_MAX <= cc_size)
 		return (0);
