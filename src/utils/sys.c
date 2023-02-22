@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -117,7 +117,7 @@ write_pid(const char *file_name) {
 
 int
 set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
-	int error = 0;
+	int error;
 	struct passwd *pwd, pwd_buf;
 	char buffer[4096], err_descr[256];
 
@@ -126,7 +126,6 @@ set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
 
 	error = getpwuid_r(pw_uid, &pwd_buf, buffer, sizeof(buffer), &pwd);
 	if (0 != error) {
-		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: getpwuid_r() error %i: %s\n",
 		    error, err_descr);
@@ -138,27 +137,31 @@ set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
 		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: setgid() error %i: %s\n",
 		    error, err_descr);
+		return (error);
 	}
 	if (0 != initgroups(pwd->pw_name, pw_gid)) {
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: initgroups() error %i: %s\n",
 		    error, err_descr);
+		return (error);
 	}
 	if (0 != setgroups(1, &pwd->pw_gid)) {
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: setgroups() error %i: %s\n",
 		    error, err_descr);
+		return (error);
 	}
 	if (0 != setuid(pw_uid)) {
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
 		fprintf(stderr, "set_user_and_group: setuid() error %i: %s\n",
 		    error, err_descr);
+		return (error);
 	}
 
-	return (error);
+	return (0);
 }
 
 int
