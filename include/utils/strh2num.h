@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2005 - 2022 Rozhuk Ivan <rozhuk.im@gmail.com>
+/*-
+ * Copyright (c) 2005-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,61 +82,61 @@
 
 
 static inline size_t
-strh2usize(const char *str, size_t str_len) {
+strh2usize(const char *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, size_t);
 }
 
 static inline size_t
-ustrh2usize(const uint8_t *str, size_t str_len) {
+ustrh2usize(const uint8_t *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, size_t);
 }
 
 static inline uint8_t
-strh2u8(const char *str, size_t str_len) {
+strh2u8(const char *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint8_t);
 }
 
 static inline uint8_t
-ustrh2u8(const uint8_t *str, size_t str_len) {
+ustrh2u8(const uint8_t *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint8_t);
 }
 
 static inline uint16_t
-strh2u16(const char *str, size_t str_len) {
+strh2u16(const char *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint16_t);
 }
 
 static inline uint16_t
-ustrh2u16(const uint8_t *str, size_t str_len) {
+ustrh2u16(const uint8_t *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint16_t);
 }
 
 static inline uint32_t
-strh2u32(const char *str, size_t str_len) {
+strh2u32(const char *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint32_t);
 }
 
 static inline uint32_t
-ustrh2u32(const uint8_t *str, size_t str_len) {
+ustrh2u32(const uint8_t *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint32_t);
 }
 
 static inline uint64_t
-strh2u64(const char *str, size_t str_len) {
+strh2u64(const char *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint64_t);
 }
 
 static inline uint64_t
-ustrh2u64(const uint8_t *str, size_t str_len) {
+ustrh2u64(const uint8_t *str, const size_t str_len) {
 
 	STRH2UNUM(str, str_len, uint64_t);
 }
@@ -145,61 +145,61 @@ ustrh2u64(const uint8_t *str, size_t str_len) {
 /* Signed. */
 
 static inline ssize_t
-strh2ssize(const char *str, size_t str_len) {
+strh2ssize(const char *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, ssize_t);
 }
 
 static inline ssize_t
-ustrh2ssize(const uint8_t *str, size_t str_len) {
+ustrh2ssize(const uint8_t *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, ssize_t);
 }
 
 static inline int8_t
-strh2s8(const char *str, size_t str_len) {
+strh2s8(const char *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int8_t);
 }
 
 static inline int8_t
-ustrh2s8(const uint8_t *str, size_t str_len) {
+ustrh2s8(const uint8_t *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int8_t);
 }
 
 static inline int16_t
-strh2s16(const char *str, size_t str_len) {
+strh2s16(const char *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int16_t);
 }
 
 static inline int16_t
-ustrh2s16(const uint8_t *str, size_t str_len) {
+ustrh2s16(const uint8_t *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int16_t);
 }
 
 static inline int32_t
-strh2s32(const char *str, size_t str_len) {
+strh2s32(const char *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int32_t);
 }
 
 static inline int32_t
-ustrh2s32(const uint8_t *str, size_t str_len) {
+ustrh2s32(const uint8_t *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int32_t);
 }
 
 static inline int64_t
-strh2s64(const char *str, size_t str_len) {
+strh2s64(const char *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int64_t);
 }
 
 static inline int64_t
-ustrh2s64(const uint8_t *str, size_t str_len) {
+ustrh2s64(const uint8_t *str, const size_t str_len) {
 
 	STRH2SNUM(str, str_len, int64_t);
 }
