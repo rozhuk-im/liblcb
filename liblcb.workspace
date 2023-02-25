@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Workspace Name="liblcb" Database="" Version="10.0.0">
   <Project Name="lib" Path="lib.project" Active="No"/>
-  <Project Name="test-threadpool" Path="tests/threadpool/test-threadpool.project" Active="Yes"/>
+  <Project Name="test-threadpool" Path="tests/threadpool/test-threadpool.project" Active="No"/>
   <Project Name="test-ecdsa" Path="tests/ecdsa/test-ecdsa.project" Active="No"/>
+  <Project Name="test-ecdsa" Path="tests/base64/test-ecdsa.project" Active="No"/>
+  <Project Name="test-ecdsa" Path="tests/base64/test-ecdsa.project" Active="No"/>
+  <Project Name="test-base64" Path="tests/base64/test-base64.project" Active="Yes"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug">
       <Environment/>
       <Project Name="lib" ConfigName="Debug"/>
       <Project Name="test-threadpool" ConfigName="Debug"/>
       <Project Name="test-ecdsa" ConfigName="Debug"/>
+      <Project Name="test-base64" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release">
       <Environment/>
       <Project Name="lib" ConfigName="Debug"/>
       <Project Name="test-threadpool" ConfigName="Debug"/>
       <Project Name="test-ecdsa" ConfigName="Release"/>
+      <Project Name="test-base64" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

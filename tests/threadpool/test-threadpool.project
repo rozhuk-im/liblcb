@@ -8,7 +8,6 @@
     <File Name="../../src/threadpool/threadpool_msg_sys.c"/>
     <File Name="../../src/utils/log.c"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug"/>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_EXPLICIT_BZERO;-DHAVE_MEMSET_S;-Wimplicit-fallthrough" Assembler="">
@@ -58,4 +57,5 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug"/>
 </CodeLite_Project>

@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="test-ecdsa" Version="11000" InternalType="Console">
+<CodeLite_Project Name="test-base64" Version="11000" InternalType="Console">
+  <Reconciliation>
+    <Regexes/>
+    <Excludepaths/>
+    <Ignorefiles/>
+    <Extensions>
+      <![CDATA[*.cpp;*.c;*.h;*.hpp;*.xrc;*.wxcp;*.fbp]]>
+    </Extensions>
+    <Topleveldir>/home/rim/docs/Progs/liblcb/tests/base64</Topleveldir>
+  </Reconciliation>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
+    <File Name="../../include/utils/base64.h"/>
     <File Name="main.c"/>
   </VirtualDirectory>
   <Settings Type="Executable">
@@ -90,6 +100,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>
