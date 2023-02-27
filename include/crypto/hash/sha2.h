@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+/*-
+ * Copyright (c) 2013-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,11 +43,6 @@
 #include <sys/types.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
-
-static void *(*volatile sha2_memset_volatile)(void*, int, size_t) = memset;
-#define sha2_bzero(__mem, __size)	sha2_memset_volatile((__mem), 0x00, (__size))
-
-
 #if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
 #	include <cpuid.h>
 #	include <xmmintrin.h> /* SSE */
@@ -56,7 +51,7 @@ static void *(*volatile sha2_memset_volatile)(void*, int, size_t) = memset;
 #	include <tmmintrin.h> /* SSSE3 */
 #	include <smmintrin.h> /* SSE4.1 */
 #	include <nmmintrin.h> /* SSE4.2 */
-#	include <immintrin.h>
+#	include <immintrin.h> /* AVX */
 #	include <shaintrin.h>
 #	define SHA2_ENABLE_SIMD	1
 #endif
@@ -66,6 +61,9 @@ static void *(*volatile sha2_memset_volatile)(void*, int, size_t) = memset;
 #else /* GCC/clang */
 #	define SHA2_ALIGN(__n)	__attribute__ ((aligned(__n)))
 #endif
+
+static void *(*volatile sha2_memset_volatile)(void*, int, size_t) = memset;
+#define sha2_bzero(__mem, __size)	sha2_memset_volatile((__mem), 0x00, (__size))
 
 
 /* HASH constants. */
@@ -934,11 +932,10 @@ sha2_self_test(void) {
 	    "01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345678",
 	    "0123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456",
 	    "01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
-	    "012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345678",
-	    NULL
+	    "012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345678"
 	};
-	size_t data_size[] = {
-	    0, 1, 3, 14, 54, 55, 56, 57, 62, 63, 64, 65, 80, 111, 112, 113, 127, 128, 129, 0
+	const size_t data_size[] = {
+	    0, 1, 3, 14, 54, 55, 56, 57, 62, 63, 64, 65, 80, 111, 112, 113, 127, 128, 129
 	};
 	const char *result_digest224[] = {
 	    "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
@@ -959,8 +956,7 @@ sha2_self_test(void) {
 	    "bc73c6b436e03d7e62803275ef475864ede3ab55eb18e63293c1a42b",
 	    "04ad4c32acc05bd4bd0b73f681e36d55c0f958335d149f49f2a316a4",
 	    "28fd2cc5f136e9a1077e596e68769fd11b0954d0bb3ef7f7074ad5b4",
-	    "db738d64d4f973f35e0c24408d795a21dd65e3880689be18492f2f95",
-	    NULL
+	    "db738d64d4f973f35e0c24408d795a21dd65e3880689be18492f2f95"
 	};
 	const char *result_digest256[] = {
 	    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -981,8 +977,7 @@ sha2_self_test(void) {
 	    "848efe0b37e4bd5e7e0b50fc38263255ad614e560a6b3cd6eedf9a0a0ff565d3",
 	    "e469b91793c029ee897ad1b1e6f047f55a60ebbe59d62262cdb31fcf973d860c",
 	    "8c47d8dbc626b56a6c2aa57818843ee0f78b35e06055972f226ab1a2d92272a8",
-	    "6d5013a9b331929c8c8d81bb4257bcf281a2949b653437a354eacc1a5e98461e",
-	    NULL
+	    "6d5013a9b331929c8c8d81bb4257bcf281a2949b653437a354eacc1a5e98461e"
 	};
 	const char *result_digest384[] = {
 	    "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b",
@@ -1003,8 +998,7 @@ sha2_self_test(void) {
 	    "3f294290ed8cf396a68e32da348458f82e112a871626263187e9ba4dd66d23b38ab9212f5cf82e8a6b2c79333b59304c",
 	    "6bf75d6d0a72e7b7cf02e41ba4491c005b0fa22616e455b87789f72197942bf3cf303b1edd415596c1a3a776d58a1bf2",
 	    "7f58ec41bf728283cc2bf76e075638693c14188d46e07520f600ce5b6a31ace48f581a2acc62a33abfc6250de088158c",
-	    "d4fc001ad316f8aec7ebedff72c0650bc843c1c1d6a33c4ba6f81b33579196815ff0d4d190df6f9e1f6b027ddde5299d",
-	    NULL
+	    "d4fc001ad316f8aec7ebedff72c0650bc843c1c1d6a33c4ba6f81b33579196815ff0d4d190df6f9e1f6b027ddde5299d"
 	};
 	const char *result_digest512[] = {
 	    "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
@@ -1025,8 +1019,7 @@ sha2_self_test(void) {
 	    "09fc36891cb83e78f840a55a737bccb7b3c5fa52db4259de054287ba866f2ca50a695a26c492230093d5d4dbe68931e708f088ae9a9a3920188583fa61211fa8",
 	    "f18338812dccb36217675bb27f255d078765749c8df41609d4f5ef355e24dcebfc302c574b29732d52446da53706962551e8f6b81d43358944d6686e378c2d87",
 	    "0bd3b2de6fabc60af35a8a29b926f40d963264d800be148e64a23efee737849ad6acec96140a2b1c5f11d2d49f1fc3fb2a2c885e4a850729272884ade9e0fe21",
-	    "74b6814a0a5bc234c7f25507e18c23892f767feda954e12164dc62184eefbdbc281f2ae34b31fb0dad116bd56c113b7bfc4ad88b7bfafcead05e7deac3f3c446",
-	    NULL
+	    "74b6814a0a5bc234c7f25507e18c23892f767feda954e12164dc62184eefbdbc281f2ae34b31fb0dad116bd56c113b7bfc4ad88b7bfafcead05e7deac3f3c446"
 	};
 
 	const char *result_hdigest256[] = {
@@ -1048,8 +1041,7 @@ sha2_self_test(void) {
 	    "a796d1087eaaeb1973a0f67029aca75ea7a85612d21e51ef5547358d53166189",
 	    "ee6f61d125624eb98e6aa60b8b20f302541d85c88e880d345e558b78b20e7424",
 	    "5976ba6aacf49a9961f4d550da64132881123c087aaf32444700d7cc86fe5e74",
-	    "bd40323e6e8eab69350cd1d6b45d95d14a2dd120e9245a9231daa54589b12f57",
-	    NULL
+	    "bd40323e6e8eab69350cd1d6b45d95d14a2dd120e9245a9231daa54589b12f57"
 	};
 	const char *result_hdigest384[] = {
 	    "6c1f2ee938fad2e24bd91298474382ca218c75db3d83e114b3d4367776d14d3551289e75e8209cd4b792302840234adc",
@@ -1070,8 +1062,7 @@ sha2_self_test(void) {
 	    "84178a39de10fa688c8c8206dee749c9d77654931996341c9a0d9c8f40d3356e9b89d06636f7675ae9f5aa5a36d664fc",
 	    "c691f50ecdb9cd3fb39b41eb56b0617c0cd5c8675581afbc5c964c59656c990d99bad1cc341096b8281d2568a7d36d7c",
 	    "fd6425ed1c1022de6d868794e4e0b00e2e984279c9776d3d0916eee000d84977ca218e4c44eb698c8594b00c0686422a",
-	    "4caa70e6e2c77af98378dc038e8e8af63bc5213d489b148960b372450cca820684811e1319f17e6b40088661ffc4686e",
-	    NULL
+	    "4caa70e6e2c77af98378dc038e8e8af63bc5213d489b148960b372450cca820684811e1319f17e6b40088661ffc4686e"
 	};
 	const char *result_hdigest512[] = {
 	    "b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47",
@@ -1092,60 +1083,48 @@ sha2_self_test(void) {
 	    "23668222460425cdf11484c2730683518565f525ff984ab1e184578a19f1bee8af0b491fadaff69edfcf25b90d477272616b551868c7895bf8c289addc7cd905",
 	    "cb432c15fd4bbc23444b9ba83ce9023fa03de00b539d9e9ae10bbfcedbeae1354cd30dd53f412c1a5874633a6ca573b39f5f800bc5a9599d0b2ed85c3548cee0",
 	    "38f1c9eab3731f967a4511b166d859dd11a94ad00b0407888ce8a13a617f36b7d75563ac6d25826af184b7f1699efbabfe5525dde4b4effe1fc60e4b05a7da4e",
-	    "85f64cae9f9c457aa2d921c8d0ebd25f07514d034084ee0c5e937097ef98e697f87083231aa738f378e330ce2d4ff533d31e4ca399f99051acff18b3e2451458",
-	    NULL
+	    "85f64cae9f9c457aa2d921c8d0ebd25f07514d034084ee0c5e937097ef98e697f87083231aa738f378e330ce2d4ff533d31e4ca399f99051acff18b3e2451458"
 	};
 
-	
-	
-	/* 224 */
-	for (i = 0; NULL != data[i]; i ++) {
+	/* Hash test. */
+	for (i = 0; i < nitems(data); i ++) {
+		/* 224 */
 		sha2_get_digest_str(224, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest224[i], SHA2_224_HASH_STR_SIZE))
 			return (1);
-	}
-	/* 256 */
-	for (i = 0; NULL != data[i]; i ++) {
+		/* 256 */
 		sha2_get_digest_str(256, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest256[i], SHA2_256_HASH_STR_SIZE))
 			return (2);
-	}
-	/* 384 */
-	for (i = 0; NULL != data[i]; i ++) {
+		/* 384 */
 		sha2_get_digest_str(384, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest384[i], SHA2_384_HASH_STR_SIZE))
 			return (3);
-	}
-	/* 512 */
-	for (i = 0; NULL != data[i]; i ++) {
+		/* 512 */
 		sha2_get_digest_str(512, data[i], data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_digest512[i], SHA2_512_HASH_STR_SIZE))
 			return (4);
 	}
-	
-	/* HMAC test */
-	/* 256 */
-	for (i = 0; NULL != data[i]; i ++) {
+
+	/* HMAC test. */
+	for (i = 0; i < nitems(data); i ++) {
+		/* 256 */
 		sha2_hmac_get_digest_str(256, data[i], data_size[i], data[i],
 		    data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_hdigest256[i], SHA2_256_HASH_STR_SIZE))
 			return (5);
-	}
-	/* 384 */
-	for (i = 0; NULL != data[i]; i ++) {
+		/* 384 */
 		sha2_hmac_get_digest_str(384, data[i], data_size[i], data[i],
 		    data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_hdigest384[i], SHA2_384_HASH_STR_SIZE))
 			return (6);
-	}
-	/* 512 */
-	for (i = 0; NULL != data[i]; i ++) {
+		/* 512 */
 		sha2_hmac_get_digest_str(512, data[i], data_size[i], data[i],
 		    data_size[i], digest_str, NULL);
 		if (0 != memcmp(digest_str, result_hdigest512[i], SHA2_512_HASH_STR_SIZE))
 			return (7);
 	}
-	
+
 	return (0);
 }
 #endif
