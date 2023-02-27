@@ -1147,134 +1147,28 @@ gost3411_2012_transform_1_generic(gost3411_2012_ctx_p ctx,
 #ifdef __SSE2__
 
 /* Staff for old SSE. */
-#ifdef __SSE4_1__ /* SSE4.1 required. */
-#define _mm_is_zero(__axmm)		_mm_testz_si128((__axmm), (__axmm))
-#else
-#define _mm_is_zero(__axmm)						\
-	(0xffff == _mm_movemask_epi8(					\
-	    _mm_cmpeq_epi32((__axmm), _mm_setzero_si128())))
-#define _mm_testz_si128(__axmm, __bxmm)					\
-	_mm_is_zero(_mm_and_si128((__axmm), (__bxmm)))
+#ifndef __SSE4_1__ /* SSE4.1 required. */
+#define _mm_stream_load_si128		_mm_load_si128
 #endif
 
-#ifdef __SSE4_2__
-#define _mm_cmpgt_epi64u(__axmm, __bxmm)				\
-	_mm_cmpgt_epi64(						\
-	    _mm_xor_si128((__axmm),					\
-	        _mm_set1_epi64x((int64_t)0x8000000000000000ull)),	\
-	    _mm_xor_si128((__bxmm),					\
-	        _mm_set1_epi64x((int64_t)0x8000000000000000ull)))
+#define GOST3411_2012_SSE_ADDMOD512_MEM(__dmem, __xmm0, __xmm1, __xmm2, __xmm3) do {	\
+	GOST3411_2012_ALIGN(32) uint64_t tmp[GOST3411_2012_MSG_BLK_64CNT]; \
+									\
+	_mm_prefetch((const char*)(__dmem), _MM_HINT_T0);		\
+	GOST3411_2012_SSE_STORE(tmp, (__xmm0), (__xmm1),		\
+	    (__xmm2), (__xmm3));					\
+	gost3411_2012_addmod512((__dmem), tmp);				\
+} while (0)
 
-#define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) do {		\
-	__m128i carry_ret = _mm_setzero_si128();			\
-									\
-	for (;;) {							\
-		(__dxmm) = _mm_add_epi64((__dxmm), (__crrxmm));		\
-		(__crrxmm) = _mm_cmpgt_epi64u((__crrxmm), (__dxmm));	\
-		if (_mm_testz_si128((__crrxmm), (__crrxmm)))		\
-			break;						\
-		(__crrxmm) = _mm_shuffle_epi32((__crrxmm),		\
-		    _MM_SHUFFLE(1, 0, 3, 2)); /* Hi64<->Lo64 swap. */	\
-		carry_ret = _mm_or_si128(carry_ret, (__crrxmm));	\
-		(__crrxmm) = _mm_and_si128(_mm_set_epi64x(1, 0), (__crrxmm)); \
-		if (_mm_testz_si128((__crrxmm), (__crrxmm)))		\
-			break;						\
-	}								\
-	(__crrxmm) = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
-} while (0)
-/* SSE 4.2 allow us operate by u64x2 so we no need to loop here to
-* handle carry. */
-#define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) do {		\
-	(__dxmm) = _mm_add_epi64((__dxmm), (__crrxmm));			\
-	(__dxmm) = _mm_add_epi64((__dxmm),				\
-	    _mm_and_si128(						\
-		_mm_set_epi64x(1, 0), /* Allow only Hi64 be 1. */	\
-		_mm_shuffle_epi32(					\
-		    _mm_cmpgt_epi64u((__crrxmm), (__dxmm)),		\
-		    _MM_SHUFFLE(1, 0, 3, 2)))); /* Hi64<->Lo64 swap. */	\
-} while (0)
-#else /* __SSE4_2__ */
-#define _mm_cmpgt_epi32u(__axmm, __bxmm)				\
-	_mm_cmpgt_epi32(						\
-	    _mm_xor_si128((__axmm), _mm_set1_epi32((int32_t)0x80000000)), \
-	    _mm_xor_si128((__bxmm), _mm_set1_epi32((int32_t)0x80000000)))
-
-#define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) do {		\
-	__m128i carry_ret = _mm_setzero_si128();			\
-									\
-	for (;;) {							\
-		(__dxmm) = _mm_add_epi32((__dxmm), (__crrxmm));		\
-		(__crrxmm) = _mm_cmpgt_epi32u((__crrxmm), (__dxmm));	\
-		if (_mm_is_zero((__crrxmm)))				\
-			break;						\
-		(__crrxmm) = _mm_shuffle_epi32((__crrxmm),		\
-		    _MM_SHUFFLE(2, 1, 0, 3)); /* Cycle shift. */	\
-		carry_ret = _mm_or_si128(carry_ret, (__crrxmm));	\
-		__crrxmm = _mm_and_si128((__crrxmm),			\
-		    _mm_set_epi32(1, 1, 1, 0));				\
-	}								\
-	(__crrxmm) = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
-} while (0)
-#define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) do {		\
-	for (;;) {							\
-		(__dxmm) = _mm_add_epi32((__dxmm), (__crrxmm));		\
-		(__crrxmm) = _mm_cmpgt_epi32u((__crrxmm), (__dxmm));	\
-		if (_mm_testz_si128((__crrxmm), _mm_set_epi32(0, 1, 1, 1))) \
-			break;						\
-		(__crrxmm) = _mm_and_si128(				\
-		    _mm_set_epi32(1, 1, 1, 0),				\
-		    _mm_shuffle_epi32((__crrxmm),			\
-			_MM_SHUFFLE(2, 1, 0, 3)));			\
-	}								\
-} while (0)
-#endif /* __SSE4_2__ */
-
-
-#define GOST3411_2012_SSE_ADDMOD512(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
-	__m128i carry;							\
-									\
-	carry = (__xmm0);						\
-	do {								\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm0), carry);		\
-		if (_mm_is_zero(carry))					\
-			break;						\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm1), carry);		\
-		if (_mm_is_zero(carry))					\
-			break;						\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);		\
-		GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);	\
-	} while (0);							\
-									\
-	carry = (__xmm1);						\
-	do {								\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm1), carry);		\
-		if (_mm_is_zero(carry))					\
-			break;						\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);		\
-		GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);	\
-	} while (0);							\
-									\
-	carry = (__xmm2);						\
-	GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);			\
-	GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);		\
-									\
-	carry = (__xmm3);						\
-	GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);		\
-} while (0)
 #define GOST3411_2012_SSE_ADDMOD512_DIGIT(__dxmm0, __dxmm1,		\
     __dxmm2, __dxmm3, __digit) do {					\
-	__m128i carry;							\
+	GOST3411_2012_ALIGN(32) uint64_t dtmp[GOST3411_2012_MSG_BLK_64CNT]; \
 									\
-	carry = _mm_set_epi64x(0, (int64_t)(__digit));			\
-	do {								\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm0), carry);		\
-		if (_mm_is_zero(carry))					\
-			break;						\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm1), carry);		\
-		GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);		\
-		GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);	\
-	} while (0);							\
+	GOST3411_2012_SSE_STORE(dtmp, (__dxmm0), (__dxmm1),		\
+	    (__dxmm2), (__dxmm3));					\
+	gost3411_2012_addmod512_digit(dtmp, (__digit));			\
+	GOST3411_2012_SSE_LOAD(dtmp, (__dxmm0), (__dxmm1),		\
+	    (__dxmm2), (__dxmm3));					\
 } while (0)
 
 
@@ -1292,16 +1186,12 @@ gost3411_2012_transform_1_generic(gost3411_2012_ctx_p ctx,
 	(__xmm3) = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
 } while (0)
 
-#ifdef __SSE4_1__ /* SSE4.1 required. */
 #define GOST3411_2012_SSE_STREAM_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
 	(__xmm0) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
 	(__xmm1) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
 	(__xmm2) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
 	(__xmm3) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
 } while (0)
-#else
-#define GOST3411_2012_SSE_STREAM_LOAD	GOST3411_2012_SSE_LOAD
-#endif
 
 #define GOST3411_2012_SSE_STORE(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
 	_mm_store_si128(&((__m128i*)(void*)(__ptr))[0], (__xmm0));	\
@@ -1404,11 +1294,13 @@ gost3411_2012_transform_n_sse(gost3411_2012_ctx_p ctx,
 	__m128i kxmm0, kxmm1, kxmm2, kxmm3; /* Key. */
 	__m128i txmm0, txmm1, txmm2, txmm3; /* Temp. */
 	__m128i cntxmm0, cntxmm1, cntxmm2, cntxmm3; /* Counter. */
-	__m128i sigxmm0, sigxmm1, sigxmm2, sigxmm3; /* Sigma. */
 
-	GOST3411_2012_SSE_LOAD(ctx->sigma, sigxmm0, sigxmm1, sigxmm2, sigxmm3);
 	GOST3411_2012_SSE_LOAD(ctx->counter, cntxmm0, cntxmm1, cntxmm2, cntxmm3);
 	GOST3411_2012_SSE_LOAD(ctx->hash, hxmm0, hxmm1, hxmm2, hxmm3);
+#pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
+	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
+		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
+	}
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
 		if (0 == (((size_t)blocks) & 31)) { /* 32 byte alligned. */
 			GOST3411_2012_SSE_STREAM_LOAD(blocks,
@@ -1421,13 +1313,13 @@ gost3411_2012_transform_n_sse(gost3411_2012_ctx_p ctx,
 		if ((blocks + GOST3411_2012_MSG_BLK_SIZE) < blocks_max) {
 			_mm_prefetch((const char*)(blocks + GOST3411_2012_MSG_BLK_SIZE), _MM_HINT_T0);
 		}
+		GOST3411_2012_SSE_ADDMOD512_MEM(ctx->sigma,
+		    txmm0, txmm1, txmm2, txmm3);
 		GOST3411_2012_SSE_XSLP(kxmm0, kxmm1, kxmm2, kxmm3,
 		    hxmm0, hxmm1, hxmm2, hxmm3,
 		    cntxmm0, cntxmm1, cntxmm2, cntxmm3); /* !!! HASH design deffect here !!! */
 		GOST3411_2012_SSE_ADDMOD512_DIGIT(cntxmm0, cntxmm1, cntxmm2, cntxmm3,
 		    block_size_bits);
-		GOST3411_2012_SSE_ADDMOD512(sigxmm0, sigxmm1, sigxmm2, sigxmm3,
-		    txmm0, txmm1, txmm2, txmm3);
 		GOST3411_2012_SSE_XOR2_512(hxmm0, hxmm1, hxmm2, hxmm3,
 		    hxmm0, hxmm1, hxmm2, hxmm3,
 		    txmm0, txmm1, txmm2, txmm3); /* Pre Final XOR: hash ^= block. */
@@ -1452,7 +1344,6 @@ gost3411_2012_transform_n_sse(gost3411_2012_ctx_p ctx,
 	}
 	GOST3411_2012_SSE_STORE(ctx->hash, hxmm0, hxmm1, hxmm2, hxmm3);
 	GOST3411_2012_SSE_STORE(ctx->counter, cntxmm0, cntxmm1, cntxmm2, cntxmm3);
-	GOST3411_2012_SSE_STORE(ctx->sigma, sigxmm0, sigxmm1, sigxmm2, sigxmm3);
 	/* Restore the Floating-point status on the CPU. */
 	_mm_empty();
 }
@@ -1464,6 +1355,10 @@ gost3411_2012_transform_1_sse(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	__m128i kxmm0, kxmm1, kxmm2, kxmm3; /* Key. */
 	__m128i txmm0, txmm1, txmm2, txmm3; /* Temp. */
 
+#pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
+	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
+		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
+	}
 	GOST3411_2012_SSE_LOAD(ctx->hash, hxmm0, hxmm1, hxmm2, hxmm3);
 	/* 16 byte alligned. */
 	GOST3411_2012_SSE_LOAD(block, txmm0, txmm1, txmm2, txmm3);
@@ -1798,9 +1693,7 @@ gost3411_2012_init(const size_t bits, gost3411_2012_ctx_p ctx) {
 	}
 #ifdef __SSE2__
 	__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx);
-#	ifdef __SSE4_2__
-		ctx->use_sse |= (ecx & (((uint32_t)1) << 20));
-#	elifdef __SSE4_1__
+#	ifdef __SSE4_1__
 		ctx->use_sse |= (ecx & (((uint32_t)1) << 19));
 #	elifdef __SSSE3__
 		ctx->use_sse |= (ecx & (((uint32_t)1) <<  9));
