@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2003 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+/*-
+ * Copyright (c) 2003-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,9 @@
 // see
 // RFC 1321 - MD5 (code base!)
 // RFC 3174 - SHA1
-// RFC 4634, RFC6234 - SHA1, SHA2
+// RFC 4634, RFC 6234 - SHA1, SHA2
 // RFC 2104 - HMAC
+// https://github.com/randombit/botan
 
 /*
  *  Description:
@@ -72,11 +73,6 @@
 #include <sys/types.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
-
-static void *(*volatile sha1_memset_volatile)(void*, int, size_t) = memset;
-#define sha1_bzero(__mem, __size)	sha1_memset_volatile((__mem), 0x00, (__size))
-
-
 #ifdef __SSE2__
 #	include <cpuid.h>
 #	include <xmmintrin.h> /* SSE */
@@ -85,7 +81,7 @@ static void *(*volatile sha1_memset_volatile)(void*, int, size_t) = memset;
 #	include <tmmintrin.h> /* SSSE3 */
 #	include <smmintrin.h> /* SSE4.1 */
 #	include <nmmintrin.h> /* SSE4.2 */
-#	include <immintrin.h>
+#	include <immintrin.h> /* AVX */
 #endif
 
 #if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
@@ -98,6 +94,9 @@ static void *(*volatile sha1_memset_volatile)(void*, int, size_t) = memset;
 #else /* GCC/clang */
 #	define SHA1_ALIGN(__n)	__attribute__ ((aligned(__n)))
 #endif
+
+static void *(*volatile sha1_memset_volatile)(void*, int, size_t) = memset;
+#define sha1_bzero(__mem, __size)	sha1_memset_volatile((__mem), 0x00, (__size))
 
 
 /* HASH constants. */
@@ -129,7 +128,7 @@ typedef struct sha1_ctx_s {
 	SHA1_ALIGN(32) uint64_t buffer[SHA1_MSG_BLK_64CNT]; /* Input buffer: 512-bit message blocks. */
 	SHA1_ALIGN(32) uint32_t W[80]; /* Temp buf for sha1_transform(). */
 #ifdef __SSE2__
-	int use_sse; /* SSE2 transform. */
+	int use_sse; /* SSE2+ transform. */
 #endif
 #ifdef SHA1_ENABLE_SIMD
 	int use_simd; /* SHA SIMD tansform. */
@@ -183,12 +182,15 @@ sha1_init(sha1_ctx_p ctx) {
 
 #ifdef __SSE2__
 	__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx);
+	ctx->use_sse = 0;
 #	ifdef __SSE4_1__
-		ctx->use_sse = (ecx & (((uint32_t)1) << 19));
-#	elif __SSSE3__
-		ctx->use_sse = (ecx & (((uint32_t)1) << 9));
-#	elif __SSE2__
-		ctx->use_sse = (edx & (((uint32_t)1) << 26));
+		ctx->use_sse |= (ecx & (((uint32_t)1) << 19));
+#	elifdef __SSSE3__
+		ctx->use_sse |= (ecx & (((uint32_t)1) <<  9));
+#	elifdef __SSE3__
+		ctx->use_sse |= (ecx & (((uint32_t)1) <<  0));
+#	elifdef __SSE2__
+		ctx->use_sse |= (edx & (((uint32_t)1) << 26));
 #	endif
 #endif
 #ifdef SHA1_ENABLE_SIMD
@@ -1004,14 +1006,13 @@ sha1_self_test(void) {
 	    "0123456701234567012345670123456701234567012345670123456",
 	    "01234567012345670123456701234567012345670123456701234567",
 	    "012345670123456701234567012345670123456701234567012345678",
-	    "012345670123456701234567012345670123456701234567012345670123456",
-	    NULL
+	    "012345670123456701234567012345670123456701234567012345670123456"
 	};
-	size_t data_size[] = {
-	    0, 1, 3, 14, 26, 56, 62, 80, 128, 1, 64, 54, 55, 56, 57, 63, 0
+	const size_t data_size[] = {
+	    0, 1, 3, 14, 26, 56, 62, 80, 128, 1, 64, 54, 55, 56, 57, 63
 	};
-	size_t repeat_count[] = {
-	    1, 1, 1, 1, 1, 1, 1, 1, 1, 1000000, 10, 1, 1, 1, 1, 1, 0
+	const size_t repeat_count[] = {
+	    1, 1, 1, 1, 1, 1, 1, 1, 1, 1000000, 10, 1, 1, 1, 1, 1
 	};
 	const char *result_digest[] = {
 	    "da39a3ee5e6b4b0d3255bfef95601890afd80709",
@@ -1029,8 +1030,7 @@ sha1_self_test(void) {
 	    "adfc128b4a89c560e754c1659a6a90968b55490e",
 	    "e8db7ebaebb692565d590a48b1dc506b6f130950",
 	    "f8331b7f064d5886f371c47d8912c04439f4290a",
-	    "f50965cd66d5793b37291ec7afe090406f2b6115",
-	    NULL
+	    "f50965cd66d5793b37291ec7afe090406f2b6115"
 	};
 	const char *result_hdigest[] = {
 	    "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d",
@@ -1048,11 +1048,11 @@ sha1_self_test(void) {
 	    "84dccb278a7be4e7c4318849bf22fa42f44baccd",
 	    "9698a0a5cda19c5f4266cd851f5a606dc7b85e91",
 	    "bbf00e8e0ff7a4dcd1cff54080c516fab3692d6b",
-	    "d5d9e4085429568f05a4ef8233f42722c4462d6c",
-	    NULL
+	    "d5d9e4085429568f05a4ef8233f42722c4462d6c"
 	};
 
-	for (i = 0; NULL != data[i]; i ++) {
+	/* Hash test. */
+	for (i = 0; i < nitems(data); i ++) {
 		sha1_init(&ctx);
 		for (j = 0; j < repeat_count[i]; j ++) {
 			sha1_update(&ctx, (const uint8_t*)data[i], data_size[i]);
@@ -1062,13 +1062,14 @@ sha1_self_test(void) {
 		if (0 != memcmp(digest_str, result_digest[i], SHA1_HASH_STR_SIZE))
 			return (1);
 	}
-	/* HMAC test */
-	for (i = 0; NULL != data[i]; i ++) {
+	/* HMAC test. */
+	for (i = 0; i < nitems(data); i ++) {
 		sha1_hmac_get_digest_str(data[i], data_size[i], data[i], data_size[i],
 		    (char*)digest_str);
 		if (0 != memcmp(digest_str, result_hdigest[i], SHA1_HASH_STR_SIZE))
 			return (2);
 	}
+
 	return (0);
 }
 #endif
