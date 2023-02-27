@@ -52,7 +52,6 @@
       </VirtualDirectory>
       <VirtualDirectory Name="hash">
         <File Name="include/crypto/hash/gost3411-2012.h"/>
-        <File Name="include/crypto/hash/gost3411-2012_sse.h"/>
         <File Name="include/crypto/hash/md5.h"/>
         <File Name="include/crypto/hash/sha1.h"/>
         <File Name="include/crypto/hash/sha2.h"/>
