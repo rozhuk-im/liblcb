@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2016 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+/*-
+ * Copyright (c) 2016-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,19 @@
 #include <sys/types.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
+#ifdef __SSE2__
+#	include <cpuid.h>
+#	include <xmmintrin.h> /* SSE */
+#	include <emmintrin.h> /* SSE2 */
+#	include <pmmintrin.h> /* SSE3 */
+#	include <tmmintrin.h> /* SSSE3 */
+#	include <smmintrin.h> /* SSE4.1 */
+#	include <nmmintrin.h> /* SSE4.2 */
+#endif
+#ifdef __AVX__ 
+#	include <cpuid.h>
+#	include <immintrin.h> /* AVX */
+#endif
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #	define GOST3411_2012_ALIGN(__n) __declspec(align(__n)) /* DECLSPEC_ALIGN() */
@@ -55,13 +68,14 @@
 
 static void *(*volatile gost3411_2012_memset_volatile)(void *, int, size_t) = memset;
 #define gost3411_2012_bzero(__mem, __size)	gost3411_2012_memset_volatile((__mem), 0x00, (__size))
-#define gost3411_2012_print(__fmt, args...)	fprintf(stdout, (__fmt), ##args)
 
 
 
 /* Tunables. */
 /* Define to use cmall tables but do more calculations. */
+/* Generate small and slow code. Incompatible with SIMD. */
 //#define GOST3411_2012_USE_SMALL_TABLES 1
+//#define GOST3411_2012_USE_SMALL_TABLES_TABLE_TAU 1
 
 
 /* HASH constants. */
@@ -82,7 +96,82 @@ static void *(*volatile gost3411_2012_memset_volatile)(void *, int, size_t) = me
 
 
 /* Constants and tables. */
-#ifndef GOST3411_2012_USE_SMALL_TABLES
+#ifdef GOST3411_2012_USE_SMALL_TABLES
+/* Nonlinear Bijections of Binary Vector Sets - SBOX. */
+static const uint8_t gost3411_2012_sbox[256] = {
+	0xfc, 0xee, 0xdd, 0x11, 0xcf, 0x6e, 0x31, 0x16,
+	0xfb, 0xc4, 0xfa, 0xda, 0x23, 0xc5, 0x04, 0x4d,
+	0xe9, 0x77, 0xf0, 0xdb, 0x93, 0x2e, 0x99, 0xba,
+	0x17, 0x36, 0xf1, 0xbb, 0x14, 0xcd, 0x5f, 0xc1,
+	0xf9, 0x18, 0x65, 0x5a, 0xe2, 0x5c, 0xef, 0x21,
+	0x81, 0x1c, 0x3c, 0x42, 0x8b, 0x01, 0x8e, 0x4f,
+	0x05, 0x84, 0x02, 0xae, 0xe3, 0x6a, 0x8f, 0xa0,
+	0x06, 0x0b, 0xed, 0x98, 0x7f, 0xd4, 0xd3, 0x1f,
+	0xeb, 0x34, 0x2c, 0x51, 0xea, 0xc8, 0x48, 0xab,
+	0xf2, 0x2a, 0x68, 0xa2, 0xfd, 0x3a, 0xce, 0xcc,
+	0xb5, 0x70, 0x0e, 0x56, 0x08, 0x0c, 0x76, 0x12,
+	0xbf, 0x72, 0x13, 0x47, 0x9c, 0xb7, 0x5d, 0x87,
+	0x15, 0xa1, 0x96, 0x29, 0x10, 0x7b, 0x9a, 0xc7,
+	0xf3, 0x91, 0x78, 0x6f, 0x9d, 0x9e, 0xb2, 0xb1,
+	0x32, 0x75, 0x19, 0x3d, 0xff, 0x35, 0x8a, 0x7e,
+	0x6d, 0x54, 0xc6, 0x80, 0xc3, 0xbd, 0x0d, 0x57,
+	0xdf, 0xf5, 0x24, 0xa9, 0x3e, 0xa8, 0x43, 0xc9,
+	0xd7, 0x79, 0xd6, 0xf6, 0x7c, 0x22, 0xb9, 0x03,
+	0xe0, 0x0f, 0xec, 0xde, 0x7a, 0x94, 0xb0, 0xbc,
+	0xdc, 0xe8, 0x28, 0x50, 0x4e, 0x33, 0x0a, 0x4a,
+	0xa7, 0x97, 0x60, 0x73, 0x1e, 0x00, 0x62, 0x44,
+	0x1a, 0xb8, 0x38, 0x82, 0x64, 0x9f, 0x26, 0x41,
+	0xad, 0x45, 0x46, 0x92, 0x27, 0x5e, 0x55, 0x2f,
+	0x8c, 0xa3, 0xa5, 0x7d, 0x69, 0xd5, 0x95, 0x3b,
+	0x07, 0x58, 0xb3, 0x40, 0x86, 0xac, 0x1d, 0xf7,
+	0x30, 0x37, 0x6b, 0xe4, 0x88, 0xd9, 0xe7, 0x89,
+	0xe1, 0x1b, 0x83, 0x49, 0x4c, 0x3f, 0xf8, 0xfe,
+	0x8d, 0x53, 0xaa, 0x90, 0xca, 0xd8, 0x85, 0x61,
+	0x20, 0x71, 0x67, 0xa4, 0x2d, 0x2b, 0x09, 0x5b,
+	0xcb, 0x9b, 0x25, 0xd0, 0xbe, 0xe5, 0x6c, 0x52,
+	0x59, 0xa6, 0x74, 0xd2, 0xe6, 0xf4, 0xb4, 0xc0,
+	0xd1, 0x66, 0xaf, 0xc2, 0x39, 0x4b, 0x63, 0xb6
+};
+
+/* Byte Permutation. Tau table/macro. */
+#ifdef GOST3411_2012_USE_SMALL_TABLES_TABLE_TAU
+#define GOST3411_2012_TAU(__n)	(((__n) << 3 | (__n) >> 3) & 0x3f)
+#else
+#define GOST3411_2012_TAU(__n)	(gost3411_2012_tau[(__n)])
+static const uint8_t gost3411_2012_tau[64] = {
+	0,  8, 16, 24, 32, 40, 48, 56,
+	1,  9, 17, 25, 33, 41, 49, 57,
+	2, 10, 18, 26, 34, 42, 50, 58,
+	3, 11, 19, 27, 35, 43, 51, 59,
+	4, 12, 20, 28, 36, 44, 52, 60,
+	5, 13, 21, 29, 37, 45, 53, 61,
+	6, 14, 22, 30, 38, 46, 54, 62,
+	7, 15, 23, 31, 39, 47, 55, 63
+};
+#endif
+
+/* Linear Transformations of Binary Vector Sets. */
+static const GOST3411_2012_ALIGN(32) uint64_t gost3411_2012_A[64] = {
+	0x8e20faa72ba0b470ull, 0x47107ddd9b505a38ull, 0xad08b0e0c3282d1cull, 0xd8045870ef14980eull,
+	0x6c022c38f90a4c07ull, 0x3601161cf205268dull, 0x1b8e0b0e798c13c8ull, 0x83478b07b2468764ull,
+	0xa011d380818e8f40ull, 0x5086e740ce47c920ull, 0x2843fd2067adea10ull, 0x14aff010bdd87508ull,
+	0x0ad97808d06cb404ull, 0x05e23c0468365a02ull, 0x8c711e02341b2d01ull, 0x46b60f011a83988eull,
+	0x90dab52a387ae76full, 0x486dd4151c3dfdb9ull, 0x24b86a840e90f0d2ull, 0x125c354207487869ull,
+	0x092e94218d243cbaull, 0x8a174a9ec8121e5dull, 0x4585254f64090fa0ull, 0xaccc9ca9328a8950ull,
+	0x9d4df05d5f661451ull, 0xc0a878a0a1330aa6ull, 0x60543c50de970553ull, 0x302a1e286fc58ca7ull,
+	0x18150f14b9ec46ddull, 0x0c84890ad27623e0ull, 0x0642ca05693b9f70ull, 0x0321658cba93c138ull,
+	0x86275df09ce8aaa8ull, 0x439da0784e745554ull, 0xafc0503c273aa42aull, 0xd960281e9d1d5215ull,
+	0xe230140fc0802984ull, 0x71180a8960409a42ull, 0xb60c05ca30204d21ull, 0x5b068c651810a89eull,
+	0x456c34887a3805b9ull, 0xac361a443d1c8cd2ull, 0x561b0d22900e4669ull, 0x2b838811480723baull,
+	0x9bcf4486248d9f5dull, 0xc3e9224312c8c1a0ull, 0xeffa11af0964ee50ull, 0xf97d86d98a327728ull,
+	0xe4fa2054a80b329cull, 0x727d102a548b194eull, 0x39b008152acb8227ull, 0x9258048415eb419dull,
+	0x492c024284fbaec0ull, 0xaa16012142f35760ull, 0x550b8e9e21f7a530ull, 0xa48b474f9ef5dc18ull,
+	0x70a6a56e2440598eull, 0x3853dc371220a247ull, 0x1ca76e95091051adull, 0x0edd37c48a08a6d8ull,
+	0x07e095624504536cull, 0x8d70c431ac02a736ull, 0xc83862965601dd1bull, 0x641c314b2b8ee083ull
+};
+
+#else /* GOST3411_2012_USE_SMALL_TABLES */
+
 static const GOST3411_2012_ALIGN(32) uint64_t gost3411_2012_Ax[GOST3411_2012_MSG_BLK_64CNT][256] = {
 	{
 		0xd01f715b5c7ef8e6ull, 0x16fa240980778325ull, 0xa8a42e857ee049c8ull,
@@ -782,80 +871,8 @@ static const GOST3411_2012_ALIGN(32) uint64_t gost3411_2012_Ax[GOST3411_2012_MSG
 		0xd6a30f258c153427ull
 	}
 };
-#else
-/* Nonlinear Bijections of Binary Vector Sets - SBOX. */
-static const GOST3411_2012_ALIGN(32) uint8_t gost3411_2012_sbox[256] = {
-	0xfc, 0xee, 0xdd, 0x11, 0xcf, 0x6e, 0x31, 0x16,
-	0xfb, 0xc4, 0xfa, 0xda, 0x23, 0xc5, 0x04, 0x4d,
-	0xe9, 0x77, 0xf0, 0xdb, 0x93, 0x2e, 0x99, 0xba,
-	0x17, 0x36, 0xf1, 0xbb, 0x14, 0xcd, 0x5f, 0xc1,
-	0xf9, 0x18, 0x65, 0x5a, 0xe2, 0x5c, 0xef, 0x21,
-	0x81, 0x1c, 0x3c, 0x42, 0x8b, 0x01, 0x8e, 0x4f,
-	0x05, 0x84, 0x02, 0xae, 0xe3, 0x6a, 0x8f, 0xa0,
-	0x06, 0x0b, 0xed, 0x98, 0x7f, 0xd4, 0xd3, 0x1f,
-	0xeb, 0x34, 0x2c, 0x51, 0xea, 0xc8, 0x48, 0xab,
-	0xf2, 0x2a, 0x68, 0xa2, 0xfd, 0x3a, 0xce, 0xcc,
-	0xb5, 0x70, 0x0e, 0x56, 0x08, 0x0c, 0x76, 0x12,
-	0xbf, 0x72, 0x13, 0x47, 0x9c, 0xb7, 0x5d, 0x87,
-	0x15, 0xa1, 0x96, 0x29, 0x10, 0x7b, 0x9a, 0xc7,
-	0xf3, 0x91, 0x78, 0x6f, 0x9d, 0x9e, 0xb2, 0xb1,
-	0x32, 0x75, 0x19, 0x3d, 0xff, 0x35, 0x8a, 0x7e,
-	0x6d, 0x54, 0xc6, 0x80, 0xc3, 0xbd, 0x0d, 0x57,
-	0xdf, 0xf5, 0x24, 0xa9, 0x3e, 0xa8, 0x43, 0xc9,
-	0xd7, 0x79, 0xd6, 0xf6, 0x7c, 0x22, 0xb9, 0x03,
-	0xe0, 0x0f, 0xec, 0xde, 0x7a, 0x94, 0xb0, 0xbc,
-	0xdc, 0xe8, 0x28, 0x50, 0x4e, 0x33, 0x0a, 0x4a,
-	0xa7, 0x97, 0x60, 0x73, 0x1e, 0x00, 0x62, 0x44,
-	0x1a, 0xb8, 0x38, 0x82, 0x64, 0x9f, 0x26, 0x41,
-	0xad, 0x45, 0x46, 0x92, 0x27, 0x5e, 0x55, 0x2f,
-	0x8c, 0xa3, 0xa5, 0x7d, 0x69, 0xd5, 0x95, 0x3b,
-	0x07, 0x58, 0xb3, 0x40, 0x86, 0xac, 0x1d, 0xf7,
-	0x30, 0x37, 0x6b, 0xe4, 0x88, 0xd9, 0xe7, 0x89,
-	0xe1, 0x1b, 0x83, 0x49, 0x4c, 0x3f, 0xf8, 0xfe,
-	0x8d, 0x53, 0xaa, 0x90, 0xca, 0xd8, 0x85, 0x61,
-	0x20, 0x71, 0x67, 0xa4, 0x2d, 0x2b, 0x09, 0x5b,
-	0xcb, 0x9b, 0x25, 0xd0, 0xbe, 0xe5, 0x6c, 0x52,
-	0x59, 0xa6, 0x74, 0xd2, 0xe6, 0xf4, 0xb4, 0xc0,
-	0xd1, 0x66, 0xaf, 0xc2, 0x39, 0x4b, 0x63, 0xb6
-};
+#endif /* GOST3411_2012_USE_SMALL_TABLES */
 
-/* Byte Permutation. Tau table/macro. */
-#if 1
-#define GOST3411_2012_TAU(__n)	(((__n) << 3 | (__n) >> 3) & 0x3f)
-#else
-#define GOST3411_2012_TAU(__n)	(gost3411_2012_tau[(__n)])
-static const GOST3411_2012_ALIGN(32) uint8_t gost3411_2012_tau[64] = {
-	0,  8, 16, 24, 32, 40, 48, 56,
-	1,  9, 17, 25, 33, 41, 49, 57,
-	2, 10, 18, 26, 34, 42, 50, 58,
-	3, 11, 19, 27, 35, 43, 51, 59,
-	4, 12, 20, 28, 36, 44, 52, 60,
-	5, 13, 21, 29, 37, 45, 53, 61,
-	6, 14, 22, 30, 38, 46, 54, 62,
-	7, 15, 23, 31, 39, 47, 55, 63
-};
-#endif
-
-/* Linear Transformations of Binary Vector Sets. */
-static const GOST3411_2012_ALIGN(32) uint64_t gost3411_2012_A[64] = {
-	0x8e20faa72ba0b470ull, 0x47107ddd9b505a38ull, 0xad08b0e0c3282d1cull, 0xd8045870ef14980eull,
-	0x6c022c38f90a4c07ull, 0x3601161cf205268dull, 0x1b8e0b0e798c13c8ull, 0x83478b07b2468764ull,
-	0xa011d380818e8f40ull, 0x5086e740ce47c920ull, 0x2843fd2067adea10ull, 0x14aff010bdd87508ull,
-	0x0ad97808d06cb404ull, 0x05e23c0468365a02ull, 0x8c711e02341b2d01ull, 0x46b60f011a83988eull,
-	0x90dab52a387ae76full, 0x486dd4151c3dfdb9ull, 0x24b86a840e90f0d2ull, 0x125c354207487869ull,
-	0x092e94218d243cbaull, 0x8a174a9ec8121e5dull, 0x4585254f64090fa0ull, 0xaccc9ca9328a8950ull,
-	0x9d4df05d5f661451ull, 0xc0a878a0a1330aa6ull, 0x60543c50de970553ull, 0x302a1e286fc58ca7ull,
-	0x18150f14b9ec46ddull, 0x0c84890ad27623e0ull, 0x0642ca05693b9f70ull, 0x0321658cba93c138ull,
-	0x86275df09ce8aaa8ull, 0x439da0784e745554ull, 0xafc0503c273aa42aull, 0xd960281e9d1d5215ull,
-	0xe230140fc0802984ull, 0x71180a8960409a42ull, 0xb60c05ca30204d21ull, 0x5b068c651810a89eull,
-	0x456c34887a3805b9ull, 0xac361a443d1c8cd2ull, 0x561b0d22900e4669ull, 0x2b838811480723baull,
-	0x9bcf4486248d9f5dull, 0xc3e9224312c8c1a0ull, 0xeffa11af0964ee50ull, 0xf97d86d98a327728ull,
-	0xe4fa2054a80b329cull, 0x727d102a548b194eull, 0x39b008152acb8227ull, 0x9258048415eb419dull,
-	0x492c024284fbaec0ull, 0xaa16012142f35760ull, 0x550b8e9e21f7a530ull, 0xa48b474f9ef5dc18ull,
-	0x70a6a56e2440598eull, 0x3853dc371220a247ull, 0x1ca76e95091051adull, 0x0edd37c48a08a6d8ull,
-	0x07e095624504536cull, 0x8d70c431ac02a736ull, 0xc83862965601dd1bull, 0x641c314b2b8ee083ull
-};
-#endif /* GOST3411_2012_USE_TABLES */
 
 /* Iteration Constants. */
 static const GOST3411_2012_ALIGN(32) uint64_t gost3411_2012_C[GOST3411_2012_ROUNDS_COUNT][GOST3411_2012_MSG_BLK_64CNT] = {
@@ -923,22 +940,19 @@ static const GOST3411_2012_ALIGN(32) uint64_t gost3411_2012_C[GOST3411_2012_ROUN
 };
 
 
-//#define GOST3411_2012_SSE 1
-#define GOST3411_2012_AVX256 1
-
 /* This structure will hold context information for the GOST3411_2012 hashing operation. */
 typedef struct gost3411_2012_ctx_s {
 	size_t hash_size; /* hash size being used. */
 	size_t buffer_usage; /* Data size in buffer. */
+	int use_sse; /* SSE2+ transform. */
+	int use_avx; /* AVX+ transform. */
 	GOST3411_2012_ALIGN(32) uint64_t hash[GOST3411_2012_HASH_MAX_64CNT]; /* Message Digest. */
 	GOST3411_2012_ALIGN(32) uint64_t counter[GOST3411_2012_MSG_BLK_64CNT]; /* Counter: count processed data len. */
 	GOST3411_2012_ALIGN(32) uint64_t sigma[GOST3411_2012_MSG_BLK_64CNT]; /* EPSILON / Sigma / Summ: summ512 all blocks. */
 	GOST3411_2012_ALIGN(32) uint64_t buffer[GOST3411_2012_MSG_BLK_64CNT]; /* Input buffer: message blocks. */
-#if !defined(GOST3411_2012_SSE) && !defined(GOST3411_2012_AVX256)
 	GOST3411_2012_ALIGN(8) uint64_t kbuf[GOST3411_2012_MSG_BLK_64CNT]; /* Temp buf for round key. */
 	GOST3411_2012_ALIGN(8) uint64_t tbuf[GOST3411_2012_MSG_BLK_64CNT]; /* Temp buf for gost3411_2012_transform() (g_N(), g_0()). */
 	GOST3411_2012_ALIGN(8) uint64_t sbuf[GOST3411_2012_MSG_BLK_64CNT]; /* Temp buf for SLP(). */
-#endif
 } gost3411_2012_ctx_t, *gost3411_2012_ctx_p;
 
 typedef struct hmac_gost3411_2012_ctx_s {
@@ -947,8 +961,6 @@ typedef struct hmac_gost3411_2012_ctx_s {
 } hmac_gost3411_2012_ctx_t, *hmac_gost3411_2012_ctx_p;
 
 
-
-#if !defined(GOST3411_2012_SSE) && !defined(GOST3411_2012_AVX256)
 
 /* Macro. */
 #define GOST3411_2012_XOR2_512(__dst, __a, __b) do {			\
@@ -1005,31 +1017,51 @@ gost3411_2012_addmod512_digit(uint64_t *a, const uint64_t b) {
 	}
 }
 
-/* i7-4770K CPU @ 3.50GHz
- * GCC:		18165865000
- * clang 3.8:	12587445000
- * clang 3.7:	12578230000
- * clang 3.6:	12580010000
- * clang 3.4:	18437637000
- * 
- * Intel(R) Core(TM)2 Duo CPU     E8400  @ 3.00GHz (2999.72-MHz K8-class CPU)
- * GCC:		20985366000
- * clang 3.8:	20455546000
- * clang 3.7:	20429535000
- * clang 3.6:	20440563000
- * clang 3.4:	23087971000
- * 
- * AMD Athlon(tm) 5350 APU with Radeon(tm) R3      (2050.04-MHz K8-class CPU)
- * GCC:		42101289000
- * clang 3.8:	33698184000
- * clang 3.7:	33705547000
- * clang 3.6:	34427690000
- * clang 3.4:	42143289000
- */
+
+#ifdef GOST3411_2012_USE_SMALL_TABLES
+
 static inline void
 gost3411_2012_SLP(gost3411_2012_ctx_p ctx, uint64_t *dst,
     const uint64_t *src) {
-#ifndef GOST3411_2012_USE_SMALL_TABLES
+	register size_t i, j;
+	register uint64_t c, val;
+
+	/* PS(). */
+	/* Byte Permutation + SBox transformation. */
+#pragma unroll
+	for (i = 0; i < GOST3411_2012_MSG_BLK_SIZE; i ++) {
+		((uint8_t*)ctx->sbuf)[GOST3411_2012_TAU(i)] = gost3411_2012_sbox[((uint8_t*)src)[i]];
+	}
+
+	/* L(). */
+#pragma unroll
+	for (i = 0; i < GOST3411_2012_MSG_BLK_64CNT; i ++) {
+		c = 0;
+		val = ctx->sbuf[i];
+#pragma unroll
+		for (j = 0; j < 64; j ++) {
+			if (val & 0x8000000000000000ull) {
+				c ^= gost3411_2012_A[j];
+			}
+			val = (val << 1);
+		}
+		dst[i] = c;
+	}
+}
+static inline void
+gost3411_2012_XSLP(gost3411_2012_ctx_p ctx, uint64_t *dst,
+    const uint64_t *a, const uint64_t *b) {
+	/* X(). */
+	GOST3411_2012_XOR2_512(dst, a, b);
+	/* SLP(). */
+	gost3411_2012_SLP(ctx, dst, dst);
+}
+
+#else /* GOST3411_2012_USE_SMALL_TABLES */
+
+static inline void
+gost3411_2012_SLP(gost3411_2012_ctx_p ctx __unused, uint64_t *dst,
+    const uint64_t *src) {
 	register size_t i;
 
 	/* SLP(). */
@@ -1044,76 +1076,18 @@ gost3411_2012_SLP(gost3411_2012_ctx_p ctx, uint64_t *dst,
 		dst[i] ^= gost3411_2012_Ax[6][(src[6] >> (i << 3)) & 0xff];
 		dst[i] ^= gost3411_2012_Ax[7][(src[7] >> (i << 3)) & 0xff];
 	}
-#else
-	register size_t i, j;
-	register uint64_t c, val;
-
-	/* PS(). */
-	/* Byte Permutation + SBox transformation. */
-#pragma unroll
-	for (i = 0; i < GOST3411_2012_MSG_BLK_SIZE; i ++) {
-		((uint8_t*)ctx->sbuf)[GOST3411_2012_TAU(i)] = gost3411_2012_sbox[((uint8_t*)src)[i]];
-	}
-
-	/* L(). */
-#ifdef __clang__ /* Better for: clang */
-#pragma unroll
-	for (i = 0; i < GOST3411_2012_MSG_BLK_64CNT; i ++) {
-		c = 0;
-		val = ctx->sbuf[i];
-#pragma unroll
-		for (j = 0; j < 64; j ++) {
-			if (val & 0x8000000000000000ull) {
-				c ^= gost3411_2012_A[j];
-			}
-			val = (val << 1);
-		}
-		dst[i] = c;
-	}
-#else /* Better for: GCC */
-#pragma unroll
-	for (i = 0; i < GOST3411_2012_MSG_BLK_64CNT; i ++) {
-		c = 0;
-#pragma unroll
-		for (j = 0; j < 8; j ++) {
-			val = (ctx->sbuf[i] >> (8 * (7 - j)));
-			if (val & 0x80)
-				c ^= gost3411_2012_A[(j * 8) + 0];
-			if (val & 0x40)
-				c ^= gost3411_2012_A[(j * 8) + 1];
-			if (val & 0x20)
-				c ^= gost3411_2012_A[(j * 8) + 2];
-			if (val & 0x10)
-				c ^= gost3411_2012_A[(j * 8) + 3];
-			if (val & 0x08)
-				c ^= gost3411_2012_A[(j * 8) + 4];
-			if (val & 0x04)
-				c ^= gost3411_2012_A[(j * 8) + 5];
-			if (val & 0x02)
-				c ^= gost3411_2012_A[(j * 8) + 6];
-			if (val & 0x01)
-				c ^= gost3411_2012_A[(j * 8) + 7];
-		}
-		dst[i] = c;
-	}
-#endif
-#endif
 }
 static inline void
 gost3411_2012_XSLP(gost3411_2012_ctx_p ctx, uint64_t *dst,
     const uint64_t *a, const uint64_t *b) {
-#ifndef GOST3411_2012_USE_SMALL_TABLES
 	/* X(). */
 	GOST3411_2012_XOR2_512(ctx->sbuf, a, b);
 	/* SLP(). */
 	gost3411_2012_SLP(ctx, dst, ctx->sbuf);
-#else
-	/* X(). */
-	GOST3411_2012_XOR2_512(dst, a, b);
-	/* SLP(). */
-	gost3411_2012_SLP(ctx, dst, dst);
-#endif
 }
+
+#endif /* GOST3411_2012_USE_SMALL_TABLES */
+
 
 /*
  * gost3411_2012_transform
@@ -1122,19 +1096,20 @@ gost3411_2012_XSLP(gost3411_2012_ctx_p ctx, uint64_t *dst,
  *   This function will process the next 512 bits of the message.
  */
 static inline void
-gost3411_2012_transform_n(gost3411_2012_ctx_p ctx, const size_t block_size_bits,
-    const uint8_t *blocks, const uint8_t *blocks_max) {
+gost3411_2012_transform_n_generic(gost3411_2012_ctx_p ctx,
+    const size_t block_size_bits, const uint8_t *blocks,
+    const uint8_t *blocks_max) {
 	size_t i;
 	const uint64_t *block64;
 
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
-		if (0 == (((size_t)blocks) & 7)) { /* 8 byte alligned. */
+		if (0 == (((size_t)blocks) & 7)) { /* Is 8 byte alligned? */
 			block64 = (const uint64_t*)(const void*)blocks; /* Skip alignment warning here. */
 		} else {
 			block64 = (const uint64_t*)ctx->buffer;
 			memcpy(ctx->buffer, blocks, GOST3411_2012_MSG_BLK_SIZE);
 		}
-		gost3411_2012_XSLP(ctx, ctx->kbuf, ctx->hash, ctx->counter); /* HASH design deffect here. */
+		gost3411_2012_XSLP(ctx, ctx->kbuf, ctx->hash, ctx->counter); /* !!! HASH design deffect here !!! */
 		gost3411_2012_addmod512_digit(ctx->counter, block_size_bits); /* Update counter. */
 		gost3411_2012_addmod512(ctx->sigma, block64);
 		/* E(). */
@@ -1150,7 +1125,8 @@ gost3411_2012_transform_n(gost3411_2012_ctx_p ctx, const size_t block_size_bits,
 	}
 }
 static inline void
-gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
+gost3411_2012_transform_1_generic(gost3411_2012_ctx_p ctx,
+    const uint64_t *block) {
 	size_t i;
 
 	gost3411_2012_SLP(ctx, ctx->kbuf, ctx->hash);
@@ -1165,490 +1141,227 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	/* Final XOR. */
 	GOST3411_2012_XOR4_512(ctx->hash, block, ctx->tbuf, ctx->kbuf);
 }
-#endif
 
 
-#ifdef GOST3411_2012_SSE
 
-#include <immintrin.h>
-
+#ifdef __SSE2__
 
 /* Staff for old SSE. */
 #ifdef __SSE4_1__ /* SSE4.1 required. */
-#define _mm_is_zero(__axmm)		_mm_testz_si128(__axmm, __axmm)
-#define _mm_is_zero2(__axmm, __bxmm)	_mm_testz_si128(__axmm, __bxmm)
+#define _mm_is_zero(__axmm)		_mm_testz_si128((__axmm), (__axmm))
 #else
 #define _mm_is_zero(__axmm)						\
 	(0xffff == _mm_movemask_epi8(					\
-	    _mm_cmpeq_epi32(__axmm, _mm_setzero_si128())))
-
-#define _mm_is_zero2(__axmm, __bxmm)					\
-	_mm_is_zero(_mm_and_si128(__axmm, __bxmm))
-
-#define _mm_testz_si128(__axmm, __bxmm)	_mm_is_zero2(__axmm, __bxmm)
+	    _mm_cmpeq_epi32((__axmm), _mm_setzero_si128())))
+#define _mm_testz_si128(__axmm, __bxmm)					\
+	_mm_is_zero(_mm_and_si128((__axmm), (__bxmm)))
 #endif
-
-#ifndef __SSE4_1__ /* SSE4.1 required. */
-#undef _mm_extract_epi8 /* CLang 3.8 perfomance fix. */
-#define _mm_extract_epi8(__xmm, __n)					\
-    ((_mm_extract_epi16(__xmm, ((__n) >> 1)) >> (8 * ((__n) & 1))) & 0xff)
-#endif
-
-
 
 #ifdef __SSE4_2__
 #define _mm_cmpgt_epi64u(__axmm, __bxmm)				\
 	_mm_cmpgt_epi64(						\
-	    _mm_xor_si128(__axmm,					\
-	        _mm_set1_epi64x(0x8000000000000000ull)),		\
-	    _mm_xor_si128(__bxmm,					\
-	        _mm_set1_epi64x(0x8000000000000000ull)))
+	    _mm_xor_si128((__axmm),					\
+	        _mm_set1_epi64x((int64_t)0x8000000000000000ull)),	\
+	    _mm_xor_si128((__bxmm),					\
+	        _mm_set1_epi64x((int64_t)0x8000000000000000ull)))
 
 #define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) do {		\
-	__m128i carry_ret;						\
+	__m128i carry_ret = _mm_setzero_si128();			\
 									\
-	carry_ret = _mm_setzero_si128();				\
 	for (;;) {							\
-		__dxmm = _mm_add_epi64(__dxmm, __crrxmm);		\
-		__crrxmm = _mm_cmpgt_epi64u(__crrxmm, __dxmm);		\
-		if (_mm_testz_si128(__crrxmm, __crrxmm))		\
+		(__dxmm) = _mm_add_epi64((__dxmm), (__crrxmm));		\
+		(__crrxmm) = _mm_cmpgt_epi64u((__crrxmm), (__dxmm));	\
+		if (_mm_testz_si128((__crrxmm), (__crrxmm)))		\
 			break;						\
-		__crrxmm = _mm_shuffle_epi32(__crrxmm,			\
-		    _MM_SHUFFLE(1, 0, 3, 2));				\
-		carry_ret = _mm_or_si128(carry_ret, __crrxmm);		\
-		__crrxmm = _mm_and_si128(_mm_set_epi64x(1, 0), __crrxmm); \
+		(__crrxmm) = _mm_shuffle_epi32((__crrxmm),		\
+		    _MM_SHUFFLE(1, 0, 3, 2)); /* Hi64<->Lo64 swap. */	\
+		carry_ret = _mm_or_si128(carry_ret, (__crrxmm));	\
+		(__crrxmm) = _mm_and_si128(_mm_set_epi64x(1, 0), (__crrxmm)); \
+		if (_mm_testz_si128((__crrxmm), (__crrxmm)))		\
+			break;						\
 	}								\
-	__crrxmm = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
+	(__crrxmm) = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
 } while (0)
-#define GOST3411_2012_SSE_ADD_CARRY_LAST_(__dxmm, __crrxmm) do {	\
-									\
-	__dxmm = _mm_add_epi64(__dxmm, __crrxmm);			\
-	__dxmm = _mm_add_epi64(__dxmm,					\
-	    _mm_set_epi64x(						\
-		(0 == _mm_testz_si128(					\
-		    _mm_cmpgt_epi64u(__crrxmm, __dxmm),			\
-		    _mm_set_epi64x(0, 0xffffffffffffffffull))),		\
-		0));							\
-} while (0)
+/* SSE 4.2 allow us operate by u64x2 so we no need to loop here to
+* handle carry. */
 #define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) do {		\
-									\
-	__dxmm = _mm_add_epi64(__dxmm, __crrxmm);			\
-	__dxmm = _mm_add_epi64(__dxmm,					\
+	(__dxmm) = _mm_add_epi64((__dxmm), (__crrxmm));			\
+	(__dxmm) = _mm_add_epi64((__dxmm),				\
 	    _mm_and_si128(						\
-		_mm_set_epi64x(1, 0),					\
+		_mm_set_epi64x(1, 0), /* Allow only Hi64 be 1. */	\
 		_mm_shuffle_epi32(					\
-		    _mm_cmpgt_epi64u(__crrxmm, __dxmm),			\
-		    _MM_SHUFFLE(1, 0, 3, 2))));				\
+		    _mm_cmpgt_epi64u((__crrxmm), (__dxmm)),		\
+		    _MM_SHUFFLE(1, 0, 3, 2)))); /* Hi64<->Lo64 swap. */	\
 } while (0)
-#else
+#else /* __SSE4_2__ */
 #define _mm_cmpgt_epi32u(__axmm, __bxmm)				\
 	_mm_cmpgt_epi32(						\
-	    _mm_xor_si128(__axmm, _mm_set1_epi32(0x80000000)),		\
-	    _mm_xor_si128(__bxmm, _mm_set1_epi32(0x80000000)))
+	    _mm_xor_si128((__axmm), _mm_set1_epi32((int32_t)0x80000000)), \
+	    _mm_xor_si128((__bxmm), _mm_set1_epi32((int32_t)0x80000000)))
 
 #define GOST3411_2012_SSE_ADD_CARRY(__dxmm, __crrxmm) do {		\
-	__m128i carry_ret;						\
+	__m128i carry_ret = _mm_setzero_si128();			\
 									\
-	carry_ret = _mm_setzero_si128();				\
 	for (;;) {							\
-		__dxmm = _mm_add_epi32(__dxmm, __crrxmm);		\
-		__crrxmm = _mm_cmpgt_epi32u(__crrxmm, __dxmm);		\
-		if (_mm_is_zero(__crrxmm))				\
+		(__dxmm) = _mm_add_epi32((__dxmm), (__crrxmm));		\
+		(__crrxmm) = _mm_cmpgt_epi32u((__crrxmm), (__dxmm));	\
+		if (_mm_is_zero((__crrxmm)))				\
 			break;						\
-		__crrxmm = _mm_shuffle_epi32(__crrxmm,			\
-		    _MM_SHUFFLE(2, 1, 0, 3));				\
-		carry_ret = _mm_or_si128(carry_ret, __crrxmm);		\
-		__crrxmm = _mm_and_si128(__crrxmm,			\
+		(__crrxmm) = _mm_shuffle_epi32((__crrxmm),		\
+		    _MM_SHUFFLE(2, 1, 0, 3)); /* Cycle shift. */	\
+		carry_ret = _mm_or_si128(carry_ret, (__crrxmm));	\
+		__crrxmm = _mm_and_si128((__crrxmm),			\
 		    _mm_set_epi32(1, 1, 1, 0));				\
 	}								\
-	__crrxmm = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
+	(__crrxmm) = _mm_and_si128(_mm_set_epi64x(0, 1), carry_ret);	\
 } while (0)
 #define GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm, __crrxmm) do {		\
-									\
 	for (;;) {							\
-		__dxmm = _mm_add_epi32(__dxmm, __crrxmm);		\
-		__crrxmm = _mm_cmpgt_epi32u(__crrxmm, __dxmm);		\
-		if (_mm_is_zero2(__crrxmm, _mm_set_epi32(0, 1, 1, 1)))	\
+		(__dxmm) = _mm_add_epi32((__dxmm), (__crrxmm));		\
+		(__crrxmm) = _mm_cmpgt_epi32u((__crrxmm), (__dxmm));	\
+		if (_mm_testz_si128((__crrxmm), _mm_set_epi32(0, 1, 1, 1))) \
 			break;						\
-		__crrxmm = _mm_and_si128(				\
+		(__crrxmm) = _mm_and_si128(				\
 		    _mm_set_epi32(1, 1, 1, 0),				\
-		    _mm_shuffle_epi32(__crrxmm,				\
-		        _MM_SHUFFLE(2, 1, 0, 3)));			\
+		    _mm_shuffle_epi32((__crrxmm),			\
+			_MM_SHUFFLE(2, 1, 0, 3)));			\
 	}								\
 } while (0)
-#endif
+#endif /* __SSE4_2__ */
 
-
-#define GOST3411_2012_SSE_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
-	__xmm0 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
-	__xmm1 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
-	__xmm2 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
-	__xmm3 = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
-} while (0)
-
-#define GOST3411_2012_SSE_LOADU(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
-	__xmm0 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
-	__xmm1 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
-	__xmm2 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
-	__xmm3 = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
-} while (0)
-
-#ifdef __SSE4_1__ /* SSE4.1 required. */
-#define GOST3411_2012_SSE_STREAM_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
-	__xmm0 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
-	__xmm1 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
-	__xmm2 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
-	__xmm3 = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
-} while (0)
-#else
-#define GOST3411_2012_SSE_STREAM_LOAD	GOST3411_2012_SSE_LOADU
-#endif
-
-#define GOST3411_2012_SSE_STORE(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
-	_mm_store_si128(&((__m128i*)(void*)(__ptr))[0], __xmm0);	\
-	_mm_store_si128(&((__m128i*)(void*)(__ptr))[1], __xmm1);	\
-	_mm_store_si128(&((__m128i*)(void*)(__ptr))[2], __xmm2);	\
-	_mm_store_si128(&((__m128i*)(void*)(__ptr))[3], __xmm3);	\
-} while (0)
-
-#define GOST3411_2012_SSE_XOR2_512(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __axmm0, __axmm1, __axmm2, __axmm3,					\
-    __bxmm0, __bxmm1, __bxmm2, __bxmm3) do { 				\
-	__dxmm0 = _mm_xor_si128(__axmm0, __bxmm0);			\
-	__dxmm1 = _mm_xor_si128(__axmm1, __bxmm1);			\
-	__dxmm2 = _mm_xor_si128(__axmm2, __bxmm2);			\
-	__dxmm3 = _mm_xor_si128(__axmm3, __bxmm3);			\
-} while (0)
 
 #define GOST3411_2012_SSE_ADDMOD512(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
     __xmm0, __xmm1, __xmm2, __xmm3) do {				\
 	__m128i carry;							\
 									\
-	carry = __xmm0;							\
+	carry = (__xmm0);						\
 	do {								\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm0, carry);		\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm0), carry);		\
 		if (_mm_is_zero(carry))					\
 			break;						\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm1, carry);		\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm1), carry);		\
 		if (_mm_is_zero(carry))					\
 			break;						\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm2, carry);		\
-		GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm3, carry);	\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);		\
+		GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);	\
 	} while (0);							\
 									\
-	carry = __xmm1;							\
+	carry = (__xmm1);						\
 	do {								\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm1, carry);		\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm1), carry);		\
 		if (_mm_is_zero(carry))					\
 			break;						\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm2, carry);		\
-		GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm3, carry);	\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);		\
+		GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);	\
 	} while (0);							\
 									\
-	carry = __xmm2;							\
-	GOST3411_2012_SSE_ADD_CARRY(__dxmm2, carry);			\
-	GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm3, carry);		\
+	carry = (__xmm2);						\
+	GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);			\
+	GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);		\
 									\
-	carry = __xmm3;							\
-	GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm3, carry);		\
+	carry = (__xmm3);						\
+	GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);		\
 } while (0)
 #define GOST3411_2012_SSE_ADDMOD512_DIGIT(__dxmm0, __dxmm1,		\
     __dxmm2, __dxmm3, __digit) do {					\
 	__m128i carry;							\
 									\
-	carry = _mm_set_epi64x(0, (__digit));				\
+	carry = _mm_set_epi64x(0, (int64_t)(__digit));			\
 	do {								\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm0, carry);		\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm0), carry);		\
 		if (_mm_is_zero(carry))					\
 			break;						\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm1, carry);		\
-		GOST3411_2012_SSE_ADD_CARRY(__dxmm2, carry);		\
-		GOST3411_2012_SSE_ADD_CARRY_LAST(__dxmm3, carry);	\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm1), carry);		\
+		GOST3411_2012_SSE_ADD_CARRY((__dxmm2), carry);		\
+		GOST3411_2012_SSE_ADD_CARRY_LAST((__dxmm3), carry);	\
 	} while (0);							\
 } while (0)
 
 
-#define GOST3411_2012_SSE_SLP_ROUND2(__dxmm, row,			\
-    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
-	register uint64_t r0, r1;					\
-									\
-	r0  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0, (row + 0))]; \
-	r1  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0, (row + 1))]; \
-									\
-	r0 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, (row + 8))]; \
-	r1 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, (row + 9))]; \
-									\
-	r0 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1, (row + 0))]; \
-	r1 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1, (row + 1))]; \
-									\
-	r0 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, (row + 8))]; \
-	r1 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, (row + 9))]; \
-									\
-	r0 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2, (row + 0))]; \
-	r1 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2, (row + 1))]; \
-									\
-	r0 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, (row + 8))]; \
-	r1 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, (row + 9))]; \
-									\
-	r0 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3, (row + 0))]; \
-	r1 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3, (row + 1))]; \
-									\
-	r0 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, (row + 8))]; \
-	r1 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, (row + 9))]; \
-									\
-	__dxmm = _mm_set_epi64x(r1, r0);				\
+#define GOST3411_2012_SSE_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
+	(__xmm0) = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
+	(__xmm1) = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
+	(__xmm2) = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
+	(__xmm3) = _mm_load_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
 } while (0)
 
-/* i7-4770K CPU @ 3.50GHz
- * GCC:		
- * clang 3.8:	9258100000 / 9221874000 / 9278277000 (SSE4.1) / 14816421000 (SSE2)
- * clang 3.7:	
- * clang 3.6:	
- * clang 3.4:	
- * 
- * Intel(R) Core(TM)2 Duo CPU     E8400  @ 3.00GHz (2999.72-MHz K8-class CPU) (SSE4.1) (SSE2)
- * GCC:		12031595000 (SSE4.1) / 12011303000 (SSE2)
- * clang 3.8:	12431116000 (SSE4.1) / 73035466000/13325327000 (SSE2)
- * clang 3.7:	12458839000 (SSE4.1) / 13317058000 (SSE2)
- * clang 3.6:	12462181000 (SSE4.1) / 14119683000 (SSE2)
- * clang 3.4:	13555167000 (SSE4.1) / 13178893000 (SSE2)
- * 
- * AMD Athlon(tm) 5350 APU with Radeon(tm) R3      (2050.04-MHz K8-class CPU)
- * GCC:		20601974000 / 20560231000 (SSE4.2) / 20391006000 (SSE4.1) /  20116413000 (SSE2)
- * clang 3.8:	22359288000 / 22219717000 (SSE4.2) / 22329895000 (SSE4.1) / 117304135000/25594846000 (SSE2)
- * clang 3.7:	22382333000 / 22250359000 (SSE4.2) / 22367008000 (SSE4.1) /  25542571000 (SSE2)
- * clang 3.6:	22299031000 / 22179457000 (SSE4.2) / 22306648000 (SSE4.1) /  25914115000 (SSE2)
- * clang 3.4:	24012229000 / 23846450000 (SSE4.2) / 23684031000 (SSE4.1) /  25914115000 (SSE2)
- */
+#define GOST3411_2012_SSE_LOADU(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
+	(__xmm0) = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
+	(__xmm1) = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
+	(__xmm2) = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
+	(__xmm3) = _mm_loadu_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
+} while (0)
+
+#ifdef __SSE4_1__ /* SSE4.1 required. */
+#define GOST3411_2012_SSE_STREAM_LOAD(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
+	(__xmm0) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[0]); \
+	(__xmm1) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[1]); \
+	(__xmm2) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[2]); \
+	(__xmm3) = _mm_stream_load_si128(&((const __m128i*)(const void*)(__ptr))[3]); \
+} while (0)
+#else
+#define GOST3411_2012_SSE_STREAM_LOAD	GOST3411_2012_SSE_LOAD
+#endif
+
+#define GOST3411_2012_SSE_STORE(__ptr, __xmm0, __xmm1, __xmm2, __xmm3) do { \
+	_mm_store_si128(&((__m128i*)(void*)(__ptr))[0], (__xmm0));	\
+	_mm_store_si128(&((__m128i*)(void*)(__ptr))[1], (__xmm1));	\
+	_mm_store_si128(&((__m128i*)(void*)(__ptr))[2], (__xmm2));	\
+	_mm_store_si128(&((__m128i*)(void*)(__ptr))[3], (__xmm3));	\
+} while (0)
+
+#define GOST3411_2012_SSE_XOR2_512(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
+    __axmm0, __axmm1, __axmm2, __axmm3,					\
+    __bxmm0, __bxmm1, __bxmm2, __bxmm3) do { 				\
+	(__dxmm0) = _mm_xor_si128((__axmm0), (__bxmm0));		\
+	(__dxmm1) = _mm_xor_si128((__axmm1), (__bxmm1));		\
+	(__dxmm2) = _mm_xor_si128((__axmm2), (__bxmm2));		\
+	(__dxmm3) = _mm_xor_si128((__axmm3), (__bxmm3));		\
+} while (0)
+
+
+#define GOST3411_2012_SSE_SLP_ROUND2(__dxmm, __idxarr, __row) do {	\
+	register uint64_t r0, r1;					\
+									\
+	r0  = gost3411_2012_Ax[0][__idxarr[ 0 + (__row) + 0]];		\
+	r1  = gost3411_2012_Ax[0][__idxarr[ 0 + (__row) + 1]];		\
+									\
+	r0 ^= gost3411_2012_Ax[1][__idxarr[ 0 + (__row) + 8]];		\
+	r1 ^= gost3411_2012_Ax[1][__idxarr[ 0 + (__row) + 9]];		\
+									\
+	r0 ^= gost3411_2012_Ax[2][__idxarr[16 + (__row) + 0]];		\
+	r1 ^= gost3411_2012_Ax[2][__idxarr[16 + (__row) + 1]];		\
+									\
+	r0 ^= gost3411_2012_Ax[3][__idxarr[16 + (__row) + 8]];		\
+	r1 ^= gost3411_2012_Ax[3][__idxarr[16 + (__row) + 9]];		\
+									\
+	r0 ^= gost3411_2012_Ax[4][__idxarr[32 + (__row) + 0]];		\
+	r1 ^= gost3411_2012_Ax[4][__idxarr[32 + (__row) + 1]];		\
+									\
+	r0 ^= gost3411_2012_Ax[5][__idxarr[32 + (__row) + 8]];		\
+	r1 ^= gost3411_2012_Ax[5][__idxarr[32 + (__row) + 9]];		\
+									\
+	r0 ^= gost3411_2012_Ax[6][__idxarr[48 + (__row) + 0]];		\
+	r1 ^= gost3411_2012_Ax[6][__idxarr[48 + (__row) + 1]];		\
+									\
+	r0 ^= gost3411_2012_Ax[7][__idxarr[48 + (__row) + 8]];		\
+	r1 ^= gost3411_2012_Ax[7][__idxarr[48 + (__row) + 9]];		\
+									\
+	(__dxmm) = _mm_set_epi64x((int64_t)r1, (int64_t)r0);		\
+} while (0)
+
 #define GOST3411_2012_SSE_SLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
     __xmm0, __xmm1, __xmm2, __xmm3) do {				\
-	GOST3411_2012_SSE_SLP_ROUND2(__dxmm0, 0,			\
-	    __xmm0, __xmm1, __xmm2, __xmm3);				\
-	GOST3411_2012_SSE_SLP_ROUND2(__dxmm1, 2,			\
-	    __xmm0, __xmm1, __xmm2, __xmm3);				\
-	GOST3411_2012_SSE_SLP_ROUND2(__dxmm2, 4,			\
-	    __xmm0, __xmm1, __xmm2, __xmm3);				\
-	GOST3411_2012_SSE_SLP_ROUND2(__dxmm3, 6,			\
-	    __xmm0, __xmm1, __xmm2, __xmm3);				\
+	GOST3411_2012_ALIGN(16) uint8_t idxarr[64];			\
+									\
+	GOST3411_2012_SSE_STORE(&idxarr, (__xmm0), (__xmm1),		\
+	    (__xmm2), (__xmm3));					\
+	GOST3411_2012_SSE_SLP_ROUND2((__dxmm0), idxarr, 0);		\
+	GOST3411_2012_SSE_SLP_ROUND2((__dxmm1), idxarr, 2);		\
+	GOST3411_2012_SSE_SLP_ROUND2((__dxmm2), idxarr, 4);		\
+	GOST3411_2012_SSE_SLP_ROUND2((__dxmm3), idxarr, 6);		\
 } while (0)
 
-/* i7-4770K CPU @ 3.50GHz
- * GCC:		
- * clang 3.8:	9194362000 / 9186266000 / 9253656000 (SSE4.1) / 9405054000 (SSE2)
- * clang 3.7:	
- * clang 3.6:	
- * clang 3.4:	
- * 
- * Intel(R) Core(TM)2 Duo CPU     E8400  @ 3.00GHz (2999.72-MHz K8-class CPU) (SSE4.1) (SSE2)
- * GCC:		11957737000 (SSE4.1) / 13000220000 (SSE2)
- * clang 3.8:	12578855000 (SSE4.1) / 24038156000/13192300000 (SSE2)
- * clang 3.7:	12558966000 (SSE4.1) / 13211177000 (SSE2)
- * clang 3.6:	12523324000 (SSE4.1) / 13216220000 (SSE2)
- * clang 3.4:	12785492000 (SSE4.1) / 13403844000 (SSE2)
- * 
- * AMD Athlon(tm) 5350 APU with Radeon(tm) R3      (2050.04-MHz K8-class CPU)
- * GCC:		21420426000 / 21775746000 (SSE4.2) / 21262179000 (SSE4.1) / 22737321000 (SSE2)
- * clang 3.8:	23238759000 / 22904900000 (SSE4.2) / 22907732000 (SSE4.1) / 37667933000/24247670000 (SSE2)
- * clang 3.7:	23182908000 / 22906350000 (SSE4.2) / 23123009000 (SSE4.1) / 24228474000 (SSE2)
- * clang 3.6:	23344310000 / 23159963000 (SSE4.2) / 23013346000 (SSE4.1) / 24268155000 (SSE2)
- * clang 3.4:	23659133000 / 23140891000 (SSE4.2) / 20975080000 (SSE4.1) / 24980611000 (SSE2)
- */
-#define GOST3411_2012_SSE_SLP__(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
-	register uint64_t r0, r1;					\
-	register uint64_t t0, t1;					\
-	register uint64_t y0, y1;					\
-	register uint64_t v0, v1;					\
-									\
-	r0  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  0)];	\
-	r1  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  1)];	\
-	t0  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  2)];	\
-	t1  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  3)];	\
-	y0  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  4)];	\
-	y1  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  5)];	\
-	v0  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  6)];	\
-	v1  = gost3411_2012_Ax[0][_mm_extract_epi8(__xmm0,  7)];	\
-									\
-	r0 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0,  8)];	\
-	r1 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0,  9)];	\
-	t0 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, 10)];	\
-	t1 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, 11)];	\
-	y0 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, 12)];	\
-	y1 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, 13)];	\
-	v0 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, 14)];	\
-	v1 ^= gost3411_2012_Ax[1][_mm_extract_epi8(__xmm0, 15)];	\
-									\
-	r0 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  0)];	\
-	r1 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  1)];	\
-	t0 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  2)];	\
-	t1 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  3)];	\
-	y0 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  4)];	\
-	y1 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  5)];	\
-	v0 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  6)];	\
-	v1 ^= gost3411_2012_Ax[2][_mm_extract_epi8(__xmm1,  7)];	\
-									\
-	r0 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1,  8)];	\
-	r1 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1,  9)];	\
-	t0 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, 10)];	\
-	t1 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, 11)];	\
-	y0 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, 12)];	\
-	y1 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, 13)];	\
-	v0 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, 14)];	\
-	v1 ^= gost3411_2012_Ax[3][_mm_extract_epi8(__xmm1, 15)];	\
-									\
-	r0 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  0)];	\
-	r1 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  1)];	\
-	t0 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  2)];	\
-	t1 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  3)];	\
-	y0 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  4)];	\
-	y1 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  5)];	\
-	v0 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  6)];	\
-	v1 ^= gost3411_2012_Ax[4][_mm_extract_epi8(__xmm2,  7)];	\
-									\
-	r0 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2,  8)];	\
-	r1 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2,  9)];	\
-	t0 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, 10)];	\
-	t1 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, 11)];	\
-	y0 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, 12)];	\
-	y1 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, 13)];	\
-	v0 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, 14)];	\
-	v1 ^= gost3411_2012_Ax[5][_mm_extract_epi8(__xmm2, 15)];	\
-									\
-	r0 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  0)];	\
-	r1 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  1)];	\
-	t0 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  2)];	\
-	t1 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  3)];	\
-	y0 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  4)];	\
-	y1 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  5)];	\
-	v0 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  6)];	\
-	v1 ^= gost3411_2012_Ax[6][_mm_extract_epi8(__xmm3,  7)];	\
-									\
-	r0 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3,  8)];	\
-	r1 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3,  9)];	\
-	t0 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, 10)];	\
-	t1 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, 11)];	\
-	y0 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, 12)];	\
-	y1 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, 13)];	\
-	v0 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, 14)];	\
-	v1 ^= gost3411_2012_Ax[7][_mm_extract_epi8(__xmm3, 15)];	\
-									\
-	__dxmm0 = _mm_set_epi64x(r1, r0);				\
-	__dxmm1 = _mm_set_epi64x(t1, t0);				\
-	__dxmm2 = _mm_set_epi64x(y1, y0);				\
-	__dxmm3 = _mm_set_epi64x(v1, v0);				\
-} while (0)
-
-/* i7-4770K CPU @ 3.50GHz
- * GCC:		
- * clang 3.8:	8866058000 / 8876949000 / 8925286000 (SSE4.1) / 9972584000 (SSE2)
- * clang 3.7:	
- * clang 3.6:	
- * clang 3.4:	
- * 
- * Intel(R) Core(TM)2 Duo CPU     E8400  @ 3.00GHz (2999.72-MHz K8-class CPU) (SSE4.1) (SSE2)
- * GCC:		19409740000 (SSE4.1) / 20272622000 (SSE2)
- * clang 3.8:	12332004000 (SSE4.1) / 26202803000 (SSE2)
- * clang 3.7:	16665351000 (SSE4.1) / 19736487000 (SSE2)
- * clang 3.6:	27485424000 (SSE4.1) / 31071709000 (SSE2)
- * clang 3.4:	12479687000 (SSE4.1) / 12419996000 (SSE2)
- * 
- * AMD Athlon(tm) 5350 APU with Radeon(tm) R3      (2050.04-MHz K8-class CPU)
- * GCC:		41086083000 / 40577239000 (SSE4.2) / 41242701000 (SSE4.1) / 41053597000 (SSE2)
- * clang 3.8:	22608125000 / 22337287000 (SSE4.2) / 22882872000 (SSE4.1) / 39623374000 (SSE2)
- * clang 3.7:	33291162000 / 30242126000 (SSE4.2) / 31008343000 (SSE4.1) / 39605604000 (SSE2)
- * clang 3.6:	37505313000 / 36202527000 (SSE4.2) / 36332251000 (SSE4.1) / 37514628000 (SSE2)
- * clang 3.4:	28546238000 / 28084639000 (SSE4.2) / 28509100000 (SSE4.1) / 28155419000 (SSE2)
- */
-#define GOST3411_2012_SSE_SLP_(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
-    __xmm0, __xmm1, __xmm2, __xmm3) do {				\
-	register uint64_t r0, r1;					\
-	register uint64_t t0, t1;					\
-	register uint64_t y0, y1;					\
-	register uint64_t v0, v1;					\
-	GOST3411_2012_ALIGN(16) uint8_t idxarr[16];			\
-									\
-	_mm_store_si128((__m128i*)(void*)&idxarr[ 0], __xmm0);		\
-									\
-	r0  = gost3411_2012_Ax[0][idxarr[ 0]];				\
-	r1  = gost3411_2012_Ax[0][idxarr[ 1]];				\
-	t0  = gost3411_2012_Ax[0][idxarr[ 2]];				\
-	t1  = gost3411_2012_Ax[0][idxarr[ 3]];				\
-	y0  = gost3411_2012_Ax[0][idxarr[ 4]];				\
-	y1  = gost3411_2012_Ax[0][idxarr[ 5]];				\
-	v0  = gost3411_2012_Ax[0][idxarr[ 6]];				\
-	v1  = gost3411_2012_Ax[0][idxarr[ 7]];				\
-									\
-	r0 ^= gost3411_2012_Ax[1][idxarr[ 8]];				\
-	r1 ^= gost3411_2012_Ax[1][idxarr[ 9]];				\
-	t0 ^= gost3411_2012_Ax[1][idxarr[10]];				\
-	t1 ^= gost3411_2012_Ax[1][idxarr[11]];				\
-	y0 ^= gost3411_2012_Ax[1][idxarr[12]];				\
-	y1 ^= gost3411_2012_Ax[1][idxarr[13]];				\
-	v0 ^= gost3411_2012_Ax[1][idxarr[14]];				\
-	v1 ^= gost3411_2012_Ax[1][idxarr[15]];				\
-									\
-	_mm_store_si128((__m128i*)(void*)&idxarr[ 0], __xmm1);		\
-	r0 ^= gost3411_2012_Ax[2][idxarr[ 0]];				\
-	r1 ^= gost3411_2012_Ax[2][idxarr[ 1]];				\
-	t0 ^= gost3411_2012_Ax[2][idxarr[ 2]];				\
-	t1 ^= gost3411_2012_Ax[2][idxarr[ 3]];				\
-	y0 ^= gost3411_2012_Ax[2][idxarr[ 4]];				\
-	y1 ^= gost3411_2012_Ax[2][idxarr[ 5]];				\
-	v0 ^= gost3411_2012_Ax[2][idxarr[ 6]];				\
-	v1 ^= gost3411_2012_Ax[2][idxarr[ 7]];				\
-									\
-	r0 ^= gost3411_2012_Ax[3][idxarr[ 8]];				\
-	r1 ^= gost3411_2012_Ax[3][idxarr[ 9]];				\
-	t0 ^= gost3411_2012_Ax[3][idxarr[10]];				\
-	t1 ^= gost3411_2012_Ax[3][idxarr[11]];				\
-	y0 ^= gost3411_2012_Ax[3][idxarr[12]];				\
-	y1 ^= gost3411_2012_Ax[3][idxarr[13]];				\
-	v0 ^= gost3411_2012_Ax[3][idxarr[14]];				\
-	v1 ^= gost3411_2012_Ax[3][idxarr[15]];				\
-									\
-	_mm_store_si128((__m128i*)(void*)&idxarr[ 0], __xmm2);		\
-	r0 ^= gost3411_2012_Ax[4][idxarr[ 0]];				\
-	r1 ^= gost3411_2012_Ax[4][idxarr[ 1]];				\
-	t0 ^= gost3411_2012_Ax[4][idxarr[ 2]];				\
-	t1 ^= gost3411_2012_Ax[4][idxarr[ 3]];				\
-	y0 ^= gost3411_2012_Ax[4][idxarr[ 4]];				\
-	y1 ^= gost3411_2012_Ax[4][idxarr[ 5]];				\
-	v0 ^= gost3411_2012_Ax[4][idxarr[ 6]];				\
-	v1 ^= gost3411_2012_Ax[4][idxarr[ 7]];				\
-									\
-	r0 ^= gost3411_2012_Ax[5][idxarr[ 8]];				\
-	r1 ^= gost3411_2012_Ax[5][idxarr[ 9]];				\
-	t0 ^= gost3411_2012_Ax[5][idxarr[10]];				\
-	t1 ^= gost3411_2012_Ax[5][idxarr[11]];				\
-	y0 ^= gost3411_2012_Ax[5][idxarr[12]];				\
-	y1 ^= gost3411_2012_Ax[5][idxarr[13]];				\
-	v0 ^= gost3411_2012_Ax[5][idxarr[14]];				\
-	v1 ^= gost3411_2012_Ax[5][idxarr[15]];				\
-									\
-	_mm_store_si128((__m128i*)(void*)&idxarr[ 0], __xmm3);		\
-	r0 ^= gost3411_2012_Ax[6][idxarr[ 0]];				\
-	r1 ^= gost3411_2012_Ax[6][idxarr[ 1]];				\
-	t0 ^= gost3411_2012_Ax[6][idxarr[ 2]];				\
-	t1 ^= gost3411_2012_Ax[6][idxarr[ 3]];				\
-	y0 ^= gost3411_2012_Ax[6][idxarr[ 4]];				\
-	y1 ^= gost3411_2012_Ax[6][idxarr[ 5]];				\
-	v0 ^= gost3411_2012_Ax[6][idxarr[ 6]];				\
-	v1 ^= gost3411_2012_Ax[6][idxarr[ 7]];				\
-									\
-	r0 ^= gost3411_2012_Ax[7][idxarr[ 8]];				\
-	r1 ^= gost3411_2012_Ax[7][idxarr[ 9]];				\
-	t0 ^= gost3411_2012_Ax[7][idxarr[10]];				\
-	t1 ^= gost3411_2012_Ax[7][idxarr[11]];				\
-	y0 ^= gost3411_2012_Ax[7][idxarr[12]];				\
-	y1 ^= gost3411_2012_Ax[7][idxarr[13]];				\
-	v0 ^= gost3411_2012_Ax[7][idxarr[14]];				\
-	v1 ^= gost3411_2012_Ax[7][idxarr[15]];				\
-									\
-	__dxmm0 = _mm_set_epi64x(r1, r0);				\
-	__dxmm1 = _mm_set_epi64x(t1, t0);				\
-	__dxmm2 = _mm_set_epi64x(y1, y0);				\
-	__dxmm3 = _mm_set_epi64x(v1, v0);				\
-} while (0)
 
 #define GOST3411_2012_SSE_XSLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
     __axmm0, __axmm1, __axmm2, __axmm3,					\
@@ -1656,9 +1369,10 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	__m128i sxmm0, sxmm1, sxmm2, sxmm3;				\
 									\
 	GOST3411_2012_SSE_XOR2_512(sxmm0, sxmm1, sxmm2, sxmm3,		\
-	    __axmm0, __axmm1, __axmm2, __axmm3,				\
-	    __bxmm0, __bxmm1, __bxmm2, __bxmm3);			\
-	GOST3411_2012_SSE_SLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
+	    (__axmm0), (__axmm1), (__axmm2), (__axmm3),			\
+	    (__bxmm0), (__bxmm1), (__bxmm2), (__bxmm3));		\
+	GOST3411_2012_SSE_SLP(						\
+	    (__dxmm0), (__dxmm1), (__dxmm2), (__dxmm3),			\
 	    sxmm0, sxmm1, sxmm2, sxmm3);				\
 } while (0)
 
@@ -1666,11 +1380,12 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
     __axmm0, __axmm1, __axmm2, __axmm3, __ptr) do {			\
 	__m128i sxmm0, sxmm1, sxmm2, sxmm3;				\
 									\
-	GOST3411_2012_SSE_LOAD(__ptr, sxmm0, sxmm1, sxmm2, sxmm3);	\
+	GOST3411_2012_SSE_LOAD((__ptr), sxmm0, sxmm1, sxmm2, sxmm3);	\
 	GOST3411_2012_SSE_XOR2_512(sxmm0, sxmm1, sxmm2, sxmm3,		\
 	    sxmm0, sxmm1, sxmm2, sxmm3,					\
-	    __axmm0, __axmm1, __axmm2, __axmm3);			\
-	GOST3411_2012_SSE_SLP(__dxmm0, __dxmm1, __dxmm2, __dxmm3,	\
+	    (__axmm0), (__axmm1), (__axmm2), (__axmm3));		\
+	GOST3411_2012_SSE_SLP(						\
+	    (__dxmm0), (__dxmm1), (__dxmm2), (__dxmm3),			\
 	    sxmm0, sxmm1, sxmm2, sxmm3);				\
 } while (0)
 
@@ -1681,23 +1396,34 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  *   This function will process the next 512 bits of the message.
  */
 static inline void
-gost3411_2012_transform_n(gost3411_2012_ctx_p ctx, const size_t block_size_bits,
-    const uint8_t *blocks, const uint8_t *blocks_max) {
+gost3411_2012_transform_n_sse(gost3411_2012_ctx_p ctx,
+    const size_t block_size_bits, const uint8_t *blocks,
+    const uint8_t *blocks_max) {
 	register size_t i;
 	__m128i hxmm0, hxmm1, hxmm2, hxmm3; /* HASH. */
-	__m128i cntxmm0, cntxmm1, cntxmm2, cntxmm3; /* Counter. */
-	__m128i sigxmm0, sigxmm1, sigxmm2, sigxmm3; /* Sigma. */
 	__m128i kxmm0, kxmm1, kxmm2, kxmm3; /* Key. */
 	__m128i txmm0, txmm1, txmm2, txmm3; /* Temp. */
+	__m128i cntxmm0, cntxmm1, cntxmm2, cntxmm3; /* Counter. */
+	__m128i sigxmm0, sigxmm1, sigxmm2, sigxmm3; /* Sigma. */
 
 	GOST3411_2012_SSE_LOAD(ctx->sigma, sigxmm0, sigxmm1, sigxmm2, sigxmm3);
 	GOST3411_2012_SSE_LOAD(ctx->counter, cntxmm0, cntxmm1, cntxmm2, cntxmm3);
 	GOST3411_2012_SSE_LOAD(ctx->hash, hxmm0, hxmm1, hxmm2, hxmm3);
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
-		GOST3411_2012_SSE_STREAM_LOAD(blocks, txmm0, txmm1, txmm2, txmm3);
+		if (0 == (((size_t)blocks) & 31)) { /* 32 byte alligned. */
+			GOST3411_2012_SSE_STREAM_LOAD(blocks,
+			    txmm0, txmm1, txmm2, txmm3);
+		} else { /* Unaligned. */
+			GOST3411_2012_SSE_LOADU(blocks,
+			    txmm0, txmm1, txmm2, txmm3);
+		}
+		/* Shedule to load into cache. */
+		if ((blocks + GOST3411_2012_MSG_BLK_SIZE) < blocks_max) {
+			_mm_prefetch((const char*)(blocks + GOST3411_2012_MSG_BLK_SIZE), _MM_HINT_T0);
+		}
 		GOST3411_2012_SSE_XSLP(kxmm0, kxmm1, kxmm2, kxmm3,
 		    hxmm0, hxmm1, hxmm2, hxmm3,
-		    cntxmm0, cntxmm1, cntxmm2, cntxmm3); /* HASH design deffect here. */
+		    cntxmm0, cntxmm1, cntxmm2, cntxmm3); /* !!! HASH design deffect here !!! */
 		GOST3411_2012_SSE_ADDMOD512_DIGIT(cntxmm0, cntxmm1, cntxmm2, cntxmm3,
 		    block_size_bits);
 		GOST3411_2012_SSE_ADDMOD512(sigxmm0, sigxmm1, sigxmm2, sigxmm3,
@@ -1730,8 +1456,9 @@ gost3411_2012_transform_n(gost3411_2012_ctx_p ctx, const size_t block_size_bits,
 	/* Restore the Floating-point status on the CPU. */
 	_mm_empty();
 }
+
 static inline void
-gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
+gost3411_2012_transform_1_sse(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	register size_t i;
 	__m128i hxmm0, hxmm1, hxmm2, hxmm3; /* HASH. */
 	__m128i kxmm0, kxmm1, kxmm2, kxmm3; /* Key. */
@@ -1769,336 +1496,191 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 }
 #endif
 
-#ifdef GOST3411_2012_AVX256
 
-#include <immintrin.h> /* AVX256 */
+#ifdef __AVX__
 
 #ifndef __AVX2__ /* AVX2 emulation. */
 #define _mm256_stream_load_si256	_mm256_load_si256
-#define _mm256_or_si256(__aymm, __bymm) 				\
-	_mm256_castpd_si256(_mm256_or_pd(				\
-	    _mm256_castsi256_pd(__aymm), _mm256_castsi256_pd(__bymm)))
-
 #define _mm256_xor_si256(__aymm, __bymm) 				\
 	_mm256_castpd_si256(_mm256_xor_pd(				\
-	    _mm256_castsi256_pd(__aymm), _mm256_castsi256_pd(__bymm)))
+	    _mm256_castsi256_pd((__aymm)), _mm256_castsi256_pd((__bymm))))
 
-#define _mm256_and_si256(__aymm, __bymm) 				\
-	_mm256_castpd_si256(_mm256_and_pd(				\
-	    _mm256_castsi256_pd(__aymm), _mm256_castsi256_pd(__bymm)))
+#define GOST3411_2012_AVX256_ADDMOD512(__dymm0, __dymm1, __ymm0, __ymm1) do { \
+	GOST3411_2012_ALIGN(32) uint64_t dtmp[GOST3411_2012_MSG_BLK_64CNT]; \
+	GOST3411_2012_ALIGN(32) uint64_t tmp[GOST3411_2012_MSG_BLK_64CNT]; \
+									\
+	GOST3411_2012_AVX256_STORE(dtmp, (__dymm0), (__dymm1));		\
+	GOST3411_2012_AVX256_STORE(tmp, (__ymm0), (__ymm1));		\
+	gost3411_2012_addmod512(dtmp, tmp);				\
+	GOST3411_2012_AVX256_STREAM_LOAD(dtmp, (__dymm0), (__dymm1));	\
+} while (0)
 
-#define _mm256_add_epi64(__aymm, __bymm) 				\
-	_mm256_castpd_si256(_mm256_add_pd(				\
-	    _mm256_castsi256_pd(__aymm), _mm256_castsi256_pd(__bymm)))
+#define GOST3411_2012_AVX256_ADDMOD512_DIGIT(__dymm0, __dymm1, __digit) do { \
+	GOST3411_2012_ALIGN(32) uint64_t dtmp[GOST3411_2012_MSG_BLK_64CNT]; \
+									\
+	GOST3411_2012_AVX256_STORE(dtmp, (__dymm0), (__dymm1));		\
+	gost3411_2012_addmod512_digit(dtmp, (__digit));			\
+	GOST3411_2012_AVX256_STREAM_LOAD(dtmp, (__dymm0), (__dymm1));	\
+} while (0)
 
-#define _mm256_cmpgt_epi64(__aymm, __bymm) 				\
-	_mm256_castpd_si256(						\
-	    _mm256_cmp_pd(						\
-		_mm256_castsi256_pd(__aymm),				\
-		_mm256_castsi256_pd(__bymm),				\
-		_CMP_GT_OQ))
-#endif /* __AVX2__ */
-
+#else /* __AVX2__ */
 #define _mm256_cmpgt_epi64u(__axmm, __bxmm)				\
 	_mm256_cmpgt_epi64(						\
-	    _mm256_xor_si256(__axmm,					\
-	        _mm256_set1_epi64x(0x8000000000000000ull)),		\
-	    _mm256_xor_si256(__bxmm,					\
-	        _mm256_set1_epi64x(0x8000000000000000ull)))
-
-#define GOST3411_2012_AVX256_LOAD(__ptr, __ymm0, __ymm1) do {		\
-	__ymm0 = _mm256_load_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
-	__ymm1 = _mm256_load_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
-} while (0)
-
-#define GOST3411_2012_AVX256_STREAM_LOAD(__ptr, __ymm0, __ymm1) do {	\
-	__ymm0 = _mm256_stream_load_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
-	__ymm1 = _mm256_stream_load_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
-} while (0)
-
-#define GOST3411_2012_AVX256_LOADU(__ptr, __ymm0, __ymm1) do {		\
-	__ymm0 = _mm256_loadu_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
-	__ymm1 = _mm256_loadu_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
-} while (0)
-
-#define GOST3411_2012_AVX256_STORE(__ptr, __ymm0, __ymm1) do {		\
-	_mm256_store_si256(&((__m256i*)(void*)(__ptr))[0], __ymm0);	\
-	_mm256_store_si256(&((__m256i*)(void*)(__ptr))[1], __ymm1);	\
-} while (0)
-
-#define GOST3411_2012_AVX256_XOR2_512(__dymm0, __dymm1,			\
-    __aymm0, __aymm1, __bymm0, __bymm1) do { 				\
-	__dymm0 = _mm256_xor_si256(__aymm0, __bymm0);			\
-	__dymm1 = _mm256_xor_si256(__aymm1, __bymm1);			\
-} while (0)
-
+	    _mm256_xor_si256((__axmm),					\
+	        _mm256_set1_epi64x((int64_t)0x8000000000000000ull)),	\
+	    _mm256_xor_si256((__bxmm),					\
+	        _mm256_set1_epi64x((int64_t)0x8000000000000000ull)))
 
 #define GOST3411_2012_AVX256_ADD_CARRY(__dymm, __crrymm) do {		\
-	__m256i carry_ret;						\
+	__m256i carry_ret = _mm256_setzero_si256();			\
 									\
-	carry_ret = _mm256_setzero_si256();				\
 	for (;;) {							\
-		__dymm = _mm256_add_epi64(__dymm, __crrymm);		\
-		__crrymm = _mm256_cmpgt_epi64u(__crrymm, __dymm);	\
-		if (_mm256_testz_si256(__crrymm, __crrymm))		\
+		(__dymm) = _mm256_add_epi64((__dymm), (__crrymm));	\
+		(__crrymm) = _mm256_cmpgt_epi64u((__crrymm), (__dymm));	\
+		if (_mm256_testz_si256((__crrymm), (__crrymm)))		\
 			break;						\
-		__crrymm = _mm256_permute4x64_epi64(__crrymm,		\
+		(__crrymm) = _mm256_permute4x64_epi64((__crrymm),	\
 		    _MM_SHUFFLE(2, 1, 0, 3));				\
-		carry_ret = _mm256_or_si256(carry_ret, __crrymm);	\
-		__crrymm = _mm256_and_si256(__crrymm,			\
+		carry_ret = _mm256_or_si256(carry_ret, (__crrymm));	\
+		(__crrymm) = _mm256_and_si256((__crrymm),		\
 		    _mm256_set_epi64x(1, 1, 1, 0));			\
 	}								\
-	__crrymm = _mm256_and_si256(carry_ret,				\
+	(__crrymm) = _mm256_and_si256(carry_ret,			\
 	    _mm256_set_epi64x(0, 0, 0, 1));				\
 } while (0)
 #define GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm, __crrymm) do {	\
-									\
 	for (;;) {							\
-		__dymm = _mm256_add_epi64(__dymm, __crrymm);		\
-		__crrymm = _mm256_cmpgt_epi64u(__crrymm, __dymm);	\
-		if (_mm256_testz_si256(__crrymm,			\
+		(__dymm) = _mm256_add_epi64((__dymm), (__crrymm));	\
+		(__crrymm) = _mm256_cmpgt_epi64u((__crrymm), (__dymm));	\
+		if (_mm256_testz_si256((__crrymm),			\
 		    _mm256_set_epi64x(0, 1, 1, 1)))			\
 			break;						\
-		__crrymm = _mm256_and_si256(				\
+		(__crrymm) = _mm256_and_si256(				\
 		    _mm256_set_epi64x(1, 1, 1, 0),			\
-		    _mm256_permute4x64_epi64(__crrymm,			\
+		    _mm256_permute4x64_epi64((__crrymm),		\
 			_MM_SHUFFLE(2, 1, 0, 3)));			\
 	}								\
 } while (0)
 
-
 #define GOST3411_2012_AVX256_ADDMOD512(__dymm0, __dymm1, __ymm0, __ymm1) do { \
 	__m256i carry;							\
 									\
-	carry = __ymm0;							\
-	GOST3411_2012_AVX256_ADD_CARRY(__dymm0, carry);			\
-	GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm1, carry);		\
-	carry = __ymm1;							\
-	GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm1, carry);		\
+	carry = (__ymm0);						\
+	GOST3411_2012_AVX256_ADD_CARRY((__dymm0), carry);		\
+	GOST3411_2012_AVX256_ADD_CARRY_LAST((__dymm1), carry);		\
+	carry = (__ymm1);						\
+	GOST3411_2012_AVX256_ADD_CARRY_LAST((__dymm1), carry);		\
 } while (0)
 
 #define GOST3411_2012_AVX256_ADDMOD512_DIGIT(__dymm0, __dymm1, __digit) do { \
 	__m256i carry;							\
 									\
-	carry = _mm256_set_epi64x(0, 0, 0, (__digit));			\
-	GOST3411_2012_AVX256_ADD_CARRY(__dymm0, carry);			\
-	GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm1, carry);		\
+	carry = _mm256_set_epi64x(0, 0, 0, (int64_t)(__digit));		\
+	GOST3411_2012_AVX256_ADD_CARRY((__dymm0), carry);		\
+	GOST3411_2012_AVX256_ADD_CARRY_LAST((__dymm1), carry);		\
+} while (0)
+#endif /* __AVX2__ */
+
+
+#define GOST3411_2012_AVX256_LOAD(__ptr, __ymm0, __ymm1) do {		\
+	(__ymm0) = _mm256_load_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
+	(__ymm1) = _mm256_load_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
+} while (0)
+
+#define GOST3411_2012_AVX256_STREAM_LOAD(__ptr, __ymm0, __ymm1) do {	\
+	(__ymm0) = _mm256_stream_load_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
+	(__ymm1) = _mm256_stream_load_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
+} while (0)
+
+#define GOST3411_2012_AVX256_LOADU(__ptr, __ymm0, __ymm1) do {		\
+	(__ymm0) = _mm256_loadu_si256(&((const __m256i*)(const void*)(__ptr))[0]); \
+	(__ymm1) = _mm256_loadu_si256(&((const __m256i*)(const void*)(__ptr))[1]); \
+} while (0)
+
+#define GOST3411_2012_AVX256_STORE(__ptr, __ymm0, __ymm1) do {		\
+	_mm256_store_si256(&((__m256i*)(void*)(__ptr))[0], (__ymm0));	\
+	_mm256_store_si256(&((__m256i*)(void*)(__ptr))[1], (__ymm1));	\
+} while (0)
+
+#define GOST3411_2012_AVX256_XOR2_512(__dymm0, __dymm1,			\
+    __aymm0, __aymm1, __bymm0, __bymm1) do { 				\
+	(__dymm0) = _mm256_xor_si256((__aymm0), (__bymm0));		\
+	(__dymm1) = _mm256_xor_si256((__aymm1), (__bymm1));		\
 } while (0)
 
 
-#ifdef __clang__ /* Fix for clang. */
-#define _mm256_extract_epi8_fx(__ymm, __imm)				\
-    (_mm256_extract_epi8(__ymm, (__imm)) & 0xff)
-#else
-#define _mm256_extract_epi8_fx(__ymm, __imm)				\
-    _mm256_extract_epi8(__ymm, (__imm))
-#endif
+#define GOST3411_2012_AVX256_SLP_ROUND4(__dymm, __idxarr, __row) do {	\
+	register uint64_t r0, r1, r2, r3;				\
+									\
+	r0  = gost3411_2012_Ax[0][__idxarr[ 0 + (__row) +  0]];		\
+	r1  = gost3411_2012_Ax[0][__idxarr[ 0 + (__row) +  1]];		\
+	r2  = gost3411_2012_Ax[0][__idxarr[ 0 + (__row) +  2]];		\
+	r3  = gost3411_2012_Ax[0][__idxarr[ 0 + (__row) +  3]];		\
+									\
+	r0 ^= gost3411_2012_Ax[1][__idxarr[ 0 + (__row) +  8]];		\
+	r1 ^= gost3411_2012_Ax[1][__idxarr[ 0 + (__row) +  9]];		\
+	r2 ^= gost3411_2012_Ax[1][__idxarr[ 0 + (__row) + 10]];		\
+	r3 ^= gost3411_2012_Ax[1][__idxarr[ 0 + (__row) + 11]];		\
+									\
+	r0 ^= gost3411_2012_Ax[2][__idxarr[16 + (__row) + 0]];		\
+	r1 ^= gost3411_2012_Ax[2][__idxarr[16 + (__row) + 1]];		\
+	r2 ^= gost3411_2012_Ax[2][__idxarr[16 + (__row) + 2]];		\
+	r3 ^= gost3411_2012_Ax[2][__idxarr[16 + (__row) + 3]];		\
+									\
+	r0 ^= gost3411_2012_Ax[3][__idxarr[16 + (__row) +  8]];		\
+	r1 ^= gost3411_2012_Ax[3][__idxarr[16 + (__row) +  9]];		\
+	r2 ^= gost3411_2012_Ax[3][__idxarr[16 + (__row) + 10]];		\
+	r3 ^= gost3411_2012_Ax[3][__idxarr[16 + (__row) + 11]];		\
+									\
+	r0 ^= gost3411_2012_Ax[4][__idxarr[32 + (__row) +  0]];		\
+	r1 ^= gost3411_2012_Ax[4][__idxarr[32 + (__row) +  1]];		\
+	r2 ^= gost3411_2012_Ax[4][__idxarr[32 + (__row) +  2]];		\
+	r3 ^= gost3411_2012_Ax[4][__idxarr[32 + (__row) +  3]];		\
+									\
+	r0 ^= gost3411_2012_Ax[5][__idxarr[32 + (__row) +  8]];		\
+	r1 ^= gost3411_2012_Ax[5][__idxarr[32 + (__row) +  9]];		\
+	r2 ^= gost3411_2012_Ax[5][__idxarr[32 + (__row) + 10]];		\
+	r3 ^= gost3411_2012_Ax[5][__idxarr[32 + (__row) + 11]];		\
+									\
+	r0 ^= gost3411_2012_Ax[6][__idxarr[48 + (__row) +  0]];		\
+	r1 ^= gost3411_2012_Ax[6][__idxarr[48 + (__row) +  1]];		\
+	r2 ^= gost3411_2012_Ax[6][__idxarr[48 + (__row) +  2]];		\
+	r3 ^= gost3411_2012_Ax[6][__idxarr[48 + (__row) +  3]];		\
+									\
+	r0 ^= gost3411_2012_Ax[7][__idxarr[48 + (__row) +  8]];		\
+	r1 ^= gost3411_2012_Ax[7][__idxarr[48 + (__row) +  9]];		\
+	r2 ^= gost3411_2012_Ax[7][__idxarr[48 + (__row) + 10]];		\
+	r3 ^= gost3411_2012_Ax[7][__idxarr[48 + (__row) + 11]];		\
+									\
+	(__dymm) = _mm256_set_epi64x((int64_t)r3, (int64_t)r2,		\
+	    (int64_t)r1, (int64_t)r0);					\
+} while (0)
 
-/* i7-4770K CPU @ 3.50GHz
- * GCC:		
- * clang 3.8:	10176028000
- * clang 3.7:	
- * clang 3.4:	
- * 
- * AMD Athlon(tm) 5350 APU with Radeon(tm) R3      (2050.04-MHz K8-class CPU)
- * GCC:		
- * clang 3.8:	
- * clang 3.7:	
- * clang 3.4:	
- */
 #define GOST3411_2012_AVX256_SLP(__dymm0, __dymm1, __ymm0, __ymm1) do {	\
-	register uint64_t r0, r1, r2, r3;				\
-	register uint64_t s0, s1, s2, s3;				\
-									\
-	r0  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  0)];	\
-	r1  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  1)];	\
-	r2  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  2)];	\
-	r3  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  3)];	\
-	s0  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  4)];	\
-	s1  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  5)];	\
-	s2  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  6)];	\
-	s3  = gost3411_2012_Ax[0][_mm256_extract_epi8_fx(__ymm0,  7)];	\
-									\
-	r0 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0,  8)];	\
-	r1 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0,  9)];	\
-	r2 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0, 10)];	\
-	r3 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0, 11)];	\
-	s0 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0, 12)];	\
-	s1 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0, 13)];	\
-	s2 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0, 14)];	\
-	s3 ^= gost3411_2012_Ax[1][_mm256_extract_epi8_fx(__ymm0, 15)];	\
-									\
-	r0 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 16)];	\
-	r1 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 17)];	\
-	r2 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 18)];	\
-	r3 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 19)];	\
-	s0 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 20)]; 	\
-	s1 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 21)];	\
-	s2 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 22)];	\
-	s3 ^= gost3411_2012_Ax[2][_mm256_extract_epi8_fx(__ymm0, 23)];	\
-									\
-	r0 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 24)];	\
-	r1 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 25)];	\
-	r2 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 26)];	\
-	r3 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 27)];	\
-	s0 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 28)];	\
-	s1 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 29)];	\
-	s2 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 30)];	\
-	s3 ^= gost3411_2012_Ax[3][_mm256_extract_epi8_fx(__ymm0, 31)];	\
-									\
-	r0 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  0)];	\
-	r1 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  1)];	\
-	r2 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  2)];	\
-	r3 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  3)];	\
-	s0 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  4)];	\
-	s1 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  5)];	\
-	s2 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  6)];	\
-	s3 ^= gost3411_2012_Ax[4][_mm256_extract_epi8_fx(__ymm1,  7)];	\
-									\
-	r0 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1,  8)];	\
-	r1 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1,  9)];	\
-	r2 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1, 10)];	\
-	r3 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1, 11)];	\
-	s0 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1, 12)];	\
-	s1 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1, 13)];	\
-	s2 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1, 14)];	\
-	s3 ^= gost3411_2012_Ax[5][_mm256_extract_epi8_fx(__ymm1, 15)];	\
-									\
-	r0 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 16)];	\
-	r1 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 17)];	\
-	r2 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 18)];	\
-	r3 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 19)];	\
-	s0 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 20)];	\
-	s1 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 21)];	\
-	s2 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 22)];	\
-	s3 ^= gost3411_2012_Ax[6][_mm256_extract_epi8_fx(__ymm1, 23)];	\
-									\
-	r0 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 24)];	\
-	r1 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 25)];	\
-	r2 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 26)];	\
-	r3 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 27)];	\
-	s0 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 28)];	\
-	s1 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 29)];	\
-	s2 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 30)];	\
-	s3 ^= gost3411_2012_Ax[7][_mm256_extract_epi8_fx(__ymm1, 31)];	\
-									\
-	__dymm0 = _mm256_set_epi64x(r3, r2, r1, r0);			\
-	__dymm1 = _mm256_set_epi64x(s3, s2, s1, s0);			\
-} while (0)
-
-/* i7-4770K CPU @ 3.50GHz
- * GCC:		
- * clang 3.8:	9459778000
- * clang 3.7:	
- * clang 3.4:	
- * 
- * AMD Athlon(tm) 5350 APU with Radeon(tm) R3      (2050.04-MHz K8-class CPU)
- * GCC:		
- * clang 3.8:	
- * clang 3.7:	
- * clang 3.4:	
- */
-#define GOST3411_2012_AVX256_SLP_(__dymm0, __dymm1, __ymm0, __ymm1) do { \
-	register uint64_t r0, r1, r2, r3;				\
-	register uint64_t s0, s1, s2, s3;				\
 	GOST3411_2012_ALIGN(32) uint8_t idxarr[64];			\
 									\
-	_mm256_store_si256((__m256i*)(void*)&idxarr[ 0], __ymm0);	\
-	_mm256_store_si256((__m256i*)(void*)&idxarr[32], __ymm1);	\
-	r0  = gost3411_2012_Ax[0][idxarr[ 0]];				\
-	r1  = gost3411_2012_Ax[0][idxarr[ 1]];				\
-	r2  = gost3411_2012_Ax[0][idxarr[ 2]];				\
-	r3  = gost3411_2012_Ax[0][idxarr[ 3]];				\
-	s0  = gost3411_2012_Ax[0][idxarr[ 4]];				\
-	s1  = gost3411_2012_Ax[0][idxarr[ 5]];				\
-	s2  = gost3411_2012_Ax[0][idxarr[ 6]];				\
-	s3  = gost3411_2012_Ax[0][idxarr[ 7]];				\
-									\
-	r0 ^= gost3411_2012_Ax[1][idxarr[ 8]];				\
-	r1 ^= gost3411_2012_Ax[1][idxarr[ 9]];				\
-	r2 ^= gost3411_2012_Ax[1][idxarr[10]];				\
-	r3 ^= gost3411_2012_Ax[1][idxarr[11]];				\
-	s0 ^= gost3411_2012_Ax[1][idxarr[12]];				\
-	s1 ^= gost3411_2012_Ax[1][idxarr[13]];				\
-	s2 ^= gost3411_2012_Ax[1][idxarr[14]];				\
-	s3 ^= gost3411_2012_Ax[1][idxarr[15]];				\
-									\
-	r0 ^= gost3411_2012_Ax[2][idxarr[16]];				\
-	r1 ^= gost3411_2012_Ax[2][idxarr[17]];				\
-	r2 ^= gost3411_2012_Ax[2][idxarr[18]];				\
-	r3 ^= gost3411_2012_Ax[2][idxarr[19]];				\
-	s0 ^= gost3411_2012_Ax[2][idxarr[20]]; 				\
-	s1 ^= gost3411_2012_Ax[2][idxarr[21]];				\
-	s2 ^= gost3411_2012_Ax[2][idxarr[22]];				\
-	s3 ^= gost3411_2012_Ax[2][idxarr[23]];				\
-									\
-	r0 ^= gost3411_2012_Ax[3][idxarr[24]];				\
-	r1 ^= gost3411_2012_Ax[3][idxarr[25]];				\
-	r2 ^= gost3411_2012_Ax[3][idxarr[26]];				\
-	r3 ^= gost3411_2012_Ax[3][idxarr[27]];				\
-	s0 ^= gost3411_2012_Ax[3][idxarr[28]];				\
-	s1 ^= gost3411_2012_Ax[3][idxarr[29]];				\
-	s2 ^= gost3411_2012_Ax[3][idxarr[30]];				\
-	s3 ^= gost3411_2012_Ax[3][idxarr[31]];				\
-									\
-	r0 ^= gost3411_2012_Ax[4][idxarr[32]];				\
-	r1 ^= gost3411_2012_Ax[4][idxarr[33]];				\
-	r2 ^= gost3411_2012_Ax[4][idxarr[34]];				\
-	r3 ^= gost3411_2012_Ax[4][idxarr[35]];				\
-	s0 ^= gost3411_2012_Ax[4][idxarr[36]];				\
-	s1 ^= gost3411_2012_Ax[4][idxarr[37]];				\
-	s2 ^= gost3411_2012_Ax[4][idxarr[38]];				\
-	s3 ^= gost3411_2012_Ax[4][idxarr[39]];				\
-									\
-	r0 ^= gost3411_2012_Ax[5][idxarr[40]];				\
-	r1 ^= gost3411_2012_Ax[5][idxarr[41]];				\
-	r2 ^= gost3411_2012_Ax[5][idxarr[42]];				\
-	r3 ^= gost3411_2012_Ax[5][idxarr[43]];				\
-	s0 ^= gost3411_2012_Ax[5][idxarr[44]];				\
-	s1 ^= gost3411_2012_Ax[5][idxarr[45]];				\
-	s2 ^= gost3411_2012_Ax[5][idxarr[46]];				\
-	s3 ^= gost3411_2012_Ax[5][idxarr[47]];				\
-									\
-	r0 ^= gost3411_2012_Ax[6][idxarr[48]];				\
-	r1 ^= gost3411_2012_Ax[6][idxarr[49]];				\
-	r2 ^= gost3411_2012_Ax[6][idxarr[50]];				\
-	r3 ^= gost3411_2012_Ax[6][idxarr[51]];				\
-	s0 ^= gost3411_2012_Ax[6][idxarr[52]];				\
-	s1 ^= gost3411_2012_Ax[6][idxarr[53]];				\
-	s2 ^= gost3411_2012_Ax[6][idxarr[54]];				\
-	s3 ^= gost3411_2012_Ax[6][idxarr[55]];				\
-									\
-	r0 ^= gost3411_2012_Ax[7][idxarr[56]];				\
-	r1 ^= gost3411_2012_Ax[7][idxarr[57]];				\
-	r2 ^= gost3411_2012_Ax[7][idxarr[58]];				\
-	r3 ^= gost3411_2012_Ax[7][idxarr[59]];				\
-	s0 ^= gost3411_2012_Ax[7][idxarr[60]];				\
-	s1 ^= gost3411_2012_Ax[7][idxarr[61]];				\
-	s2 ^= gost3411_2012_Ax[7][idxarr[62]];				\
-	s3 ^= gost3411_2012_Ax[7][idxarr[63]];				\
-									\
-	__dymm0 = _mm256_set_epi64x(r3, r2, r1, r0);			\
-	__dymm1 = _mm256_set_epi64x(s3, s2, s1, s0);			\
+	GOST3411_2012_AVX256_STORE(&idxarr, (__ymm0), (__ymm1));	\
+	GOST3411_2012_AVX256_SLP_ROUND4((__dymm0), idxarr, 0);		\
+	GOST3411_2012_AVX256_SLP_ROUND4((__dymm1), idxarr, 4);		\
 } while (0)
 
 
 #define GOST3411_2012_AVX256_XSLP(__dymm0, __dymm1, __aymm0, __aymm1,	\
     __bymm0, __bymm1) do {						\
-									\
-	GOST3411_2012_AVX256_XOR2_512(__dymm0, __dymm1,			\
-	    __aymm0, __aymm1,						\
-	    __bymm0, __bymm1);						\
-	GOST3411_2012_AVX256_SLP(__dymm0, __dymm1, __dymm0, __dymm1);	\
+	GOST3411_2012_AVX256_XOR2_512((__dymm0), (__dymm1),		\
+	    (__aymm0), (__aymm1),					\
+	    (__bymm0), (__bymm1));					\
+	GOST3411_2012_AVX256_SLP((__dymm0), (__dymm1), (__dymm0), (__dymm1)); \
 } while (0)
 
 #define GOST3411_2012_AVX256_LXSLP(__dymm0, __dymm1, __aymm0, __aymm1, __ptr) do { \
 	__m256i symm0, symm1;						\
 									\
-	GOST3411_2012_AVX256_LOAD(__ptr, symm0, symm1);			\
-	GOST3411_2012_AVX256_XOR2_512(__dymm0, __dymm1,			\
+	GOST3411_2012_AVX256_LOAD((__ptr), symm0, symm1);		\
+	GOST3411_2012_AVX256_XOR2_512((__dymm0), (__dymm1),		\
 	    symm0, symm1,						\
-	    __aymm0, __aymm1);						\
-	GOST3411_2012_AVX256_SLP(__dymm0, __dymm1, __dymm0, __dymm1);	\
+	    (__aymm0), (__aymm1));					\
+	GOST3411_2012_AVX256_SLP((__dymm0), (__dymm1), (__dymm0), (__dymm1)); \
 } while (0)
 
 /*
@@ -2108,8 +1690,9 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  *   This function will process the next 512 bits of the message.
  */
 static inline void
-gost3411_2012_transform_n(gost3411_2012_ctx_p ctx, const size_t block_size_bits,
-    const uint8_t *blocks, const uint8_t *blocks_max) {
+gost3411_2012_transform_n_avx(gost3411_2012_ctx_p ctx,
+    const size_t block_size_bits, const uint8_t *blocks,
+    const uint8_t *blocks_max) {
 	register size_t i;
 	__m256i hymm0, hymm1; /* HASH. */
 	__m256i cntymm0, cntymm1; /* Counter. */
@@ -2128,9 +1711,13 @@ gost3411_2012_transform_n(gost3411_2012_ctx_p ctx, const size_t block_size_bits,
 			GOST3411_2012_AVX256_LOADU(blocks,
 			    tymm0, tymm1);
 		}
+		/* Shedule to load into cache. */
+		if ((blocks + GOST3411_2012_MSG_BLK_SIZE) < blocks_max) {
+			_mm_prefetch((const char*)(blocks + GOST3411_2012_MSG_BLK_SIZE), _MM_HINT_T0);
+		}
 		GOST3411_2012_AVX256_XSLP(kymm0, kymm1,
 		    hymm0, hymm1,
-		    cntymm0, cntymm1); /* HASH design deffect here. */
+		    cntymm0, cntymm1); /* !!! HASH design deffect here !!! */
 		GOST3411_2012_AVX256_ADDMOD512_DIGIT(cntymm0, cntymm1,
 		    block_size_bits);
 		GOST3411_2012_AVX256_ADDMOD512(sigymm0, sigymm1,
@@ -2164,7 +1751,7 @@ gost3411_2012_transform_n(gost3411_2012_ctx_p ctx, const size_t block_size_bits,
 	_mm256_zeroall();
 }
 static inline void
-gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
+gost3411_2012_transform_1_avx(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	register size_t i;
 	__m256i hymm0, hymm1; /* HASH. */
 	__m256i kymm0, kymm1; /* Key. */
@@ -2202,6 +1789,47 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 #endif
 
 
+static inline void
+gost3411_2012_transform_n(gost3411_2012_ctx_p ctx,
+    const size_t block_size_bits, const uint8_t *blocks,
+    const uint8_t *blocks_max) {
+
+#ifdef __AVX__
+	if (ctx->use_avx) {
+		gost3411_2012_transform_n_avx(ctx,
+		    block_size_bits, blocks, blocks_max);
+		return;
+	}
+#endif
+#ifdef __SSE2__
+	if (ctx->use_sse) {
+		gost3411_2012_transform_n_sse(ctx,
+		    block_size_bits, blocks, blocks_max);
+		return;
+	}
+#endif
+	/* Use generic implementation. */
+	gost3411_2012_transform_n_generic(ctx, block_size_bits, blocks, blocks_max);
+}
+static inline void
+gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
+
+#ifdef __AVX__
+	if (ctx->use_avx) {
+		gost3411_2012_transform_1_avx(ctx, block);
+		return;
+	}
+#endif
+#ifdef __SSE2__
+	if (ctx->use_sse) {
+		gost3411_2012_transform_1_sse(ctx, block);
+		return;
+	}
+#endif
+	/* Use generic implementation. */
+	gost3411_2012_transform_1_generic(ctx, block);
+}
+
 
 /*
  *  gost3411_2012_init
@@ -2211,7 +1839,10 @@ gost3411_2012_transform_1(gost3411_2012_ctx_p ctx, const uint64_t *block) {
  *      for computing a new GOST3411_2012 message digest.
  */
 static inline void
-gost3411_2012_init(size_t bits, gost3411_2012_ctx_p ctx) {
+gost3411_2012_init(const size_t bits, gost3411_2012_ctx_p ctx) {
+#if defined(__SSE2__) || defined(__AVX__)
+	uint32_t eax, ebx, ecx, edx;
+#endif
 
 	memset(ctx, 0x00, sizeof(gost3411_2012_ctx_t));
 	/* Load magic initialization constants. */
@@ -2228,6 +1859,27 @@ gost3411_2012_init(size_t bits, gost3411_2012_ctx_p ctx) {
 		/* IV - all zeros. */
 		break;
 	}
+#ifdef __SSE2__
+	__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx);
+#	ifdef __SSE4_2__
+		ctx->use_sse |= (ecx & (((uint32_t)1) << 20));
+#	elifdef __SSE4_1__
+		ctx->use_sse |= (ecx & (((uint32_t)1) << 19));
+#	elifdef __SSSE3__
+		ctx->use_sse |= (ecx & (((uint32_t)1) <<  9));
+#	elifdef __SSE3__
+		ctx->use_sse |= (ecx & (((uint32_t)1) <<  0));
+#	elifdef __SSE2__
+		ctx->use_sse |= (edx & (((uint32_t)1) << 26));
+#	endif
+#endif
+#ifdef __AVX2__
+	__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
+	ctx->use_avx |= (ebx & (((uint32_t)1) <<  5)); /* AVX2. */
+#elifdef __AVX__
+	__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx);
+	ctx->use_avx |= (ecx & (((uint32_t)1) << 28)); /* AVX. */
+#endif
 }
 
 /*
@@ -2247,35 +1899,37 @@ gost3411_2012_init(size_t bits, gost3411_2012_ctx_p ctx) {
  *          The length of the message in message_array
  */
 static inline void
-gost3411_2012_update(gost3411_2012_ctx_p ctx, const uint8_t *data, size_t data_size) {
-	size_t part_size;
+gost3411_2012_update(gost3411_2012_ctx_p ctx,
+    const uint8_t *data, const size_t data_size) {
+	size_t data_sz, part_size;
 
 	if (0 == data_size)
 		return;
+	data_sz = data_size;
 	part_size = (GOST3411_2012_MSG_BLK_SIZE - ctx->buffer_usage);
 	/* Transform as many times as possible. */
-	if (part_size <= data_size) {
+	if (part_size <= data_sz) {
 		if (0 != ctx->buffer_usage) { /* Add data to buffer and process it. */
 			memcpy((((uint8_t*)ctx->buffer) + ctx->buffer_usage), data, part_size);
 			ctx->buffer_usage = 0;
 			data += part_size;
-			data_size -= part_size;
+			data_sz -= part_size;
 			gost3411_2012_transform_n(ctx, GOST3411_2012_MSG_BLK_BITS,
 			    (uint8_t*)ctx->buffer,
 			    (((uint8_t*)ctx->buffer) + GOST3411_2012_MSG_BLK_SIZE));
 		}
 
-		if (GOST3411_2012_MSG_BLK_SIZE <= data_size) {
+		if (GOST3411_2012_MSG_BLK_SIZE <= data_sz) {
 			gost3411_2012_transform_n(ctx, GOST3411_2012_MSG_BLK_BITS,
 			    data,
-			    (data + (data_size & ~GOST3411_2012_MSG_BLK_SIZE_MASK)));
-			data += (data_size & ~GOST3411_2012_MSG_BLK_SIZE_MASK);
-			data_size &= GOST3411_2012_MSG_BLK_SIZE_MASK;
+			    (data + (data_sz & ~GOST3411_2012_MSG_BLK_SIZE_MASK)));
+			data += (data_sz & ~GOST3411_2012_MSG_BLK_SIZE_MASK);
+			data_sz &= GOST3411_2012_MSG_BLK_SIZE_MASK;
 		}
 	}
 	/* Buffer remaining data. */
-	memcpy((((uint8_t*)ctx->buffer) + ctx->buffer_usage), data, data_size);
-	ctx->buffer_usage += data_size;
+	memcpy((((uint8_t*)ctx->buffer) + ctx->buffer_usage), data, data_sz);
+	ctx->buffer_usage += data_sz;
 }
 
 /*
@@ -2342,9 +1996,10 @@ gost3411_2012_final(gost3411_2012_ctx_p ctx, uint8_t *digest) {
  * digest - caller digest to be filled in
  */
 static inline void
-hmac_gost3411_2012_init(size_t bits, const uint8_t *key, size_t key_len,
+hmac_gost3411_2012_init(const size_t bits,
+    const uint8_t *key, const size_t key_len,
     hmac_gost3411_2012_ctx_p hctx) {
-	register size_t i;
+	register size_t i, key_sz;
 	uint64_t k_ipad[GOST3411_2012_MSG_BLK_64CNT]; /* inner padding - key XORd with ipad. */
 
 	/* Start out by storing key in pads. */
@@ -2352,13 +2007,14 @@ hmac_gost3411_2012_init(size_t bits, const uint8_t *key, size_t key_len,
 	gost3411_2012_init(bits, &hctx->ctx); /* Init context for 1st pass / Get hash params. */
 	if (GOST3411_2012_MSG_BLK_SIZE < key_len) {
 		gost3411_2012_update(&hctx->ctx, key, key_len);
-		key_len = hctx->ctx.hash_size;
+		key_sz = hctx->ctx.hash_size;
 		gost3411_2012_final(&hctx->ctx, (uint8_t*)k_ipad);
 		gost3411_2012_init(bits, &hctx->ctx); /* Reinit context for 1st pass. */
 	} else {
+		key_sz = key_len;
 		memcpy(k_ipad, key, key_len);
 	}
-	memset((((uint8_t*)k_ipad) + key_len), 0x00, (GOST3411_2012_MSG_BLK_SIZE - key_len));
+	memset((((uint8_t*)k_ipad) + key_sz), 0x00, (GOST3411_2012_MSG_BLK_SIZE - key_sz));
 	memcpy(hctx->k_opad, k_ipad, sizeof(k_ipad));
 
 	/* XOR key with ipad and opad values. */
@@ -2375,7 +2031,7 @@ hmac_gost3411_2012_init(size_t bits, const uint8_t *key, size_t key_len,
 
 static inline void
 hmac_gost3411_2012_update(hmac_gost3411_2012_ctx_p hctx,
-    const uint8_t *data, size_t data_size) {
+    const uint8_t *data, const size_t data_size) {
 
 	gost3411_2012_update(&hctx->ctx, data, data_size); /* Then data of datagram. */
 }
@@ -2400,8 +2056,9 @@ hmac_gost3411_2012_final(hmac_gost3411_2012_ctx_p hctx,
 }
 
 static inline void
-hmac_gost3411_2012(size_t bits, const uint8_t *key, size_t key_len,
-    const uint8_t *data, size_t data_size,
+hmac_gost3411_2012(const size_t bits,
+    const uint8_t *key, const size_t key_len,
+    const uint8_t *data, const size_t data_size,
     uint8_t *digest, size_t *digest_size) {
 	hmac_gost3411_2012_ctx_t hctx;
 
@@ -2412,7 +2069,8 @@ hmac_gost3411_2012(size_t bits, const uint8_t *key, size_t key_len,
 
 
 static inline void
-gost3411_2012_cvt_hex(const uint8_t *bin, size_t bin_size, uint8_t *hex) {
+gost3411_2012_cvt_hex(const uint8_t *bin, const size_t bin_size,
+    uint8_t *hex) {
 	static const uint8_t *hex_tbl = (const uint8_t*)"0123456789abcdef";
 	register const uint8_t *bin_max;
 	register uint8_t byte;
@@ -2428,7 +2086,7 @@ gost3411_2012_cvt_hex(const uint8_t *bin, size_t bin_size, uint8_t *hex) {
 
 /* Other staff. */
 static inline void
-gost3411_2012_cvt_str(const uint8_t *digest, size_t digest_size,
+gost3411_2012_cvt_str(const uint8_t *digest, const size_t digest_size,
     char *digest_str) {
 
 	gost3411_2012_cvt_hex(digest, digest_size, (uint8_t*)digest_str);
@@ -2436,7 +2094,8 @@ gost3411_2012_cvt_str(const uint8_t *digest, size_t digest_size,
 
 
 static inline void
-gost3411_2012_get_digest(size_t bits, const void *data, size_t data_size,
+gost3411_2012_get_digest(const size_t bits,
+    const void *data, const size_t data_size,
     uint8_t *digest, size_t *digest_size) {
 	gost3411_2012_ctx_t ctx;
 
@@ -2449,7 +2108,8 @@ gost3411_2012_get_digest(size_t bits, const void *data, size_t data_size,
 }
 
 static inline void
-gost3411_2012_get_digest_str(size_t bits, const char *data, size_t data_size,
+gost3411_2012_get_digest_str(const size_t bits,
+    const char *data, const size_t data_size,
     char *digest_str, size_t *digest_str_size) {
 	gost3411_2012_ctx_t ctx;
 	size_t digest_size;
@@ -2468,16 +2128,20 @@ gost3411_2012_get_digest_str(size_t bits, const char *data, size_t data_size,
 
 
 static inline void
-gost3411_2012_hmac_get_digest(size_t bits, const void *key, size_t key_size,
-    const void *data, size_t data_size, uint8_t *digest, size_t *digest_size) {
+gost3411_2012_hmac_get_digest(const size_t bits,
+    const void *key, const size_t key_size,
+    const void *data, const size_t data_size,
+    uint8_t *digest, size_t *digest_size) {
 
 	hmac_gost3411_2012(bits, (const uint8_t*)key, key_size,
 	    (const uint8_t*)data, data_size, digest, digest_size);
 }
 
 static inline void
-gost3411_2012_hmac_get_digest_str(size_t bits, const char *key, size_t key_size,
-    const char *data, size_t data_size, char *digest_str, size_t *digest_str_size) {
+gost3411_2012_hmac_get_digest_str(size_t bits,
+    const char *key, const size_t key_size,
+    const char *data, const size_t data_size,
+    char *digest_str, size_t *digest_str_size) {
 	size_t digest_size;
 	uint8_t digest[GOST3411_2012_HASH_MAX_SIZE];
 
@@ -2501,7 +2165,7 @@ typedef struct gost3411_2012_hash_test_vectors_s {
 } gost3411_2012_htv_t, *gost3411_2012_htv_p;
 
 /* M2: "Се ветри, Стрибожи внуци, веютъ с моря стрелами на храбрыя плъкы Игоревы" */
-static uint8_t gost3411_2012_hash_m2[] = {
+static const uint8_t gost3411_2012_hash_m2[] = {
 	0xd1, 0xe5, 0x20, 0xe2, 0xe5, 0xf2, 0xf0, 0xe8,
 	0x2c, 0x20, 0xd1, 0xf2, 0xf0, 0xe8, 0xe1, 0xee,
 	0xe6, 0xe8, 0x20, 0xe2, 0xed, 0xf3, 0xf6, 0xe8,
@@ -2513,7 +2177,7 @@ static uint8_t gost3411_2012_hash_m2[] = {
 	0x20, 0xc8, 0xe3, 0xee, 0xf0, 0xe5, 0xe2, 0xfb
 };
 /* https://github.com/mjosaarinen/stricat/blob/master/selftest.c m4 */
-static uint8_t gost3411_2012_hash_m4[] = {
+static const uint8_t gost3411_2012_hash_m4[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -2560,11 +2224,6 @@ static gost3411_2012_htv_t gost3411_2012_hash_tst[] = {
 		/*.msg_size =*/	6,
 		/*.hash256 =*/	"e3c9fd89226d93b489a9fe27d686806e24a514e3787bca053c698ec4616ceb78",
 		/*.hash512 =*/	NULL,
-	}, {
-		/*.msg =*/	NULL,
-		/*.msg_size =*/	0,
-		/*.hash256 =*/	NULL,
-		/*.hash512 =*/	NULL,
 	}
 };
 
@@ -2583,13 +2242,13 @@ typedef struct gost3411_2012_hmac_test_vectors_s {
 /* http://www.tc26.ru/methods/recommendation/%D0%A2%D0%9A26%D0%90%D0%9B%D0%93.pdf */
 /* https://tools.ietf.org/html/draft-smyshlyaev-gost-usage-00 */
 /* https://datatracker.ietf.org/doc/rfc7836/?include_text=1 */
-static uint8_t gost3411_2012_hmac_k1[] = {
+static const uint8_t gost3411_2012_hmac_k1[] = {
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
 	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
 	0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
 };
-static uint8_t gost3411_2012_hmac_m1[] = {
+static const uint8_t gost3411_2012_hmac_m1[] = {
 	0x01, 0x26, 0xbd, 0xb8, 0x78, 0x00, 0xaf, 0x21,
 	0x43, 0x41, 0x45, 0x65, 0x63, 0x78, 0x01, 0x00
 };
@@ -2602,13 +2261,6 @@ static gost3411_2012_hmtv_t gost3411_2012_hmac_tst[] = {
 		/*.msg_size =*/	sizeof(gost3411_2012_hmac_m1),
 		/*.hmac256 =*/	"a1aa5f7de402d7b3d323f2991c8d4534013137010a83754fd0af6d7cd4922ed9",
 		/*.hmac512 =*/	"a59bab22ecae19c65fbde6e5f4e9f5d8549d31f037f9df9b905500e171923a773d5f1530f2ed7e964cb2eedc29e9ad2f3afe93b2814f79f5000ffc0366c251e6",
-	}, {
-		/*.key =*/	NULL,
-		/*.key_size =*/	0,
-		/*.msg =*/	NULL,
-		/*.msg_size =*/	0,
-		/*.hmac256 =*/	NULL,
-		/*.hmac512 =*/	NULL,
 	}
 };
 
@@ -2616,83 +2268,103 @@ static gost3411_2012_hmtv_t gost3411_2012_hmac_tst[] = {
 /* 0 - OK, non zero - error */
 static inline int
 gost3411_2012_self_test() {
-	size_t i, j, k, tm;
+	size_t i, j, k, s, tm;
 	gost3411_2012_ctx_t ctx;
 	uint8_t digest[GOST3411_2012_HASH_MAX_SIZE];
 	char digest_str[(GOST3411_2012_HASH_STR_MAX_SIZE + 1)];
 
 	/* Test 1 - HASH. */
-	for (i = 0; NULL != gost3411_2012_hash_tst[i].msg; i ++) {
+	for (i = 0; i < nitems(gost3411_2012_hash_tst); i ++) {
 		if (NULL != gost3411_2012_hash_tst[i].hash256) {
 			gost3411_2012_get_digest_str(256,
 			    gost3411_2012_hash_tst[i].msg,
 			    gost3411_2012_hash_tst[i].msg_size,
 			    digest_str, &tm);
-			if (0 != memcmp(digest_str, gost3411_2012_hash_tst[i].hash256, tm)) {
-				gost3411_2012_print("Test1: %zu - 256: FAIL!\nvec = %s\nres = %s\n",
-				    i, gost3411_2012_hash_tst[i].hash256, digest_str);
+			if (0 != memcmp(digest_str, gost3411_2012_hash_tst[i].hash256, tm))
 				return (1);
-			} else {
-				gost3411_2012_print("Test1: %zu - 256: OK\n", i);
-			}
 		}
 		if (NULL != gost3411_2012_hash_tst[i].hash512) {
 			gost3411_2012_get_digest_str(512,
 			    gost3411_2012_hash_tst[i].msg,
 			    gost3411_2012_hash_tst[i].msg_size,
 			    digest_str, &tm);
-			if (0 != memcmp(digest_str, gost3411_2012_hash_tst[i].hash512, tm)) {
-				gost3411_2012_print("Test1: %zu - 512: FAIL!\nvec = %s\nres = %s\n",
-				    i, gost3411_2012_hash_tst[i].hash512, digest_str);
-				return (1);
-			} else {
-				gost3411_2012_print("Test1: %zu - 512: OK\n", i);
-			}
+			if (0 != memcmp(digest_str, gost3411_2012_hash_tst[i].hash512, tm))
+				return (2);
 		}
 	}
 
 	/* Test 2 - HASH by parts. */
-	for (k = 0; NULL != gost3411_2012_hash_tst[k].msg; k ++) {
-		for (j = 1; j < gost3411_2012_hash_tst[k].msg_size; j ++) {
-			if (NULL != gost3411_2012_hash_tst[k].hash256) {
-				gost3411_2012_init(256, &ctx);
-				for (i = 0; i < gost3411_2012_hash_tst[k].msg_size; i += j) {
-					tm = (gost3411_2012_hash_tst[k].msg_size - i);
-					gost3411_2012_update(&ctx,
-					    (const uint8_t*)(gost3411_2012_hash_tst[k].msg + i),
-					    ((j < tm) ? j : tm));
+	for (s = 0; s < 3; s ++) {
+#ifndef __SSE2__
+		if (1 == s) /* No SSE2+, skip test. */
+			continue;
+#endif
+#ifndef __AVX__
+		if (2 == s) /* No AVX+, skip test. */
+			continue;
+#endif
+		for (k = 0; k < nitems(gost3411_2012_hash_tst); k ++) {
+			for (j = 1; j < gost3411_2012_hash_tst[k].msg_size; j ++) {
+				if (NULL != gost3411_2012_hash_tst[k].hash256) {
+					gost3411_2012_init(256, &ctx);
+					/* Force generic test. */
+					ctx.use_sse = 0;
+					ctx.use_avx = 0;
+#ifdef __SSE2__
+					if (1 == s) { /* SSE2+ test. */
+						ctx.use_sse = 1;
+					}
+#endif
+#ifdef __AVX__
+					if (2 == s) { /* No AVX+, skip test. */
+						ctx.use_avx = 1;
+					}
+#endif
+					for (i = 0; i < gost3411_2012_hash_tst[k].msg_size; i += j) {
+						tm = (gost3411_2012_hash_tst[k].msg_size - i);
+						gost3411_2012_update(&ctx,
+						    (const uint8_t*)(gost3411_2012_hash_tst[k].msg + i),
+						    ((j < tm) ? j : tm));
+					}
+					tm = ctx.hash_size;
+					gost3411_2012_final(&ctx, digest);
+					gost3411_2012_cvt_str(digest, tm, digest_str);
+					if (0 != memcmp(digest_str, gost3411_2012_hash_tst[k].hash256, tm))
+						return (3);
 				}
-				tm = ctx.hash_size;
-				gost3411_2012_final(&ctx, digest);
-				gost3411_2012_cvt_str(digest, tm, digest_str);
-				if (0 != memcmp(digest_str, gost3411_2012_hash_tst[k].hash256, tm)) {
-					gost3411_2012_print("Test2: %zu/%zu - 256: FAIL!\nvec = %s\nres = %s\n",
-					    k, j, gost3411_2012_hash_tst[k].hash256, digest_str);
-					return (2);
-				}
-			}
-			if (NULL != gost3411_2012_hash_tst[k].hash512) {
-				gost3411_2012_init(512, &ctx);
-				for (i = 0; i < gost3411_2012_hash_tst[k].msg_size; i += j) {
-					tm = (gost3411_2012_hash_tst[k].msg_size - i);
-					gost3411_2012_update(&ctx,
-					    (const uint8_t*)(gost3411_2012_hash_tst[k].msg + i),
-					    ((j < tm) ? j : tm));
-				}
-				tm = ctx.hash_size;
-				gost3411_2012_final(&ctx, digest);
-				gost3411_2012_cvt_str(digest, tm, digest_str);
-				if (0 != memcmp(digest_str, gost3411_2012_hash_tst[k].hash512, tm)) {
-					gost3411_2012_print("Test2: %zu/%zu - 512: FAIL!\nvec = %s\nres = %s\n",
-					    k, j, gost3411_2012_hash_tst[k].hash512, digest_str);
-					return (2);
+				if (NULL != gost3411_2012_hash_tst[k].hash512) {
+					gost3411_2012_init(512, &ctx);
+					/* Force generic test. */
+					ctx.use_sse = 0;
+					ctx.use_avx = 0;
+#ifdef __SSE2__
+					if (1 == s) { /* SSE2+ test. */
+						ctx.use_sse = 1;
+					}
+#endif
+#ifdef __AVX__
+					if (2 == s) { /* No AVX+, skip test. */
+						ctx.use_avx = 1;
+					}
+#endif
+					for (i = 0; i < gost3411_2012_hash_tst[k].msg_size; i += j) {
+						tm = (gost3411_2012_hash_tst[k].msg_size - i);
+						gost3411_2012_update(&ctx,
+						    (const uint8_t*)(gost3411_2012_hash_tst[k].msg + i),
+						    ((j < tm) ? j : tm));
+					}
+					tm = ctx.hash_size;
+					gost3411_2012_final(&ctx, digest);
+					gost3411_2012_cvt_str(digest, tm, digest_str);
+					if (0 != memcmp(digest_str, gost3411_2012_hash_tst[k].hash512, tm))
+						return (4);
 				}
 			}
 		}
 	}
 
 	/* Test 3 - HMAC. */
-	for (i = 0; NULL != gost3411_2012_hmac_tst[i].msg; i ++) {
+	for (i = 0; i < nitems(gost3411_2012_hmac_tst); i ++) {
 		if (NULL != gost3411_2012_hmac_tst[i].hmac256) {
 			gost3411_2012_hmac_get_digest_str(256,
 			    gost3411_2012_hmac_tst[i].key,
@@ -2700,13 +2372,8 @@ gost3411_2012_self_test() {
 			    gost3411_2012_hmac_tst[i].msg,
 			    gost3411_2012_hmac_tst[i].msg_size,
 			    digest_str, &tm);
-			if (0 != memcmp(digest_str, gost3411_2012_hmac_tst[i].hmac256, tm)) {
-				gost3411_2012_print("Test3: %zu - 256: FAIL!\nvec = %s\nres = %s\n",
-				    i, gost3411_2012_hmac_tst[i].hmac256, digest_str);
-				return (3);
-			} else {
-				gost3411_2012_print("Test3: %zu - 256: OK\n", i);
-			}
+			if (0 != memcmp(digest_str, gost3411_2012_hmac_tst[i].hmac256, tm))
+				return (5);
 		}
 		if (NULL != gost3411_2012_hmac_tst[i].hmac512) {
 			gost3411_2012_hmac_get_digest_str(512,
@@ -2715,13 +2382,8 @@ gost3411_2012_self_test() {
 			    gost3411_2012_hmac_tst[i].msg,
 			    gost3411_2012_hmac_tst[i].msg_size,
 			    digest_str, &tm);
-			if (0 != memcmp(digest_str, gost3411_2012_hmac_tst[i].hmac512, tm)) {
-				gost3411_2012_print("Test3: %zu - 512: FAIL!\nvec = %s\nres = %s\n",
-				    i, gost3411_2012_hmac_tst[i].hmac512, digest_str);
-				return (3);
-			} else {
-				gost3411_2012_print("Test3: %zu - 512: OK\n", i);
-			}
+			if (0 != memcmp(digest_str, gost3411_2012_hmac_tst[i].hmac512, tm))
+				return (6);
 		}
 	}
 
