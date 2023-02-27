@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2003 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
+/*-
+ * Copyright (c) 2003-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -437,74 +437,73 @@ static inline int
 md5_self_test(void) {
 	size_t i;
 	char digest_str[(MD5_HASH_STR_SIZE + 1)]; /* Calculated digest. */
-	char *data[] = {
-	    (char*)"",
-	    (char*)"a",
-	    (char*)"abc",
-	    (char*)"message digest",
-	    (char*)"abcdefghijklmnopqrstuvwxyz",
-	    (char*)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-	    (char*)"12345678901234567890123456789012345678901234567890123456789012345678901234567890",
-	    (char*)"0123456701234567012345670123456701234567012345670123456701234567",
-	    (char*)"01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
-	    (char*)"012345670123456701234567012345670123456701234567012345",
-	    (char*)"0123456701234567012345670123456701234567012345670123456",
-	    (char*)"01234567012345670123456701234567012345670123456701234567",
-	    (char*)"012345670123456701234567012345670123456701234567012345678",
-	    (char*)"012345670123456701234567012345670123456701234567012345670123456",
-	    NULL
+	const char *data[] = {
+	    "",
+	    "a",
+	    "abc",
+	    "message digest",
+	    "abcdefghijklmnopqrstuvwxyz",
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+	    "12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+	    "0123456701234567012345670123456701234567012345670123456701234567",
+	    "01234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567012345670123456701234567",
+	    "012345670123456701234567012345670123456701234567012345",
+	    "0123456701234567012345670123456701234567012345670123456",
+	    "01234567012345670123456701234567012345670123456701234567",
+	    "012345670123456701234567012345670123456701234567012345678",
+	    "012345670123456701234567012345670123456701234567012345670123456"
 	};
-	size_t data_size[] = {
-	    0, 1, 3, 14, 26, 62, 80, 64, 128, 54, 55, 56, 57, 63, 0
+	const size_t data_size[] = {
+	    0, 1, 3, 14, 26, 62, 80, 64, 128, 54, 55, 56, 57, 63
 	};
-	char *result_digest[] = {
-	    (char*)"d41d8cd98f00b204e9800998ecf8427e",
-	    (char*)"0cc175b9c0f1b6a831c399e269772661",
-	    (char*)"900150983cd24fb0d6963f7d28e17f72",
-	    (char*)"f96b697d7cb7938d525a2f31aaf161d0",
-	    (char*)"c3fcd3d76192e4007dfb496cca67e13b",
-	    (char*)"d174ab98d277d9f5a5611c2c9f419d9f",
-	    (char*)"57edf4a22be3c955ac49da2e2107b67a",
-	    (char*)"520620de89e220f9b5850cc97cbff46c",
-	    (char*)"f7361b2a9fc2652423988ab49742ebe4",
-	    (char*)"5c63992176cbe2ad57e297a95e4dbcad",
-	    (char*)"b8e22cd1914c0f0f56f28a4bd7868784",
-	    (char*)"19e80817ef026edb4791f2ea7dd80d5c",
-	    (char*)"ab212680fef75af03dd09c7dec2314fb",
-	    (char*)"25c852e49158c8b622ad7735de232cde",
-	    NULL
+	const char *result_digest[] = {
+	    "d41d8cd98f00b204e9800998ecf8427e",
+	    "0cc175b9c0f1b6a831c399e269772661",
+	    "900150983cd24fb0d6963f7d28e17f72",
+	    "f96b697d7cb7938d525a2f31aaf161d0",
+	    "c3fcd3d76192e4007dfb496cca67e13b",
+	    "d174ab98d277d9f5a5611c2c9f419d9f",
+	    "57edf4a22be3c955ac49da2e2107b67a",
+	    "520620de89e220f9b5850cc97cbff46c",
+	    "f7361b2a9fc2652423988ab49742ebe4",
+	    "5c63992176cbe2ad57e297a95e4dbcad",
+	    "b8e22cd1914c0f0f56f28a4bd7868784",
+	    "19e80817ef026edb4791f2ea7dd80d5c",
+	    "ab212680fef75af03dd09c7dec2314fb",
+	    "25c852e49158c8b622ad7735de232cde"
 	};
-	char *result_hdigest[] = {
-	    (char*)"74e6f7298a9c2d168935f58c001bad88",
-	    (char*)"06f30dc9049f859ea0ccb39fdc8fd5c2",
-	    (char*)"f71cda1c893766a115234db7fdd59f63",
-	    (char*)"7e6deb43db6f6bd41783eff5cb1f3fb6",
-	    (char*)"71476855ae604156f3fde5914de1d665",
-	    (char*)"364f3d9922d74bc1ae99fa2edba83000",
-	    (char*)"579fe900785fe6f6cd219ee41eb363d5",
-	    (char*)"41de6df1bc6560779e3acc63e0804f1b",
-	    (char*)"d3ac5f1cf4da707fde93ba79bff4cf5f",
-	    (char*)"8c864cb13e69473f01e58eab12eae7b4",
-	    (char*)"fa9023d370b9cc49826f06cb0003dcb3",
-	    (char*)"e8943ca04e9323a4592f4464418f63f0",
-	    (char*)"1f7c7599c51c15e68f637700efe1f708",
-	    (char*)"c038c3a3362207c74b94da805825ca73",
-	    NULL
+	const char *result_hdigest[] = {
+	    "74e6f7298a9c2d168935f58c001bad88",
+	    "06f30dc9049f859ea0ccb39fdc8fd5c2",
+	    "f71cda1c893766a115234db7fdd59f63",
+	    "7e6deb43db6f6bd41783eff5cb1f3fb6",
+	    "71476855ae604156f3fde5914de1d665",
+	    "364f3d9922d74bc1ae99fa2edba83000",
+	    "579fe900785fe6f6cd219ee41eb363d5",
+	    "41de6df1bc6560779e3acc63e0804f1b",
+	    "d3ac5f1cf4da707fde93ba79bff4cf5f",
+	    "8c864cb13e69473f01e58eab12eae7b4",
+	    "fa9023d370b9cc49826f06cb0003dcb3",
+	    "e8943ca04e9323a4592f4464418f63f0",
+	    "1f7c7599c51c15e68f637700efe1f708",
+	    "c038c3a3362207c74b94da805825ca73"
 	};
 
-	for (i = 0; NULL != data[i]; i ++) {
+	/* Hash test. */
+	for (i = 0; i < nitems(data); i ++) {
 		md5_get_digest_str(data[i], data_size[i], (char*)digest_str);
 		if (0 != memcmp(digest_str, result_digest[i], MD5_HASH_STR_SIZE))
 			return (1);
 	}
-	/* HMAC test */
-	for (i = 0; NULL != data[i]; i ++) {
+	/* HMAC test. */
+	for (i = 0; i < nitems(data); i ++) {
 		md5_hmac_get_digest_str(data[i], data_size[i], data[i],
 		    data_size[i], (char*)digest_str);
 		if (0 != memcmp(digest_str, result_hdigest[i], MD5_HASH_STR_SIZE)) {
 			return (2);
 		}
 	}
+
 	return (0);
 }
 #endif
