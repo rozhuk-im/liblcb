@@ -1504,15 +1504,14 @@ gost3411_2012_transform_1_sse(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 #define _mm256_xor_si256(__aymm, __bymm) 				\
 	_mm256_castpd_si256(_mm256_xor_pd(				\
 	    _mm256_castsi256_pd((__aymm)), _mm256_castsi256_pd((__bymm))))
+#endif /* __AVX2__ */
 
-#define GOST3411_2012_AVX256_ADDMOD512(__dymm0, __dymm1, __ymm0, __ymm1) do { \
-	GOST3411_2012_ALIGN(32) uint64_t dtmp[GOST3411_2012_MSG_BLK_64CNT]; \
+#define GOST3411_2012_AVX256_ADDMOD512_MEM(__dmem, __ymm0, __ymm1) do {	\
 	GOST3411_2012_ALIGN(32) uint64_t tmp[GOST3411_2012_MSG_BLK_64CNT]; \
 									\
-	GOST3411_2012_AVX256_STORE(dtmp, (__dymm0), (__dymm1));		\
+	_mm_prefetch((const char*)(__dmem), _MM_HINT_T0);		\
 	GOST3411_2012_AVX256_STORE(tmp, (__ymm0), (__ymm1));		\
-	gost3411_2012_addmod512(dtmp, tmp);				\
-	GOST3411_2012_AVX256_STREAM_LOAD(dtmp, (__dymm0), (__dymm1));	\
+	gost3411_2012_addmod512((__dmem), tmp);				\
 } while (0)
 
 #define GOST3411_2012_AVX256_ADDMOD512_DIGIT(__dymm0, __dymm1, __digit) do { \
@@ -1520,66 +1519,8 @@ gost3411_2012_transform_1_sse(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 									\
 	GOST3411_2012_AVX256_STORE(dtmp, (__dymm0), (__dymm1));		\
 	gost3411_2012_addmod512_digit(dtmp, (__digit));			\
-	GOST3411_2012_AVX256_STREAM_LOAD(dtmp, (__dymm0), (__dymm1));	\
+	GOST3411_2012_AVX256_LOAD(dtmp, (__dymm0), (__dymm1));		\
 } while (0)
-
-#else /* __AVX2__ */
-#define _mm256_cmpgt_epi64u(__axmm, __bxmm)				\
-	_mm256_cmpgt_epi64(						\
-	    _mm256_xor_si256((__axmm),					\
-	        _mm256_set1_epi64x((int64_t)0x8000000000000000ull)),	\
-	    _mm256_xor_si256((__bxmm),					\
-	        _mm256_set1_epi64x((int64_t)0x8000000000000000ull)))
-
-#define GOST3411_2012_AVX256_ADD_CARRY(__dymm, __crrymm) do {		\
-	__m256i carry_ret = _mm256_setzero_si256();			\
-									\
-	for (;;) {							\
-		(__dymm) = _mm256_add_epi64((__dymm), (__crrymm));	\
-		(__crrymm) = _mm256_cmpgt_epi64u((__crrymm), (__dymm));	\
-		if (_mm256_testz_si256((__crrymm), (__crrymm)))		\
-			break;						\
-		(__crrymm) = _mm256_permute4x64_epi64((__crrymm),	\
-		    _MM_SHUFFLE(2, 1, 0, 3));				\
-		carry_ret = _mm256_or_si256(carry_ret, (__crrymm));	\
-		(__crrymm) = _mm256_and_si256((__crrymm),		\
-		    _mm256_set_epi64x(1, 1, 1, 0));			\
-	}								\
-	(__crrymm) = _mm256_and_si256(carry_ret,			\
-	    _mm256_set_epi64x(0, 0, 0, 1));				\
-} while (0)
-#define GOST3411_2012_AVX256_ADD_CARRY_LAST(__dymm, __crrymm) do {	\
-	for (;;) {							\
-		(__dymm) = _mm256_add_epi64((__dymm), (__crrymm));	\
-		(__crrymm) = _mm256_cmpgt_epi64u((__crrymm), (__dymm));	\
-		if (_mm256_testz_si256((__crrymm),			\
-		    _mm256_set_epi64x(0, 1, 1, 1)))			\
-			break;						\
-		(__crrymm) = _mm256_and_si256(				\
-		    _mm256_set_epi64x(1, 1, 1, 0),			\
-		    _mm256_permute4x64_epi64((__crrymm),		\
-			_MM_SHUFFLE(2, 1, 0, 3)));			\
-	}								\
-} while (0)
-
-#define GOST3411_2012_AVX256_ADDMOD512(__dymm0, __dymm1, __ymm0, __ymm1) do { \
-	__m256i carry;							\
-									\
-	carry = (__ymm0);						\
-	GOST3411_2012_AVX256_ADD_CARRY((__dymm0), carry);		\
-	GOST3411_2012_AVX256_ADD_CARRY_LAST((__dymm1), carry);		\
-	carry = (__ymm1);						\
-	GOST3411_2012_AVX256_ADD_CARRY_LAST((__dymm1), carry);		\
-} while (0)
-
-#define GOST3411_2012_AVX256_ADDMOD512_DIGIT(__dymm0, __dymm1, __digit) do { \
-	__m256i carry;							\
-									\
-	carry = _mm256_set_epi64x(0, 0, 0, (int64_t)(__digit));		\
-	GOST3411_2012_AVX256_ADD_CARRY((__dymm0), carry);		\
-	GOST3411_2012_AVX256_ADD_CARRY_LAST((__dymm1), carry);		\
-} while (0)
-#endif /* __AVX2__ */
 
 
 #define GOST3411_2012_AVX256_LOAD(__ptr, __ymm0, __ymm1) do {		\
@@ -1695,12 +1636,10 @@ gost3411_2012_transform_n_avx(gost3411_2012_ctx_p ctx,
     const uint8_t *blocks_max) {
 	register size_t i;
 	__m256i hymm0, hymm1; /* HASH. */
-	__m256i cntymm0, cntymm1; /* Counter. */
-	__m256i sigymm0, sigymm1; /* Sigma. */
 	__m256i kymm0, kymm1; /* Key. */
 	__m256i tymm0, tymm1; /* Temp. */
+	__m256i cntymm0, cntymm1; /* Counter. */
 
-	GOST3411_2012_AVX256_LOAD(ctx->sigma, sigymm0, sigymm1);
 	GOST3411_2012_AVX256_LOAD(ctx->counter, cntymm0, cntymm1);
 	GOST3411_2012_AVX256_LOAD(ctx->hash, hymm0, hymm1);
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
@@ -1718,10 +1657,9 @@ gost3411_2012_transform_n_avx(gost3411_2012_ctx_p ctx,
 		GOST3411_2012_AVX256_XSLP(kymm0, kymm1,
 		    hymm0, hymm1,
 		    cntymm0, cntymm1); /* !!! HASH design deffect here !!! */
+		GOST3411_2012_AVX256_ADDMOD512_MEM(ctx->sigma, tymm0, tymm1);
 		GOST3411_2012_AVX256_ADDMOD512_DIGIT(cntymm0, cntymm1,
 		    block_size_bits);
-		GOST3411_2012_AVX256_ADDMOD512(sigymm0, sigymm1,
-		    tymm0, tymm1);
 		GOST3411_2012_AVX256_XOR2_512(hymm0, hymm1,
 		    hymm0, hymm1,
 		    tymm0, tymm1); /* Pre Final XOR: hash ^= block. */
@@ -1746,7 +1684,6 @@ gost3411_2012_transform_n_avx(gost3411_2012_ctx_p ctx,
 	}
 	GOST3411_2012_AVX256_STORE(ctx->hash, hymm0, hymm1);
 	GOST3411_2012_AVX256_STORE(ctx->counter, cntymm0, cntymm1);
-	GOST3411_2012_AVX256_STORE(ctx->sigma, sigymm0, sigymm1);
 	/* Restore the Floating-point status on the CPU. */
 	_mm256_zeroall();
 }
