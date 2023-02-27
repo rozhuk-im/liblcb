@@ -62,7 +62,8 @@ main(int argc, char *argv[]) {
 	error = base64_self_test();
 	if (0 != error) {
 		LOG_INFO_FMT("base64_self_test(): err: %i", error);
+		return (error);
 	}
 
-	return (error);
+	return (0);
 }
