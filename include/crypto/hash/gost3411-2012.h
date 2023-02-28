@@ -1537,6 +1537,10 @@ gost3411_2012_transform_n_avx(gost3411_2012_ctx_p ctx,
 
 	GOST3411_2012_AVX256_LOAD(ctx->counter, cntymm0, cntymm1);
 	GOST3411_2012_AVX256_LOAD(ctx->hash, hymm0, hymm1);
+#pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
+	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
+		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
+	}
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
 		if (0 == (((size_t)blocks) & 31)) { /* 32 byte alligned. */
 			GOST3411_2012_AVX256_STREAM_LOAD(blocks,
@@ -1589,6 +1593,10 @@ gost3411_2012_transform_1_avx(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 	__m256i kymm0, kymm1; /* Key. */
 	__m256i tymm0, tymm1; /* Temp. */
 
+#pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
+	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
+		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
+	}
 	GOST3411_2012_AVX256_LOAD(ctx->hash, hymm0, hymm1);
 	GOST3411_2012_AVX256_LOAD(block, tymm0, tymm1);
 	GOST3411_2012_AVX256_SLP(kymm0, kymm1,
