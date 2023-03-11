@@ -66,6 +66,12 @@
 #	define GOST3411_2012_ALIGN(__n) __attribute__ ((aligned(__n)))
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+#	define GOST3411_2012_PREFETCH(__prt)	__builtin_prefetch((__prt), 0, 3)
+#else
+#	define GOST3411_2012_PREFETCH(__prt)
+#endif
+
 static void *(*volatile gost3411_2012_memset_volatile)(void *, int, size_t) = memset;
 #define gost3411_2012_bzero(__mem, __size)	gost3411_2012_memset_volatile((__mem), 0x00, (__size))
 
@@ -1039,7 +1045,7 @@ gost3411_2012_SLP(gost3411_2012_ctx_p ctx, uint64_t *dst,
 		c = 0;
 		val = ctx->sbuf[i];
 #pragma unroll
-		for (j = 0; j < 64; j ++) {
+		for (j = 0; j < 64; j ++) { /* uint64_t bits count. */
 			if (val & 0x8000000000000000ull) {
 				c ^= gost3411_2012_A[j];
 			}
@@ -1062,19 +1068,22 @@ gost3411_2012_XSLP(gost3411_2012_ctx_p ctx, uint64_t *dst,
 static inline void
 gost3411_2012_SLP(gost3411_2012_ctx_p ctx __unused, uint64_t *dst,
     const uint64_t *src) {
-	register size_t i;
+	register size_t i, shift;
+	register uint64_t tmp;
 
 	/* SLP(). */
 #pragma unroll
 	for (i = 0; i < GOST3411_2012_MSG_BLK_64CNT; i ++) {
-		dst[i]  = gost3411_2012_Ax[0][(src[0] >> (i << 3)) & 0xff];
-		dst[i] ^= gost3411_2012_Ax[1][(src[1] >> (i << 3)) & 0xff];
-		dst[i] ^= gost3411_2012_Ax[2][(src[2] >> (i << 3)) & 0xff];
-		dst[i] ^= gost3411_2012_Ax[3][(src[3] >> (i << 3)) & 0xff];
-		dst[i] ^= gost3411_2012_Ax[4][(src[4] >> (i << 3)) & 0xff];
-		dst[i] ^= gost3411_2012_Ax[5][(src[5] >> (i << 3)) & 0xff];
-		dst[i] ^= gost3411_2012_Ax[6][(src[6] >> (i << 3)) & 0xff];
-		dst[i] ^= gost3411_2012_Ax[7][(src[7] >> (i << 3)) & 0xff];
+		shift = (i << 3);
+		tmp  = gost3411_2012_Ax[0][(src[0] >> shift) & 0xff];
+		tmp ^= gost3411_2012_Ax[1][(src[1] >> shift) & 0xff];
+		tmp ^= gost3411_2012_Ax[2][(src[2] >> shift) & 0xff];
+		tmp ^= gost3411_2012_Ax[3][(src[3] >> shift) & 0xff];
+		tmp ^= gost3411_2012_Ax[4][(src[4] >> shift) & 0xff];
+		tmp ^= gost3411_2012_Ax[5][(src[5] >> shift) & 0xff];
+		tmp ^= gost3411_2012_Ax[6][(src[6] >> shift) & 0xff];
+		tmp ^= gost3411_2012_Ax[7][(src[7] >> shift) & 0xff];
+		dst[i] = tmp;
 	}
 }
 static inline void
@@ -1102,6 +1111,11 @@ gost3411_2012_transform_n_generic(gost3411_2012_ctx_p ctx,
 	size_t i;
 	const uint64_t *block64;
 
+#pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
+	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
+		GOST3411_2012_PREFETCH(&gost3411_2012_C[i]);
+	}
+
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
 		if (0 == (((size_t)blocks) & 7)) { /* Is 8 byte alligned? */
 			block64 = (const uint64_t*)(const void*)blocks; /* Skip alignment warning here. */
@@ -1115,6 +1129,7 @@ gost3411_2012_transform_n_generic(gost3411_2012_ctx_p ctx,
 		/* E(). */
 		gost3411_2012_XSLP(ctx, ctx->tbuf, ctx->kbuf, block64);
 		gost3411_2012_XSLP(ctx, ctx->kbuf, ctx->kbuf, gost3411_2012_C[0]);
+#pragma unroll
 		for (i = 1; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
 			gost3411_2012_XSLP(ctx, ctx->tbuf, ctx->tbuf, ctx->kbuf);
 			/* KeySchedule: next K. */
@@ -1129,10 +1144,16 @@ gost3411_2012_transform_1_generic(gost3411_2012_ctx_p ctx,
     const uint64_t *block) {
 	size_t i;
 
+#pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
+	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
+		GOST3411_2012_PREFETCH(&gost3411_2012_C[i]);
+	}
+
 	gost3411_2012_SLP(ctx, ctx->kbuf, ctx->hash);
 	/* E(). */
 	gost3411_2012_XSLP(ctx, ctx->tbuf, ctx->kbuf, block);
 	gost3411_2012_XSLP(ctx, ctx->kbuf, ctx->kbuf, gost3411_2012_C[0]);
+#pragma unroll
 	for (i = 1; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
 		gost3411_2012_XSLP(ctx, ctx->tbuf, ctx->tbuf, ctx->kbuf);
 		/* KeySchedule: next K. */
@@ -1301,6 +1322,7 @@ gost3411_2012_transform_n_sse(gost3411_2012_ctx_p ctx,
 	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
 		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
 	}
+
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
 		if (0 == (((size_t)blocks) & 31)) { /* 32 byte alligned. */
 			GOST3411_2012_SSE_STREAM_LOAD(blocks,
@@ -1357,8 +1379,9 @@ gost3411_2012_transform_1_sse(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 
 #pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
 	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
-		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
+		_mm_prefetch((const char*)&gost3411_2012_C[i], _MM_HINT_T0);
 	}
+
 	GOST3411_2012_SSE_LOAD(ctx->hash, hxmm0, hxmm1, hxmm2, hxmm3);
 	/* 16 byte alligned. */
 	GOST3411_2012_SSE_LOAD(block, txmm0, txmm1, txmm2, txmm3);
@@ -1539,8 +1562,9 @@ gost3411_2012_transform_n_avx(gost3411_2012_ctx_p ctx,
 	GOST3411_2012_AVX256_LOAD(ctx->hash, hymm0, hymm1);
 #pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
 	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
-		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
+		_mm_prefetch((const char*)&gost3411_2012_C[i], _MM_HINT_T0);
 	}
+
 	for (; blocks < blocks_max; blocks += GOST3411_2012_MSG_BLK_SIZE) {
 		if (0 == (((size_t)blocks) & 31)) { /* 32 byte alligned. */
 			GOST3411_2012_AVX256_STREAM_LOAD(blocks,
@@ -1595,8 +1619,9 @@ gost3411_2012_transform_1_avx(gost3411_2012_ctx_p ctx, const uint64_t *block) {
 
 #pragma unroll /* Shedule to load table gost3411_2012_C into cache. */
 	for (i = 0; i < GOST3411_2012_ROUNDS_COUNT; i ++) {
-		_mm_prefetch((const char*)(&gost3411_2012_C[i]), _MM_HINT_T0);
+		_mm_prefetch((const char*)&gost3411_2012_C[i], _MM_HINT_T0);
 	}
+
 	GOST3411_2012_AVX256_LOAD(ctx->hash, hymm0, hymm1);
 	GOST3411_2012_AVX256_LOAD(block, tymm0, tymm1);
 	GOST3411_2012_AVX256_SLP(kymm0, kymm1,
