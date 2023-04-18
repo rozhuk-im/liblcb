@@ -2130,7 +2130,7 @@ static gost3411_2012_hmtv_t gost3411_2012_hmac_tst[] = {
 
 /* 0 - OK, non zero - error */
 static inline int
-gost3411_2012_self_test() {
+gost3411_2012_self_test(void) {
 	size_t i, j, k, s, tm;
 	gost3411_2012_ctx_t ctx;
 	uint8_t digest[GOST3411_2012_HASH_MAX_SIZE];

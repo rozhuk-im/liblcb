@@ -81,7 +81,7 @@ hostname_list_deinit(hostname_list_p hn_lst) {
 
 
 static inline hostname_list_p
-hostname_list_alloc() {
+hostname_list_alloc(void) {
 	hostname_list_p hn_lst;
 
 	hn_lst = mem_znew(hostname_list_t);
