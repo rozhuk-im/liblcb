@@ -286,202 +286,202 @@ typedef struct radius_attributes_params {
 #define RADIUS_ATTR_PARAM_F_MINLEN	(1 << 1)
 
 
-#define RADIUS_ATTR_PARAM_NONE		{ (const char*)"none", 0, 0, RADIUS_ATTR_PARAM_T_NONE }
-#define RADIUS_ATTR_PARAM_ANY		{ (const char*)"any", 0, 0, RADIUS_ATTR_PARAM_T_ANY }
+#define RADIUS_ATTR_PARAM_NONE		{ "none", 0, 0, RADIUS_ATTR_PARAM_T_NONE }
+#define RADIUS_ATTR_PARAM_ANY		{ "any", 0, 0, RADIUS_ATTR_PARAM_T_ANY }
 static const rad_attr_param_t rad_attr_params[] = {
 /*   0 */	RADIUS_ATTR_PARAM_NONE,
-/*   1 */	{ (const char*)"User-Name", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/*   2 */	{ (const char*)"User-Password", MD5_HASH_SIZE, RADIUS_A_T_USER_PASSWORD_MAX_LEN, RADIUS_ATTR_PARAM_T_STR },
-/*   3 */	{ (const char*)"CHAP-Password", 17, 17, RADIUS_ATTR_PARAM_T_STR },
-/*   4 */	{ (const char*)"NAS-IP-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/*   5 */	{ (const char*)"NAS-Port", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*   6 */	{ (const char*)"Service-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*   7 */	{ (const char*)"Framed-Protocol", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*   8 */	{ (const char*)"Framed-IP-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/*   9 */	{ (const char*)"Framed-IP-Netmask", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/*  10 */	{ (const char*)"Framed-Routing", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  11 */	{ (const char*)"Filter-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/*  12 */	{ (const char*)"Framed-MTU", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  13 */	{ (const char*)"Framed-Compression", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  14 */	{ (const char*)"Login-IP-Host", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/*  15 */	{ (const char*)"Login-Service", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  16 */	{ (const char*)"Login-TCP-Port", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*   1 */	{ "User-Name", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/*   2 */	{ "User-Password", MD5_HASH_SIZE, RADIUS_A_T_USER_PASSWORD_MAX_LEN, RADIUS_ATTR_PARAM_T_STR },
+/*   3 */	{ "CHAP-Password", 17, 17, RADIUS_ATTR_PARAM_T_STR },
+/*   4 */	{ "NAS-IP-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/*   5 */	{ "NAS-Port", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*   6 */	{ "Service-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*   7 */	{ "Framed-Protocol", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*   8 */	{ "Framed-IP-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/*   9 */	{ "Framed-IP-Netmask", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/*  10 */	{ "Framed-Routing", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  11 */	{ "Filter-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/*  12 */	{ "Framed-MTU", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  13 */	{ "Framed-Compression", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  14 */	{ "Login-IP-Host", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/*  15 */	{ "Login-Service", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  16 */	{ "Login-TCP-Port", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
 /*  17 */	RADIUS_ATTR_PARAM_NONE,
-/*  18 */	{ (const char*)"Reply-Message", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/*  19 */	{ (const char*)"Callback-Number", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  20 */	{ (const char*)"Callback-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  18 */	{ "Reply-Message", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/*  19 */	{ "Callback-Number", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  20 */	{ "Callback-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
 /*  21 */	RADIUS_ATTR_PARAM_NONE,
-/*  22 */	{ (const char*)"Framed-Route", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/*  23 */	{ (const char*)"Framed-IPX-Network", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  24 */	{ (const char*)"State", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  25 */	{ (const char*)"Class", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  26 */	{ (const char*)"Vendor-Specific", 5, 0, RADIUS_ATTR_PARAM_T_VENDOR_SPEC },
-/*  27 */	{ (const char*)"Session-Timeout", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  28 */	{ (const char*)"Idle-Timeout", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  29 */	{ (const char*)"Termination-Action", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  30 */	{ (const char*)"Called-Station-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  31 */	{ (const char*)"Calling-Station-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  32 */	{ (const char*)"NAS-Identifier", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  33 */	{ (const char*)"Proxy-State", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  34 */	{ (const char*)"Login-LAT-Service", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  35 */	{ (const char*)"Login-LAT-Node", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  36 */	{ (const char*)"Login-LAT-Group", 32, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  37 */	{ (const char*)"Framed-AppleTalk-Link", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  38 */	{ (const char*)"Framed-AppleTalk-Network", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  39 */	{ (const char*)"Framed-AppleTalk-Zone", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  22 */	{ "Framed-Route", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/*  23 */	{ "Framed-IPX-Network", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  24 */	{ "State", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  25 */	{ "Class", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  26 */	{ "Vendor-Specific", 5, 0, RADIUS_ATTR_PARAM_T_VENDOR_SPEC },
+/*  27 */	{ "Session-Timeout", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  28 */	{ "Idle-Timeout", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  29 */	{ "Termination-Action", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  30 */	{ "Called-Station-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  31 */	{ "Calling-Station-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  32 */	{ "NAS-Identifier", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  33 */	{ "Proxy-State", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  34 */	{ "Login-LAT-Service", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  35 */	{ "Login-LAT-Node", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  36 */	{ "Login-LAT-Group", 32, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  37 */	{ "Framed-AppleTalk-Link", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  38 */	{ "Framed-AppleTalk-Network", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  39 */	{ "Framed-AppleTalk-Zone", 0, 0, RADIUS_ATTR_PARAM_T_STR },
 /* Accounting. */
-/*  40 */	{ (const char*)"Acct-Status-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  41 */	{ (const char*)"Acct-Delay-Time", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  42 */	{ (const char*)"Acct-Input-Octets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  43 */	{ (const char*)"Acct-Output-Octets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  44 */	{ (const char*)"Acct-Session-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/*  45 */	{ (const char*)"Acct-Authentic", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  46 */	{ (const char*)"Acct-Session-Time", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  47 */	{ (const char*)"Acct-Input-Packets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  48 */	{ (const char*)"Acct-Output-Packets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  49 */	{ (const char*)"Acct-Terminate-Cause", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  50 */	{ (const char*)"Acct-Multi-Session-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  51 */	{ (const char*)"Acct-Link-Count", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  52 */	{ (const char*)"Acct-Input-Gigawords", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  53 */	{ (const char*)"Acct-Output-Gigawords", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  40 */	{ "Acct-Status-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  41 */	{ "Acct-Delay-Time", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  42 */	{ "Acct-Input-Octets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  43 */	{ "Acct-Output-Octets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  44 */	{ "Acct-Session-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/*  45 */	{ "Acct-Authentic", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  46 */	{ "Acct-Session-Time", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  47 */	{ "Acct-Input-Packets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  48 */	{ "Acct-Output-Packets", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  49 */	{ "Acct-Terminate-Cause", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  50 */	{ "Acct-Multi-Session-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  51 */	{ "Acct-Link-Count", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  52 */	{ "Acct-Input-Gigawords", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  53 */	{ "Acct-Output-Gigawords", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
 /*  54 */	RADIUS_ATTR_PARAM_NONE,
-/*  55 */	{ (const char*)"Event-Timestamp", 0, 0, RADIUS_ATTR_PARAM_T_TIME32 },
-/*  56 */	{ (const char*)"Egress-VLANID", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  57 */	{ (const char*)"Ingress-Filters", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  58 */	{ (const char*)"Egress-VLAN-Name", 2, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  59 */	{ (const char*)"User-Priority-Table", 8, 8, RADIUS_ATTR_PARAM_T_STR },
+/*  55 */	{ "Event-Timestamp", 0, 0, RADIUS_ATTR_PARAM_T_TIME32 },
+/*  56 */	{ "Egress-VLANID", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  57 */	{ "Ingress-Filters", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  58 */	{ "Egress-VLAN-Name", 2, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  59 */	{ "User-Priority-Table", 8, 8, RADIUS_ATTR_PARAM_T_STR },
 /* Accounting END. */
-/*  60 */	{ (const char*)"CHAP-Challenge", 5, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  61 */	{ (const char*)"NAS-Port-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  62 */	{ (const char*)"Port-Limit", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  63 */	{ (const char*)"Login-LAT-Port", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  64 */	{ (const char*)"Tunnel-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  65 */	{ (const char*)"Tunnel-Medium-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  66 */	{ (const char*)"Tunnel-Client-Endpoint", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  67 */	{ (const char*)"Tunnel-Server-Endpoint", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  68 */	{ (const char*)"Acct-Tunnel-Connection", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  69 */	{ (const char*)"Tunnel-Password", 3, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  70 */	{ (const char*)"ARAP-Password", 16, 16, RADIUS_ATTR_PARAM_T_STR },
-/*  71 */	{ (const char*)"ARAP-Features", 14, 14, RADIUS_ATTR_PARAM_T_STR },
-/*  72 */	{ (const char*)"ARAP-Zone-Access", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  73 */	{ (const char*)"ARAP-Security", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  74 */	{ (const char*)"ARAP-Security-Data", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  75 */	{ (const char*)"Password-Retry", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  76 */	{ (const char*)"Prompt", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  77 */	{ (const char*)"Connect-Info", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/*  78 */	{ (const char*)"Configuration-Token", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  79 */	{ (const char*)"EAP-Message", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  80 */	{ (const char*)"Message-Authenticator", MD5_HASH_SIZE, MD5_HASH_SIZE, RADIUS_ATTR_PARAM_T_STR },
-/*  81 */	{ (const char*)"Tunnel-Private-Group-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  82 */	{ (const char*)"Tunnel-Assignment-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  83 */	{ (const char*)"Tunnel-Preference", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  84 */	{ (const char*)"ARAP-Challenge-Response", 8, 8, RADIUS_ATTR_PARAM_T_STR },
-/*  85 */	{ (const char*)"Acct-Interim-Interval", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  86 */	{ (const char*)"Acct-Tunnel-Packets-Lost", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/*  87 */	{ (const char*)"NAS-Port-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/*  88 */	{ (const char*)"Framed-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  89 */	{ (const char*)"CUI", 0xff, 0, RADIUS_ATTR_PARAM_T_STR },  /* Exception: allow zero data len. */
-/*  90 */	{ (const char*)"Tunnel-Client-Auth-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  91 */	{ (const char*)"Tunnel-Server-Auth-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/*  92 */	{ (const char*)"NAS-Filter-Rule", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  60 */	{ "CHAP-Challenge", 5, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  61 */	{ "NAS-Port-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  62 */	{ "Port-Limit", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  63 */	{ "Login-LAT-Port", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  64 */	{ "Tunnel-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  65 */	{ "Tunnel-Medium-Type", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  66 */	{ "Tunnel-Client-Endpoint", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  67 */	{ "Tunnel-Server-Endpoint", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  68 */	{ "Acct-Tunnel-Connection", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  69 */	{ "Tunnel-Password", 3, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  70 */	{ "ARAP-Password", 16, 16, RADIUS_ATTR_PARAM_T_STR },
+/*  71 */	{ "ARAP-Features", 14, 14, RADIUS_ATTR_PARAM_T_STR },
+/*  72 */	{ "ARAP-Zone-Access", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  73 */	{ "ARAP-Security", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  74 */	{ "ARAP-Security-Data", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  75 */	{ "Password-Retry", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  76 */	{ "Prompt", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  77 */	{ "Connect-Info", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/*  78 */	{ "Configuration-Token", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  79 */	{ "EAP-Message", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  80 */	{ "Message-Authenticator", MD5_HASH_SIZE, MD5_HASH_SIZE, RADIUS_ATTR_PARAM_T_STR },
+/*  81 */	{ "Tunnel-Private-Group-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  82 */	{ "Tunnel-Assignment-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  83 */	{ "Tunnel-Preference", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  84 */	{ "ARAP-Challenge-Response", 8, 8, RADIUS_ATTR_PARAM_T_STR },
+/*  85 */	{ "Acct-Interim-Interval", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  86 */	{ "Acct-Tunnel-Packets-Lost", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/*  87 */	{ "NAS-Port-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/*  88 */	{ "Framed-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  89 */	{ "CUI", 0xff, 0, RADIUS_ATTR_PARAM_T_STR },  /* Exception: allow zero data len. */
+/*  90 */	{ "Tunnel-Client-Auth-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  91 */	{ "Tunnel-Server-Auth-ID", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/*  92 */	{ "NAS-Filter-Rule", 0, 0, RADIUS_ATTR_PARAM_T_STR },
 /*  93 */	RADIUS_ATTR_PARAM_NONE,
-/*  94 */	{ (const char*)"Originating-Line-Info", 2, 2, RADIUS_ATTR_PARAM_T_STR },
-/*  95 */	{ (const char*)"NAS-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/*  96 */	{ (const char*)"Framed-Interface-Id", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
-/*  97 */	{ (const char*)"Framed-IPv6-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
-/*  98 */	{ (const char*)"Login-IPv6-Host", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/*  99 */	{ (const char*)"Framed-IPv6-Route", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 100 */	{ (const char*)"Framed-IPv6-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 101 */	{ (const char*)"Error-Cause Attribute", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 102 */	{ (const char*)"EAP-Key-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 103 */	{ (const char*)"Digest-Response", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 104 */	{ (const char*)"Digest-Realm", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 105 */	{ (const char*)"Digest-Nonce", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 106 */	{ (const char*)"Digest-Response-Auth", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 107 */	{ (const char*)"Digest-Nextnonce", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 108 */	{ (const char*)"Digest-Method", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 109 */	{ (const char*)"Digest-URI", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 110 */	{ (const char*)"Digest-Qop", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 111 */	{ (const char*)"Digest-Algorithm", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 112 */	{ (const char*)"Digest-Entity-Body-Hash", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 113 */	{ (const char*)"Digest-CNonce", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 114 */	{ (const char*)"Digest-Nonce-Count", 8, 8, RADIUS_ATTR_PARAM_T_TEXT },
-/* 115 */	{ (const char*)"Digest-Username", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 116 */	{ (const char*)"Digest-Opaque", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 117 */	{ (const char*)"Digest-Auth-Param", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 118 */	{ (const char*)"Digest-AKA-Auts", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 119 */	{ (const char*)"Digest-Domain", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 120 */	{ (const char*)"Digest-Stale", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 121 */	{ (const char*)"Digest-HA1", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 122 */	{ (const char*)"SIP-AOR", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 123 */	{ (const char*)"Delegated-IPv6-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
-/* 124 */	{ (const char*)"MIP6-Feature-Vector", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
-/* 125 */	{ (const char*)"MIP6-Home-Link-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
-/* 126 */	{ (const char*)"Operator-Name", 2, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 127 */	{ (const char*)"Location-Information", 20, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 128 */	{ (const char*)"Location-Data", 3, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 129 */	{ (const char*)"Basic-Location-Policy-Rules", 10, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 130 */	{ (const char*)"Extended-Location-Policy-Rules", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 131 */	{ (const char*)"Location-Capable", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 132 */	{ (const char*)"Requested-Location-Info", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 133 */	{ (const char*)"Framed-Management-Protocol", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 134 */	{ (const char*)"Management-Transport-Protection", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 135 */	{ (const char*)"Management-Policy-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 136 */	{ (const char*)"Management-Privilege-Level", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 137 */	{ (const char*)"PKM-SS-Cert", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 138 */	{ (const char*)"PKM-CA-Cert", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 139 */	{ (const char*)"PKM-Config-Settings", 28, 28, RADIUS_ATTR_PARAM_T_ADV },
-/* 140 */	{ (const char*)"PKM-Cryptosuite-List", 3, 0, RADIUS_ATTR_PARAM_T_ADV },
-/* 141 */	{ (const char*)"PKM-SAID", 2, 2, RADIUS_ATTR_PARAM_T_ADV },
-/* 142 */	{ (const char*)"PKM-SA-Descriptor", 6, 6, RADIUS_ATTR_PARAM_T_ADV },
-/* 143 */	{ (const char*)"PKM-Auth-Key", 133, 133, RADIUS_ATTR_PARAM_T_ADV },
-/* 144 */	{ (const char*)"DS-Lite-Tunnel-Name", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 145 */	{ (const char*)"Mobile-Node-Identifier", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 146 */	{ (const char*)"Service-Selection", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
-/* 147 */	{ (const char*)"PMIP6-Home-LMA-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/* 148 */	{ (const char*)"PMIP6-Visited-LMA-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/* 149 */	{ (const char*)"PMIP6-Home-LMA-IPv4-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/* 150 */	{ (const char*)"PMIP6-Visited-LMA-IPv4-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/* 151 */	{ (const char*)"PMIP6-Home-HN-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
-/* 152 */	{ (const char*)"PMIP6-Visited-HN-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
-/* 153 */	{ (const char*)"PMIP6-Home-Interface-ID", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
-/* 154 */	{ (const char*)"PMIP6-Visited-Interface-ID", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
-/* 155 */	{ (const char*)"PMIP6-Home-IPv4-HoA", 6, 6, RADIUS_ATTR_PARAM_T_ADV },
-/* 156 */	{ (const char*)"PMIP6-Visited-IPv4-HoA", 6, 6, RADIUS_ATTR_PARAM_T_ADV },
-/* 157 */	{ (const char*)"PMIP6-Home-DHCP4-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/* 158 */	{ (const char*)"PMIP6-Visited-DHCP4-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/* 159 */	{ (const char*)"PMIP6-Home-DHCP6-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/* 160 */	{ (const char*)"PMIP6-Visited-DHCP6-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/* 161 */	{ (const char*)"PMIP6-Home-IPv4-Gateway", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/* 162 */	{ (const char*)"PMIP6-Visited-IPv4-Gateway", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
-/* 163 */	{ (const char*)"EAP-Lower-Layer", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 164 */	{ (const char*)"GSS-Acceptor-Service-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 165 */	{ (const char*)"GSS-Acceptor-Host-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 166 */	{ (const char*)"GSS-Acceptor-Service-Specifics", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 167 */	{ (const char*)"GSS-Acceptor-Realm-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 168 */	{ (const char*)"Framed-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/* 169 */	{ (const char*)"DNS-Server-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
-/* 170 */	{ (const char*)"Route-IPv6-Information", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
-/* 171 */	{ (const char*)"Delegated-IPv6-Prefix-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 172 */	{ (const char*)"Stateful-IPv6-Address-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 173 */	{ (const char*)"IPv6-6rd-Configuration", 32, 0, RADIUS_ATTR_PARAM_T_ADV },
-/* 174 */	{ (const char*)"Allowed-Called-Station-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 175 */	{ (const char*)"EAP-Peer-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 176 */	{ (const char*)"EAP-Server-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 177 */	{ (const char*)"Mobility-Domain-Id", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 178 */	{ (const char*)"Preauth-Timeout", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
-/* 179 */	{ (const char*)"Network-Id-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 180 */	{ (const char*)"EAPoL-Announcement", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 181 */	{ (const char*)"WLAN-HESSID", 17, 17, RADIUS_ATTR_PARAM_T_STR },
-/* 182 */	{ (const char*)"WLAN-Venue-Info", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
-/* 183 */	{ (const char*)"WLAN-Venue-Language", 2, 3, RADIUS_ATTR_PARAM_T_STR },
-/* 184 */	{ (const char*)"WLAN-Venue-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
-/* 185 */	{ (const char*)"WLAN-Reason-Code", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
-/* 186 */	{ (const char*)"WLAN-Pairwise-Cipher", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
-/* 187 */	{ (const char*)"WLAN-Group-Cipher", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
-/* 188 */	{ (const char*)"WLAN-AKM-Suite", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
-/* 189 */	{ (const char*)"WLAN-Group-Mgmt-Cipher", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
-/* 190 */	{ (const char*)"WLAN-RF-Band", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
+/*  94 */	{ "Originating-Line-Info", 2, 2, RADIUS_ATTR_PARAM_T_STR },
+/*  95 */	{ "NAS-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/*  96 */	{ "Framed-Interface-Id", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
+/*  97 */	{ "Framed-IPv6-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
+/*  98 */	{ "Login-IPv6-Host", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/*  99 */	{ "Framed-IPv6-Route", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 100 */	{ "Framed-IPv6-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 101 */	{ "Error-Cause Attribute", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 102 */	{ "EAP-Key-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 103 */	{ "Digest-Response", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 104 */	{ "Digest-Realm", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 105 */	{ "Digest-Nonce", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 106 */	{ "Digest-Response-Auth", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 107 */	{ "Digest-Nextnonce", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 108 */	{ "Digest-Method", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 109 */	{ "Digest-URI", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 110 */	{ "Digest-Qop", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 111 */	{ "Digest-Algorithm", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 112 */	{ "Digest-Entity-Body-Hash", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 113 */	{ "Digest-CNonce", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 114 */	{ "Digest-Nonce-Count", 8, 8, RADIUS_ATTR_PARAM_T_TEXT },
+/* 115 */	{ "Digest-Username", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 116 */	{ "Digest-Opaque", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 117 */	{ "Digest-Auth-Param", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 118 */	{ "Digest-AKA-Auts", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 119 */	{ "Digest-Domain", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 120 */	{ "Digest-Stale", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 121 */	{ "Digest-HA1", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 122 */	{ "SIP-AOR", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 123 */	{ "Delegated-IPv6-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
+/* 124 */	{ "MIP6-Feature-Vector", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
+/* 125 */	{ "MIP6-Home-Link-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
+/* 126 */	{ "Operator-Name", 2, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 127 */	{ "Location-Information", 20, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 128 */	{ "Location-Data", 3, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 129 */	{ "Basic-Location-Policy-Rules", 10, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 130 */	{ "Extended-Location-Policy-Rules", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 131 */	{ "Location-Capable", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 132 */	{ "Requested-Location-Info", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 133 */	{ "Framed-Management-Protocol", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 134 */	{ "Management-Transport-Protection", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 135 */	{ "Management-Policy-Id", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 136 */	{ "Management-Privilege-Level", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 137 */	{ "PKM-SS-Cert", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 138 */	{ "PKM-CA-Cert", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 139 */	{ "PKM-Config-Settings", 28, 28, RADIUS_ATTR_PARAM_T_ADV },
+/* 140 */	{ "PKM-Cryptosuite-List", 3, 0, RADIUS_ATTR_PARAM_T_ADV },
+/* 141 */	{ "PKM-SAID", 2, 2, RADIUS_ATTR_PARAM_T_ADV },
+/* 142 */	{ "PKM-SA-Descriptor", 6, 6, RADIUS_ATTR_PARAM_T_ADV },
+/* 143 */	{ "PKM-Auth-Key", 133, 133, RADIUS_ATTR_PARAM_T_ADV },
+/* 144 */	{ "DS-Lite-Tunnel-Name", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 145 */	{ "Mobile-Node-Identifier", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 146 */	{ "Service-Selection", 0, 0, RADIUS_ATTR_PARAM_T_TEXT },
+/* 147 */	{ "PMIP6-Home-LMA-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/* 148 */	{ "PMIP6-Visited-LMA-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/* 149 */	{ "PMIP6-Home-LMA-IPv4-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/* 150 */	{ "PMIP6-Visited-LMA-IPv4-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/* 151 */	{ "PMIP6-Home-HN-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
+/* 152 */	{ "PMIP6-Visited-HN-Prefix", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
+/* 153 */	{ "PMIP6-Home-Interface-ID", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
+/* 154 */	{ "PMIP6-Visited-Interface-ID", 0, 0, RADIUS_ATTR_PARAM_T_INT64 },
+/* 155 */	{ "PMIP6-Home-IPv4-HoA", 6, 6, RADIUS_ATTR_PARAM_T_ADV },
+/* 156 */	{ "PMIP6-Visited-IPv4-HoA", 6, 6, RADIUS_ATTR_PARAM_T_ADV },
+/* 157 */	{ "PMIP6-Home-DHCP4-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/* 158 */	{ "PMIP6-Visited-DHCP4-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/* 159 */	{ "PMIP6-Home-DHCP6-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/* 160 */	{ "PMIP6-Visited-DHCP6-Server-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/* 161 */	{ "PMIP6-Home-IPv4-Gateway", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/* 162 */	{ "PMIP6-Visited-IPv4-Gateway", 0, 0, RADIUS_ATTR_PARAM_T_IPV4 },
+/* 163 */	{ "EAP-Lower-Layer", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 164 */	{ "GSS-Acceptor-Service-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 165 */	{ "GSS-Acceptor-Host-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 166 */	{ "GSS-Acceptor-Service-Specifics", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 167 */	{ "GSS-Acceptor-Realm-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 168 */	{ "Framed-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/* 169 */	{ "DNS-Server-IPv6-Address", 0, 0, RADIUS_ATTR_PARAM_T_IPV6 },
+/* 170 */	{ "Route-IPv6-Information", 0, 0, RADIUS_ATTR_PARAM_T_IPV6_PREFIX },
+/* 171 */	{ "Delegated-IPv6-Prefix-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 172 */	{ "Stateful-IPv6-Address-Pool", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 173 */	{ "IPv6-6rd-Configuration", 32, 0, RADIUS_ATTR_PARAM_T_ADV },
+/* 174 */	{ "Allowed-Called-Station-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 175 */	{ "EAP-Peer-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 176 */	{ "EAP-Server-Id", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 177 */	{ "Mobility-Domain-Id", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 178 */	{ "Preauth-Timeout", 0, 0, RADIUS_ATTR_PARAM_T_INT32 },
+/* 179 */	{ "Network-Id-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 180 */	{ "EAPoL-Announcement", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 181 */	{ "WLAN-HESSID", 17, 17, RADIUS_ATTR_PARAM_T_STR },
+/* 182 */	{ "WLAN-Venue-Info", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
+/* 183 */	{ "WLAN-Venue-Language", 2, 3, RADIUS_ATTR_PARAM_T_STR },
+/* 184 */	{ "WLAN-Venue-Name", 0, 0, RADIUS_ATTR_PARAM_T_STR },
+/* 185 */	{ "WLAN-Reason-Code", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
+/* 186 */	{ "WLAN-Pairwise-Cipher", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
+/* 187 */	{ "WLAN-Group-Cipher", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
+/* 188 */	{ "WLAN-AKM-Suite", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
+/* 189 */	{ "WLAN-Group-Mgmt-Cipher", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
+/* 190 */	{ "WLAN-RF-Band", 4, 4, RADIUS_ATTR_PARAM_T_ADV },
 /* 191 */	RADIUS_ATTR_PARAM_NONE,
 /* Experimental Use */
 /* 192 - 194 */	RADIUS_ATTR_PARAM_ANY, RADIUS_ATTR_PARAM_ANY, RADIUS_ATTR_PARAM_ANY,
@@ -502,12 +502,12 @@ static const rad_attr_param_t rad_attr_params[] = {
 /* 233 - 235 */	RADIUS_ATTR_PARAM_ANY, RADIUS_ATTR_PARAM_ANY, RADIUS_ATTR_PARAM_ANY,
 /* 236 - 238 */	RADIUS_ATTR_PARAM_ANY, RADIUS_ATTR_PARAM_ANY, RADIUS_ATTR_PARAM_ANY,
 /* 239 - 240 */	RADIUS_ATTR_PARAM_ANY, RADIUS_ATTR_PARAM_ANY,
-/* 241 */	{ (const char*)"Extended-Attribute-1", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
-/* 242 */	{ (const char*)"Extended-Attribute-2", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
-/* 243 */	{ (const char*)"Extended-Attribute-3", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
-/* 244 */	{ (const char*)"Extended-Attribute-4", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
-/* 245 */	{ (const char*)"Long-Extended-Type-1", 0, 0, RADIUS_ATTR_PARAM_T_EXT_LONG },
-/* 246 */	{ (const char*)"Long-Extended-Type-2", 0, 0, RADIUS_ATTR_PARAM_T_EXT_LONG },
+/* 241 */	{ "Extended-Attribute-1", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
+/* 242 */	{ "Extended-Attribute-2", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
+/* 243 */	{ "Extended-Attribute-3", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
+/* 244 */	{ "Extended-Attribute-4", 0, 0, RADIUS_ATTR_PARAM_T_EXT },
+/* 245 */	{ "Long-Extended-Type-1", 0, 0, RADIUS_ATTR_PARAM_T_EXT_LONG },
+/* 246 */	{ "Long-Extended-Type-2", 0, 0, RADIUS_ATTR_PARAM_T_EXT_LONG },
 /* Reserved */
 /* 247 - 248 */	RADIUS_ATTR_PARAM_NONE, RADIUS_ATTR_PARAM_NONE,
 /* 249 - 250 */	RADIUS_ATTR_PARAM_NONE, RADIUS_ATTR_PARAM_NONE,
@@ -606,6 +606,73 @@ radius_sec_memcmp(uint8_t const *a, uint8_t const *b, const size_t size) {
 
 
 static inline int
+radius_attr_len_chk(const uint8_t type, const uint8_t len) {
+	const rad_attr_param_t *attr_prm = &rad_attr_params[type];
+
+	if (0 == type || 0 == len)
+		return (EINVAL);
+
+	/* Type and len checks. */
+	switch (attr_prm->data_type) {
+	case RADIUS_ATTR_PARAM_T_NONE: /* Unknown format, cant check. */
+		break;
+	case RADIUS_ATTR_PARAM_T_STR: /* string, Length >= 1 */
+	case RADIUS_ATTR_PARAM_T_TEXT: /* UTF8 string, Length >= 1 */
+	case RADIUS_ATTR_PARAM_T_ADV: /* Length >= 1 */
+	case RADIUS_ATTR_PARAM_T_ANY: /* Length >= 1 */
+		switch (attr_prm->len_min) {
+		case 0: /* At least one byte len required. */
+			if (1 > len)
+				return (EINVAL);
+			break;
+		case 0xff: /* Allow zero len. */
+			break;
+		default: /* Specific minimum len. */
+			if (len < attr_prm->len_min)
+				return (EINVAL);
+			break;
+		}
+		if (0 != attr_prm->len_max && len > attr_prm->len_max)
+			return (EINVAL);
+		break;
+	case RADIUS_ATTR_PARAM_T_IPV4: /* Length = 4 */
+	case RADIUS_ATTR_PARAM_T_INT32: /* Length = 4 */
+	case RADIUS_ATTR_PARAM_T_TIME32: /* Length = 4 */
+		if (4 != len)
+			return (EINVAL);
+		break;
+	case RADIUS_ATTR_PARAM_T_INT64:
+		if (8 != len)
+			return (EINVAL);
+		break;
+	case RADIUS_ATTR_PARAM_T_IPV6: /* Length = 16 */
+		if (16 != len)
+			return (EINVAL);
+		break;
+	case RADIUS_ATTR_PARAM_T_IPV6_PREFIX: /* Length = At least 2 and no larger than 18 */
+		if (2 > len || 18 < len)
+			return (EINVAL);
+		break;
+	case RADIUS_ATTR_PARAM_T_VENDOR_SPEC: /* Vendor-Specific, Length >= 5 */
+		if (5 > len)
+			return (EINVAL);
+		break;
+	case RADIUS_ATTR_PARAM_T_EXT: /* Extended-Type, Length >= 2 */
+		if (2 > len)
+			return (EINVAL);
+		break;
+	case RADIUS_ATTR_PARAM_T_EXT_LONG: /* Long Extended Type, Length >= 3 */
+		if (3 > len)
+			return (EINVAL);
+		break;
+	default:
+		return (EINVAL);
+	}
+
+	return (0);
+}
+
+static inline int
 radius_pkt_attr_get_from_offset(rad_pkt_hdr_p pkt, size_t offset,
     rad_pkt_attr_p *attr_ret) {
 	size_t pkt_size;
@@ -627,69 +694,13 @@ radius_pkt_attr_get_from_offset(rad_pkt_hdr_p pkt, size_t offset,
 
 static inline int
 radius_pkt_attr_chk(rad_pkt_attr_p attr) {
-	rad_attr_param_p attr_prm;
 
 	if (NULL == attr)
 		return (EINVAL);
 	if (0 == attr->type || 2 > attr->len)
 		return (EBADMSG);
-
-	attr_prm = (rad_attr_param_p)&rad_attr_params[attr->type];
-	switch (attr_prm->data_type) {
-	case RADIUS_ATTR_PARAM_T_NONE: /* Unknown format, cant check. */
-		break;
-	case RADIUS_ATTR_PARAM_T_STR: /* string, Length >= 3 */
-	case RADIUS_ATTR_PARAM_T_TEXT: /* UTF8 string, Length >= 3 */
-	case RADIUS_ATTR_PARAM_T_ADV: /* Length >= 3 */
-	case RADIUS_ATTR_PARAM_T_ANY: /* Length >= 3 */
-		switch (attr_prm->len_min) {
-		case 0: /* At least one byte len required. */
-			if (3 > attr->len)
-				return (EBADMSG);
-			break;
-		case 0xff: /* Allow zero len. */
-			break;
-		default: /* Specific minimum len. */
-			if (attr->len < (attr_prm->len_min + 2))
-				return (EBADMSG);
-			break;
-		}
-		if (0 != attr_prm->len_max && attr->len > (attr_prm->len_max + 2))
-			return (EBADMSG);
-		break;
-	case RADIUS_ATTR_PARAM_T_IPV4: /* Length = 6 */
-	case RADIUS_ATTR_PARAM_T_INT32: /* Length = 6 */
-	case RADIUS_ATTR_PARAM_T_TIME32: /* Length = 6 */
-		if (6 != attr->len)
-			return (EBADMSG);
-		break;
-	case RADIUS_ATTR_PARAM_T_INT64:
-		if (10 != attr->len)
-			return (EBADMSG);
-		break;
-	case RADIUS_ATTR_PARAM_T_IPV6: /* Length = 18 */
-		if (18 != attr->len)
-			return (EBADMSG);
-		break;
-	case RADIUS_ATTR_PARAM_T_IPV6_PREFIX: /* Length = At least 4 and no larger than 20 */
-		if (4 > attr->len || 20 < attr->len)
-			return (EBADMSG);
-		break;
-	case RADIUS_ATTR_PARAM_T_VENDOR_SPEC: /* Vendor-Specific, Length >= 7 */
-		if (7 > attr->len)
-			return (EBADMSG);
-		break;
-	case RADIUS_ATTR_PARAM_T_EXT: /* Extended-Type, Length >= 4 */
-		if (4 > attr->len)
-			return (EBADMSG);
-		break;
-	case RADIUS_ATTR_PARAM_T_EXT_LONG: /* Long Extended Type, Length >= 5 */
-		if (5 > attr->len)
-			return (EBADMSG);
-		break;
-	default:
+	if (0 != radius_attr_len_chk(attr->type, (attr->len - 2)))
 		return (EBADMSG);
-	}
 
 	return (0);
 }
@@ -698,24 +709,26 @@ radius_pkt_attr_chk(rad_pkt_attr_p attr) {
 static inline int
 radius_pkt_attr_find_raw(rad_pkt_hdr_p pkt, size_t offset, uint8_t attr_type,
     rad_pkt_attr_p *attr_ret, size_t *offset_ret) {
-	size_t attr_cnt;
+	size_t attrs_size;
 	rad_pkt_attr_p attr;
 
 	if (NULL == pkt)
 		return (EINVAL);
 
-	attr = RADIUS_PKT_ATTRS(pkt);
-	attr_cnt = RADIUS_PKT_ATTRS_SIZE(pkt);
 	if (0 != offset) {
 		if (0 != radius_pkt_attr_get_from_offset(pkt, offset, &attr))
 			return (EINVAL);
+	} else {
+		attr = RADIUS_PKT_ATTRS(pkt);
 	}
+	attrs_size = (RADIUS_PKT_END(pkt) - (uint8_t*)attr);
+
 	/* Find loop. */
-	while (0 != attr_cnt) {
+	while (0 != attrs_size) {
 		/* This cheks allready done in radius_pkt_chk(). */
-		if (attr_cnt < 2) /* No attr header. */
+		if (attrs_size < 2) /* No attr header. */
 			return (EBADMSG);
-		if (attr_cnt < attr->len) /* Out of header. */
+		if (attrs_size < attr->len) /* Out of header. */
 			return (EBADMSG);
 		if (0 == attr->type || 2 > attr->len) /* Bad attr. */
 			return (EBADMSG);
@@ -728,7 +741,7 @@ radius_pkt_attr_find_raw(rad_pkt_hdr_p pkt, size_t offset, uint8_t attr_type,
 			}
 			return (0);
 		}
-		attr_cnt -= attr->len;
+		attrs_size -= attr->len;
 		attr = RADIUS_PKT_ATTR_NEXT(attr);
 	}
 
@@ -1037,9 +1050,8 @@ radius_pkt_attr_add(rad_pkt_hdr_p pkt, size_t pkt_buf_size, size_t *pkt_size_ret
 	int error;
 	size_t tm;
 	rad_pkt_attr_p attr = NULL;
-	rad_attr_param_p attr_prm;
 
-	if (NULL == pkt)
+	if (NULL == pkt || 0 == type)
 		return (EINVAL);
 
 	/* Special handle. */
@@ -1096,64 +1108,9 @@ radius_pkt_attr_add(rad_pkt_hdr_p pkt, size_t pkt_buf_size, size_t *pkt_size_ret
 
 	/* Other types standart processing. */
 	/* Type and len checks. */
-	if (0 == type)
-		return (EINVAL);
-	attr_prm = (rad_attr_param_p)&rad_attr_params[type];
-	switch (attr_prm->data_type) {
-	case RADIUS_ATTR_PARAM_T_NONE: /* Unknown format, cant check. */
-		break;
-	case RADIUS_ATTR_PARAM_T_STR: /* string, Length >= 3 */
-	case RADIUS_ATTR_PARAM_T_TEXT: /* UTF8 string, Length >= 3 */
-	case RADIUS_ATTR_PARAM_T_ADV: /* Length >= 3 */
-	case RADIUS_ATTR_PARAM_T_ANY: /* Length >= 3 */
-		switch (attr_prm->len_min) {
-		case 0: /* At least one byte len required. */
-			if (1 > len)
-				return (EINVAL);
-			break;
-		case 0xff: /* Allow zero len. */
-			break;
-		default: /* Specific minimum len. */
-			if (len < attr_prm->len_min)
-				return (EINVAL);
-			break;
-		}
-		if (0 != attr_prm->len_max && len > attr_prm->len_max)
-			return (EINVAL);
-		break;
-	case RADIUS_ATTR_PARAM_T_IPV4: /* Length = 6 */
-	case RADIUS_ATTR_PARAM_T_INT32: /* Length = 6 */
-	case RADIUS_ATTR_PARAM_T_TIME32: /* Length = 6 */
-		if (4 != len)
-			return (EINVAL);
-		break;
-	case RADIUS_ATTR_PARAM_T_INT64:
-		if (8 != len)
-			return (EINVAL);
-		break;
-	case RADIUS_ATTR_PARAM_T_IPV6: /* Length = 18 */
-		if (16 != len)
-			return (EINVAL);
-		break;
-	case RADIUS_ATTR_PARAM_T_IPV6_PREFIX: /* Length = At least 4 and no larger than 20 */
-		if (2 > len || 18 < len)
-			return (EINVAL);
-		break;
-	case RADIUS_ATTR_PARAM_T_VENDOR_SPEC: /* Vendor-Specific, Length >= 7 */
-		if (5 > len)
-			return (EINVAL);
-		break;
-	case RADIUS_ATTR_PARAM_T_EXT: /* Extended-Type, Length >= 4 */
-		if (2 > len)
-			return (EINVAL);
-		break;
-	case RADIUS_ATTR_PARAM_T_EXT_LONG: /* Long Extended Type, Length >= 5 */
-		if (3 > len)
-			return (EINVAL);
-		break;
-	default:
-		return (EINVAL);
-	}
+	error = radius_attr_len_chk(type, len);
+	if (0 != error)
+		return (error);
 	/* Add attribute to packet end. */
 	error = radius_pkt_attr_add_raw(pkt, pkt_buf_size, pkt_size_ret,
 	    type, len, data, NULL, offset_ret);
@@ -1302,7 +1259,7 @@ radius_pkt_attr_get_data_to_buf(rad_pkt_hdr_p pkt, size_t offset, size_t count,
 static inline int
 radius_pkt_chk(rad_pkt_hdr_p pkt, size_t pkt_size) {
 	int error;
-	size_t attr_cnt, msg_authentic_cnt = 0, eap_msg_cnt = 0;
+	size_t attrs_size, msg_authentic_cnt = 0, eap_msg_cnt = 0;
 	rad_pkt_attr_p attr;
 
 	if (NULL == pkt)
@@ -1333,11 +1290,11 @@ radius_pkt_chk(rad_pkt_hdr_p pkt, size_t pkt_size) {
 	}
 	
 	attr = RADIUS_PKT_ATTRS(pkt);
-	attr_cnt = RADIUS_PKT_ATTRS_SIZE(pkt);
-	while (0 != attr_cnt) {
-		if (attr_cnt < 2) /* No attr header. */
+	attrs_size = RADIUS_PKT_ATTRS_SIZE(pkt);
+	while (0 != attrs_size) {
+		if (attrs_size < 2) /* No attr header. */
 			return (EBADMSG);
-		if (attr_cnt < attr->len) /* Out of header. */
+		if (attrs_size < attr->len) /* Out of header. */
 			return (EBADMSG);
 		error = radius_pkt_attr_chk(attr);
 		if (0 != error)
@@ -1350,7 +1307,7 @@ radius_pkt_chk(rad_pkt_hdr_p pkt, size_t pkt_size) {
 			msg_authentic_cnt ++;
 			break;
 		}
-		attr_cnt -= attr->len;
+		attrs_size -= attr->len;
 		attr = RADIUS_PKT_ATTR_NEXT(attr);
 	}
 	if (1 < msg_authentic_cnt) /* Wierd format? */
