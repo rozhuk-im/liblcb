@@ -50,15 +50,15 @@ bt_tr_ann_ans_alloc(void) {
 
 
 void
-bt_tr_ann_ans_free(bt_tr_ann_ans_p tr_ans) {
+bt_tr_ann_ans_free(bt_tr_ann_ans_p *tr_ans) {
 
-	if (NULL == tr_ans)
+	if (NULL == tr_ans || NULL == (*tr_ans))
 		return;
 
-	if (NULL != tr_ans->peers) {
-		free(tr_ans->peers);
+	if (NULL != (*tr_ans)->peers) {
+		free_ptr(&(*tr_ans)->peers);
 	}
-	free(tr_ans);
+	free_ptr(tr_ans);
 }
 
 
@@ -89,14 +89,14 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 		return (error);
 	}
 	if (BT_EN_TYPE_DICT != node->type) {// invalid data type
-		bt_en_free(node);
+		bt_en_free(&node);
 		(*ret_data) = NULL;
 		return (EINVAL);
 	}
 
 	tr_ans = bt_tr_ann_ans_alloc();
 	if (NULL == tr_ans) {
-		bt_en_free(node);
+		bt_en_free(&node);
 		return (ENOMEM);
 	}
 
@@ -168,8 +168,8 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 			peers = reallocarray(tr_ans->peers,
 			    (tr_ans->peers_count + tm), sizeof(bt_tr_peer_t));
 			if (NULL == peers) {
-				bt_en_free(node);
-				bt_tr_ann_ans_free(tr_ans);
+				bt_en_free(&node);
+				bt_tr_ann_ans_free(&tr_ans);
 				(*ret_data) = NULL;
 				return (ENOMEM);
 			}
@@ -201,8 +201,8 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 			peers = reallocarray(tr_ans->peers,
 			    (tr_ans->peers_count + tm), sizeof(bt_tr_peer_t));
 			if (NULL == peers) {
-				bt_en_free(node);
-				bt_tr_ann_ans_free(tr_ans);
+				bt_en_free(&node);
+				bt_tr_ann_ans_free(&tr_ans);
 				(*ret_data) = NULL;
 				return (ENOMEM);
 			}
@@ -223,7 +223,7 @@ bt_tr_ann_ans_decode(uint8_t *buf, size_t buf_size, bt_tr_ann_ans_p *ret_data) {
 		}
 	}
 	(*ret_data) = tr_ans;
-	bt_en_free(node);
+	bt_en_free(&node);
 
 	return (0);
 }

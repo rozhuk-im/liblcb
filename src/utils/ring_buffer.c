@@ -390,25 +390,24 @@ r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
 
 err_out:
 	/* Error. */
-	r_buf_free(r_buf);
+	r_buf_free(&r_buf);
 
 	return (NULL);
 }
 
 void
-r_buf_free(r_buf_p r_buf) {
+r_buf_free(r_buf_p *r_buf) {
 
-	if (NULL == r_buf)
+	if (NULL == r_buf || NULL == (*r_buf))
 		return;
 
-	if (NULL != r_buf->buf) {
-		mapfree(r_buf->buf, r_buf->size);
+	if (NULL != (*r_buf)->buf) {
+		mapfree((*r_buf)->buf, (*r_buf)->size);
 	}
-	if (NULL != r_buf->iov) {
-		mapfree(r_buf->iov, r_buf->iov_size);
+	if (NULL != (*r_buf)->iov) {
+		mapfree((*r_buf)->iov, (*r_buf)->iov_size);
 	}
-	mem_filld(r_buf, sizeof(r_buf_t));
-	free(r_buf);
+	free_ptr(r_buf);
 }
 
 #if 0

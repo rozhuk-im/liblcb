@@ -116,15 +116,15 @@ host_addr_clone(host_addr_p src) {
 }
 
 static inline void
-host_addr_free(host_addr_p haddr) {
+host_addr_free(host_addr_p *haddr) {
 
-	if (NULL == haddr)
+	if (NULL == haddr || NULL == (*haddr))
 		return;
 
-	if (NULL != haddr->addrs) {
-		free(haddr->addrs);
+	if (NULL != (*haddr)->addrs) {
+		free_ptr(&(*haddr)->addrs);
 	}
-	free(haddr);
+	free_ptr(haddr);
 }
 
 static inline int

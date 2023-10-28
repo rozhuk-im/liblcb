@@ -109,7 +109,6 @@ data_cache_destroy(data_cache_p dcache) {
 		//mtx_unlock(&dcache->buckets[i].rw_lock);
 		//mtx_destroy(&dcache->buckets[i].rw_lock);
 	}
-	mem_filld(dcache, sizeof(data_cache_t));
 	free(dcache);
 }
 
@@ -183,7 +182,6 @@ data_cache_item_free(data_cache_item_p dc_item) {
 		return;
 	TAILQ_REMOVE(&dc_item->bucket->items_head, dc_item, next);
 	dc_item->bucket->dcache->free_data_fn(dc_item->data);
-	mem_filld(dc_item, sizeof(data_cache_item_t));
 	free(dc_item);
 }
 

@@ -136,7 +136,6 @@ tp_task_destroy(tp_task_p tptask) {
 	    0 != (TP_TASK_F_CLOSE_ON_DESTROY & tptask->flags)) {
 		close((int)tptask->tp_data.ident);
 	}
-	mem_filld(tptask, sizeof(tp_task_t));
 	free(tptask);
 }
 

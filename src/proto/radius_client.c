@@ -431,7 +431,6 @@ radius_client_destroy(radius_cli_p rad_cli) {
 	}
 	MTX_DESTROY(&rad_cli->cli_srv_mtx);
 
-	mem_filld(rad_cli, sizeof(radius_cli_t));
 	free(rad_cli);
 }
 static void
@@ -611,7 +610,6 @@ radius_client_socket_free(radius_cli_skt_p skt) {
 		radius_client_query_done(tpt,
 		    (radius_cli_query_p)skt->queries_tmr[i].ident, NULL, EINTR);
 	}
-	mem_filld(skt, sizeof(radius_cli_skt_t));
 	free(skt);
 }
 

@@ -469,7 +469,6 @@ http_srv_destroy(http_srv_p srv) {
 		free(srv->bnd);
 	}
 	hostname_list_deinit(&srv->hst_name_lst);
-	mem_filld(srv, sizeof(http_srv_t));
 	free(srv);
 }
 
@@ -670,7 +669,6 @@ http_srv_bind_remove(http_srv_bind_p bnd) {
 	bnd->tptasks = NULL;
 	bnd->tptasks_cnt = 0;
 	hostname_list_deinit(&bnd->hst_name_lst);
-	mem_filld(bnd, sizeof(http_srv_bind_t));
 	free(bnd);
 }
 
@@ -757,7 +755,6 @@ http_srv_cli_free(http_srv_cli_p cli) {
 	if (cli->buf != cli->rcv_buf) {
 		io_buf_free(cli->buf);
 	}
-	mem_filld(cli, sizeof(http_srv_cli_t));
 	free(cli);
 }
 

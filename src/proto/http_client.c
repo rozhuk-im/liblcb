@@ -227,7 +227,6 @@ http_cli_destroy(http_cli_p cli) {
 	LOGD_EV("...");
 	if (NULL == cli)
 		return;
-	mem_filld(cli, sizeof(http_cli_t));
 	free(cli);
 }
 
@@ -308,8 +307,7 @@ http_cli_conn_free(http_cli_conn_p cli_conn) {
 	io_buf_free(&cli_conn->snd_data_buf);
 	io_buf_free(&cli_conn->rcv_hdrs_buf);
 	io_buf_free(&cli_conn->rcv_data_buf);
-	host_addr_free(cli_conn->haddr);
-	mem_filld(cli_conn, sizeof(http_cli_conn_t));
+	host_addr_free(&cli_conn->haddr);
 	free(cli_conn);
 	
 }

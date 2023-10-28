@@ -69,30 +69,31 @@ bt_en_alloc(uint8_t type, uint8_t *raw, size_t raw_size) {
  * Free bt encoded node and all other containing nodes
  */
 void
-bt_en_free(bt_en_node_p node) {
+bt_en_free(bt_en_node_p *node) {
 	size_t i;
 
-	if (NULL == node)
+	if (NULL == node || NULL == (*node))
 		return;
 
-	switch (node->type) {
+	switch ((*node)->type) {
 	case BT_EN_TYPE_STR:
 	case BT_EN_TYPE_NUM:
 		break;
 	case BT_EN_TYPE_LIST:
-		for (i = 0; i < node->val_count; i ++)
-			bt_en_free(node->val.l[i]);
-		free(node->val.l);
+		for (i = 0; i < (*node)->val_count; i ++) {
+			bt_en_free(&(*node)->val.l[i]);
+		}
+		free_ptr(&(*node)->val.l);
 		break;
 	case BT_EN_TYPE_DICT:
-		for (i = 0; i < node->val_count; i ++) {
-			bt_en_free(node->val.d[i].key);
-			bt_en_free(node->val.d[i].val);
+		for (i = 0; i < (*node)->val_count; i ++) {
+			bt_en_free(&(*node)->val.d[i].key);
+			bt_en_free(&(*node)->val.d[i].val);
 		}
-		free(node->val.d);
+		free_ptr(&(*node)->val.d);
 		break;
 	}
-	free(node);
+	free_ptr(node);
 }
 
 
@@ -206,7 +207,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		/* Fail, free nodes = list items. */
 		if (0 != error) {
 			for (buf_off = 0; buf_off < items_count; buf_off ++) {
-				bt_en_free(l[buf_off]);
+				bt_en_free(&l[buf_off]);
 			}
 			free(l);
 
@@ -244,7 +245,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 				break;
 			/* Key mast bee string. */
 			if (d[items_count].key->type != BT_EN_TYPE_STR) {
-				bt_en_free(d[items_count].key);
+				bt_en_free(&d[items_count].key);
 				break;
 			}
 			cur_pos += buf_off;
@@ -252,7 +253,7 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 			error = bt_en_decode(cur_pos, (size_t)(buf_max - cur_pos),
 			    &d[items_count].val, &buf_off);
 			if (0 != error) {
-				bt_en_free(d[items_count].key);
+				bt_en_free(&d[items_count].key);
 				break;
 			}
 			items_count ++;
@@ -277,8 +278,8 @@ bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data, size_t *ret_
 		/* Fail, free nodes = dict items. */
 		if (0 != error) { /* Fail, free nodes. */
 			for (buf_off = 0; buf_off < items_count; buf_off ++) {
-				bt_en_free(d[buf_off].key);
-				bt_en_free(d[buf_off].val);
+				bt_en_free(&d[buf_off].key);
+				bt_en_free(&d[buf_off].val);
 			}
 			free(d);
 

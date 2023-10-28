@@ -524,7 +524,6 @@ dns_rslvr_task_free(dns_rslvr_task_p task) {
 	rslvr->tasks_tmr[task->task_id].ident = 0;
 	rslvr->tasks_count --;
 	/* XXX UnLock */
-	mem_filld(task, sizeof(dns_rslvr_task_t));
 	free(task);
 }
 
@@ -643,7 +642,6 @@ dns_resolver_destroy(dns_rslvr_p rslvr) {
 	free(rslvr->dns_addrs);
 	io_buf_free(&rslvr->buf);
 	hbucket_destroy(rslvr->hbskt, dns_resolver_destroy_entry_enum_cb, rslvr);
-	mem_filld(rslvr, sizeof(dns_rslvr_t));
 	free(rslvr);
 }
 

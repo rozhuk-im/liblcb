@@ -1018,7 +1018,6 @@ tp_destroy(tp_p tp) {
 	for (i = 0; i < tp->threads_max; i ++) {
 		tpt_data_uninit(&tp->threads[i]);
 	}
-	mem_filld(tp, sizeof(tp_t));
 	free(tp);
 }
 

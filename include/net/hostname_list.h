@@ -69,12 +69,9 @@ hostname_list_deinit(hostname_list_p hn_lst) {
 		return;
 	if (NULL != hn_lst->names) {
 		for (i = 0; i <	hn_lst->count; i ++) {
-			if (NULL == hn_lst->names[i])
-				continue;
-			free(hn_lst->names[i]);
+			free_ptr(&hn_lst->names[i]);
 		}
-		free(hn_lst->names);
-		hn_lst->names = NULL;
+		free_ptr(&hn_lst->names);
 		hn_lst->allocated = 0;
 	}
 }

@@ -489,13 +489,6 @@ mem_set(void *buf, const size_t size, const uint8_t c) {
 
 #define mem_bzero(__buf, __size)	mem_set((__buf), (size_t)(__size), 0x00)
 
-/* Debug memory fill. */
-#ifdef DEBUG
-#	define mem_filld(__buf, __size)	mem_set((__buf), (size_t)(__size), 0xab)
-#else
-#	define mem_filld(__buf, __size)
-#endif
-
 
 static inline void *
 mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
@@ -546,6 +539,20 @@ realloc_items(void **items, const size_t item_size,
 	}
 	(*items) = items_new;
 	(*allocated) = allocated_new;
+
+	return (0);
+}
+
+static inline int
+free_ptr(void **ptr) {
+
+	if (NULL == ptr)
+		return (EINVAL);
+	if (NULL == *ptr)
+		return (0);
+
+	free(*ptr);
+	(*ptr) = NULL;
 
 	return (0);
 }
