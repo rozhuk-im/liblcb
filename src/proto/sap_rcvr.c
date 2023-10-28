@@ -371,7 +371,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 		sa_init(&sdpl->addr,
 		    (('4' == feilds[1][2]) ? AF_INET : AF_INET6),
 		    NULL, 0);
-		if (0 == inet_pton(sa_family(&sdpl->addr), straddr,
+		if (1 != inet_pton(sa_family(&sdpl->addr), straddr,
 		    sa_addr_get(&sdpl->addr))) { /* Addr format err.*/
 			data_cache_item_unlock(dc_item);
 			goto rcv_next;

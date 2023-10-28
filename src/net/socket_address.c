@@ -403,7 +403,8 @@ sa_addr_from_str(sockaddr_storage_p addr,
 	/* AF_INET, AF_INET6 */
 	for (i = 0; i < nitems(family_list); i ++) {
 		sa_init(addr, family_list[i], NULL, 0);
-		if (inet_pton(family_list[i], straddr, sa_addr_get(addr))) {
+		if (1 == inet_pton(family_list[i], straddr,
+		    sa_addr_get(addr))) {
 			sa_port_set(addr, 0);
 			return (0);
 		}
@@ -471,7 +472,8 @@ sa_addr_port_from_str(sockaddr_storage_p addr,
 	/* AF_INET, AF_INET6 */
 	for (i = 0; i < nitems(family_list); i ++) {
 		sa_init(addr, family_list[i], NULL, 0);
-		if (inet_pton(family_list[i], straddr, sa_addr_get(addr))) {
+		if (1 == inet_pton(family_list[i], straddr,
+		    sa_addr_get(addr))) {
 			sa_port_set(addr, port);
 			return (0);
 		}
