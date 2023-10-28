@@ -68,12 +68,12 @@ sa_init(sockaddr_storage_p addr, const sa_family_t family,
 		return (EINVAL);
 
 	switch (family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		mem_bzero(addr, sizeof(sockaddr_un_t));
 #ifdef BSD /* BSD specific code. */
 		((sockaddr_un_p)addr)->sun_len = sizeof(sockaddr_un_t);
 #endif
-		((sockaddr_un_p)addr)->sun_family = AF_LOCAL;
+		((sockaddr_un_p)addr)->sun_family = AF_UNIX;
 		//addr->sun_path[] = 0;
 		break;
 	case AF_INET:
@@ -114,7 +114,7 @@ sa_family(const sockaddr_storage_t *addr) {
 		return (0);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 	case AF_INET:
 	case AF_INET6:
 		return (addr->ss_family);
@@ -130,7 +130,7 @@ sa_size(const sockaddr_storage_t *addr) {
 		return (0);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		return (sizeof(sockaddr_un_t));
 	case AF_INET:
 		return (sizeof(sockaddr_in_t));
@@ -164,7 +164,7 @@ sa_port_set(sockaddr_storage_p addr, const uint16_t port) {
 		return (EINVAL);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		break;
 	case AF_INET:
 		((sockaddr_in_p)addr)->sin_port = htons(port);
@@ -186,7 +186,7 @@ sa_addr_get(const sockaddr_storage_t *addr) {
 		return (NULL);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		return (MK_RW_PTR(&((const sockaddr_un_t*)addr)->sun_path));
 	case AF_INET:
 		return (MK_RW_PTR(&((const sockaddr_in_t*)addr)->sin_addr));
@@ -204,7 +204,7 @@ sa_addr_set(sockaddr_storage_p addr, const void *sin_addr) {
 		return (EINVAL);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		strlcpy(((sockaddr_un_p)addr)->sun_path, (const char*)sin_addr,
 		    sizeof(((sockaddr_un_p)addr)->sun_path));
 		break;
@@ -230,7 +230,7 @@ sa_addr_is_specified(const sockaddr_storage_t *addr) {
 		return (0);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		return (0 != ((const sockaddr_un_t*)addr)->sun_path[0]);
 	case AF_INET:
 		return (INADDR_ANY != ((const sockaddr_in_t*)addr)->sin_addr.s_addr);
@@ -300,7 +300,7 @@ sa_addr_port_is_eq(const sockaddr_storage_t *addr1,
 	if (addr1->ss_family != addr2->ss_family)
 		return (0);
 	switch (addr1->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		if (0 == strncmp(((const sockaddr_un_t*)addr1)->sun_path,
 		    ((const sockaddr_un_t*)addr2)->sun_path,
 		    sizeof(((const sockaddr_un_t*)addr1)->sun_path)))
@@ -339,7 +339,7 @@ sa_addr_is_eq(const sockaddr_storage_t *addr1,
 	if (addr1->ss_family != addr2->ss_family)
 		return (0);
 	switch (addr1->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		if (0 == strncmp(((const sockaddr_un_t*)addr1)->sun_path,
 		    ((const sockaddr_un_t*)addr2)->sun_path,
 		    sizeof(((const sockaddr_un_t*)addr1)->sun_path)))
@@ -409,9 +409,9 @@ sa_addr_from_str(sockaddr_storage_p addr,
 			return (0);
 		}
 	}
-	/* AF_LOCAL */
+	/* AF_UNIX */
 	if ('/' == straddr[0] || '.' == straddr[0]) {
-		sa_init(addr, AF_LOCAL, straddr, 0);
+		sa_init(addr, AF_UNIX, straddr, 0);
 		return (0);
 	}
 	/* Fail: unknown address. */
@@ -478,9 +478,9 @@ sa_addr_port_from_str(sockaddr_storage_p addr,
 			return (0);
 		}
 	}
-	/* AF_LOCAL */
+	/* AF_UNIX */
 	if ('/' == straddr[0] || '.' == straddr[0]) {
-		sa_init(addr, AF_LOCAL, straddr, 0);
+		sa_init(addr, AF_UNIX, straddr, 0);
 		return (0);
 	}
 	/* Fail: unknown address. */
@@ -501,7 +501,7 @@ sa_addr_to_str(const sockaddr_storage_t *addr, char *buf,
 		return (EAFNOSUPPORT);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 		size_ret = strlcpy(buf, sin_addr, buf_size);
 		break;
 	case AF_INET:
@@ -534,7 +534,7 @@ sa_addr_port_to_str(const sockaddr_storage_t *addr, char *buf,
 		return (EINVAL);
 
 	switch (addr->ss_family) {
-	case AF_LOCAL:
+	case AF_UNIX:
 	case AF_INET:
 		error = sa_addr_to_str(addr, buf, buf_size, &size_ret);
 		if (0 != error)
