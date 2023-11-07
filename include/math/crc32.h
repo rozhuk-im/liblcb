@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,36 +24,108 @@
  * SUCH DAMAGE.
  *
  */
-/*
- * Copyright (c) 1991, 1993
- *	The Regents of the University of California.  All rights reserved.
- *
- * This code is derived from software contributed to Berkeley by
- * James W. Williams of NASA Goddard Space Flight Center.
- */
-/*-
- *  COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or
- *  code or tables extracted from it, as desired without restriction.
- */
 
-/*
- * CRC-32-IEEE 802.3: V.42, MPEG-2, PNG, POSIX cksum
- */
+/* https://reveng.sourceforge.io/crc-catalogue/17plus.htm
+ * https://github.com/Michaelangel007/crc32
+ * http://ross.net/crc/download/crc_v3.txt
+ * CRC32c described in RFC4960, Appendix B. */
 
 
 #ifndef __CRC32_H__
 #define __CRC32_H__
 
+#include <sys/param.h>
 #include <sys/types.h>
 #include <inttypes.h>
 
+/* Use small lookup tables on data size less specified. */
+#define CRC32_SMALL_TBL_LIMIT	(sizeof(uint32_t) * 16)
 
-#define CRC32_INIT (0xffffffff)
+
+/* 4 bit = 16 items look-up-table */
+static inline uint32_t
+crc32_normal4(const uint32_t *table256, const uint32_t init_crc32,
+    const uint8_t *buf, const size_t buf_size) {
+	register uint32_t crc = init_crc32;
+
+	if (NULL == buf || 0 == buf_size)
+		return (crc);
+	for (size_t i = 0; i < buf_size; i ++) {
+		crc ^= (((uint32_t)buf[i]) << 24);
+		crc = ((crc << 4) ^ table256[(crc >> 28)]);
+		crc = ((crc << 4) ^ table256[(crc >> 28)]);
+	}
+	return (crc);
+}
+
+/* 8 bit = 256 items look-up-table */
+static inline uint32_t
+crc32_normal8(const uint32_t *table256, const uint32_t init_crc32,
+    const uint8_t *buf, const size_t buf_size) {
+	register uint32_t crc = init_crc32;
+
+	if (NULL == buf || 0 == buf_size)
+		return (crc);
+	for (size_t i = 0; i < buf_size; i ++) {
+		crc = ((crc << 8) ^ table256[((crc >> 24) ^ ((uint32_t)buf[i]))]);
+	}
+	return (crc);
+}
+
+static inline uint32_t
+crc32_normal(const uint32_t *table256, const uint32_t init_crc32,
+    const uint8_t *buf, const size_t buf_size) {
+
+	if (CRC32_SMALL_TBL_LIMIT > buf_size)
+		return (crc32_normal4(table256, init_crc32, buf, buf_size));
+	return (crc32_normal8(table256, init_crc32, buf, buf_size));
+}
 
 
+/* 4 bit = 16 items look-up-table */
+static inline uint32_t
+crc32_reflect4(const uint32_t *table16, const uint32_t init_crc32,
+    const uint8_t *buf, const size_t buf_size) {
+	register uint32_t crc = init_crc32;
 
-/* Normal - Big Endian: 0x04c11db7 */
-static const uint32_t crc32_be_table256[256] = { /* Same as crc32_be_table16 */
+	if (NULL == buf || 0 == buf_size)
+		return (crc);
+	for (size_t i = 0; i < buf_size; i ++) {
+		crc ^= ((uint32_t)buf[i]);
+		crc = ((crc >> 4) ^ table16[(crc & 0x0000000f)]);
+		crc = ((crc >> 4) ^ table16[(crc & 0x0000000f)]);
+	}
+	return (crc);
+}
+
+/* 8 bit = 256 items look-up-table */
+static inline uint32_t
+crc32_reflect8(const uint32_t *table256, const uint32_t init_crc32,
+    const uint8_t *buf, const size_t buf_size) {
+	register uint32_t crc = init_crc32;
+
+	if (NULL == buf || 0 == buf_size)
+		return (crc);
+	for (size_t i = 0; i < buf_size; i ++) {
+		crc = ((crc >> 8) ^ table256[((((uint32_t)buf[i]) ^ crc) & 0x000000ff)]);
+	}
+	return (crc);
+}
+
+static inline uint32_t
+crc32_reflect(const uint32_t *table256, const uint32_t *table16,
+    const uint32_t init_crc32, const uint8_t *buf, const size_t buf_size) {
+
+	if (NULL != table16 &&
+	    CRC32_SMALL_TBL_LIMIT > buf_size)
+		return (crc32_reflect4(table16, init_crc32, buf, buf_size));
+	return (crc32_reflect8(table256, init_crc32, buf, buf_size));
+}
+
+
+/* Normal - Big Endian: 0x04c11db7. */
+/* No additional 16 table required, first 16 items used. */
+static const uint32_t crc32_tbl256_04c11db7[256] = {
 	0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9,
 	0x130476dc, 0x17c56b6b, 0x1a864db2, 0x1e475005,
 	0x2608edb8, 0x22c9f00f, 0x2f8ad6d6, 0x2b4bcb61,
@@ -122,17 +194,14 @@ static const uint32_t crc32_be_table256[256] = { /* Same as crc32_be_table16 */
 	0xafb010b1, 0xab710d06, 0xa6322bdf, 0xa2f33668,
 	0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
 };
-
-
-/* Reversed - Little Endian: 0xedb88320 */
-static const uint32_t crc32_le_table16[16] = {
+/* Reversed/reflected - Little Endian: 0xedb88320 (orig: 0x04c11db7). */
+static const uint32_t crc32_tbl16_edb88320[16] = { /* Every 16 from 256. */
 	0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac,
 	0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
 	0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c,
 	0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c
 };
-
-static const uint32_t crc32_le_table256[256] = {
+static const uint32_t crc32_tbl256_edb88320[256] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
 	0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
 	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
@@ -199,100 +268,395 @@ static const uint32_t crc32_le_table256[256] = {
 	0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6,
 	0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
 	0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
-	0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d,
+	0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
+};
+
+/* Reversed/reflected - Little Endian: 0x1edc6f41. */
+static const uint32_t crc32_tbl16_1edc6f41[16] = { /* Every 16 from 256. */
+	0x00000000, 0x105ec76f, 0x20bd8ede, 0x30e349b1,
+	0x417b1dbc, 0x5125dad3, 0x61c69362, 0x7198540d,
+	0x82f63b78, 0x92a8fc17, 0xa24bb5a6, 0xb21572c9,
+	0xc38d26c4, 0xd3d3e1ab, 0xe330a81a, 0xf36e6f75
+};
+static const uint32_t crc32_tbl256_1edc6f41[256] = {
+	0x00000000, 0xf26b8303, 0xe13b70f7, 0x1350f3f4,
+	0xc79a971f, 0x35f1141c, 0x26a1e7e8, 0xd4ca64eb,
+	0x8ad958cf, 0x78b2dbcc, 0x6be22838, 0x9989ab3b,
+	0x4d43cfd0, 0xbf284cd3, 0xac78bf27, 0x5e133c24,
+	0x105ec76f, 0xe235446c, 0xf165b798, 0x030e349b,
+	0xd7c45070, 0x25afd373, 0x36ff2087, 0xc494a384,
+	0x9a879fa0, 0x68ec1ca3, 0x7bbcef57, 0x89d76c54,
+	0x5d1d08bf, 0xaf768bbc, 0xbc267848, 0x4e4dfb4b,
+	0x20bd8ede, 0xd2d60ddd, 0xc186fe29, 0x33ed7d2a,
+	0xe72719c1, 0x154c9ac2, 0x061c6936, 0xf477ea35,
+	0xaa64d611, 0x580f5512, 0x4b5fa6e6, 0xb93425e5,
+	0x6dfe410e, 0x9f95c20d, 0x8cc531f9, 0x7eaeb2fa,
+	0x30e349b1, 0xc288cab2, 0xd1d83946, 0x23b3ba45,
+	0xf779deae, 0x05125dad, 0x1642ae59, 0xe4292d5a,
+	0xba3a117e, 0x4851927d, 0x5b016189, 0xa96ae28a,
+	0x7da08661, 0x8fcb0562, 0x9c9bf696, 0x6ef07595,
+
+	0x417b1dbc, 0xb3109ebf, 0xa0406d4b, 0x522bee48,
+	0x86e18aa3, 0x748a09a0, 0x67dafa54, 0x95b17957,
+	0xcba24573, 0x39c9c670, 0x2a993584, 0xd8f2b687,
+	0x0c38d26c, 0xfe53516f, 0xed03a29b, 0x1f682198,
+	0x5125dad3, 0xa34e59d0, 0xb01eaa24, 0x42752927,
+	0x96bf4dcc, 0x64d4cecf, 0x77843d3b, 0x85efbe38,
+	0xdbfc821c, 0x2997011f, 0x3ac7f2eb, 0xc8ac71e8,
+	0x1c661503, 0xee0d9600, 0xfd5d65f4, 0x0f36e6f7,
+	0x61c69362, 0x93ad1061, 0x80fde395, 0x72966096,
+	0xa65c047d, 0x5437877e, 0x4767748a, 0xb50cf789,
+	0xeb1fcbad, 0x197448ae, 0x0a24bb5a, 0xf84f3859,
+	0x2c855cb2, 0xdeeedfb1, 0xcdbe2c45, 0x3fd5af46,
+	0x7198540d, 0x83f3d70e, 0x90a324fa, 0x62c8a7f9,
+	0xb602c312, 0x44694011, 0x5739b3e5, 0xa55230e6,
+	0xfb410cc2, 0x092a8fc1, 0x1a7a7c35, 0xe811ff36,
+	0x3cdb9bdd, 0xceb018de, 0xdde0eb2a, 0x2f8b6829,
+
+	0x82f63b78, 0x709db87b, 0x63cd4b8f, 0x91a6c88c,
+	0x456cac67, 0xb7072f64, 0xa457dc90, 0x563c5f93,
+	0x082f63b7, 0xfa44e0b4, 0xe9141340, 0x1b7f9043,
+	0xcfb5f4a8, 0x3dde77ab, 0x2e8e845f, 0xdce5075c,
+	0x92a8fc17, 0x60c37f14, 0x73938ce0, 0x81f80fe3,
+	0x55326b08, 0xa759e80b, 0xb4091bff, 0x466298fc,
+	0x1871a4d8, 0xea1a27db, 0xf94ad42f, 0x0b21572c,
+	0xdfeb33c7, 0x2d80b0c4, 0x3ed04330, 0xccbbc033,
+	0xa24bb5a6, 0x502036a5, 0x4370c551, 0xb11b4652,
+	0x65d122b9, 0x97baa1ba, 0x84ea524e, 0x7681d14d,
+	0x2892ed69, 0xdaf96e6a, 0xc9a99d9e, 0x3bc21e9d,
+	0xef087a76, 0x1d63f975, 0x0e330a81, 0xfc588982,
+	0xb21572c9, 0x407ef1ca, 0x532e023e, 0xa145813d,
+	0x758fe5d6, 0x87e466d5, 0x94b49521, 0x66df1622,
+	0x38cc2a06, 0xcaa7a905, 0xd9f75af1, 0x2b9cd9f2,
+	0xff56bd19, 0x0d3d3e1a, 0x1e6dcdee, 0xec064eed,
+
+	0xc38d26c4, 0x31e6a5c7, 0x22b65633, 0xd0ddd530,
+	0x0417b1db, 0xf67c32d8, 0xe52cc12c, 0x1747422f,
+	0x49547e0b, 0xbb3ffd08, 0xa86f0efc, 0x5a048dff,
+	0x8ecee914, 0x7ca56a17, 0x6ff599e3, 0x9d9e1ae0,
+	0xd3d3e1ab, 0x21b862a8, 0x32e8915c, 0xc083125f,
+	0x144976b4, 0xe622f5b7, 0xf5720643, 0x07198540,
+	0x590ab964, 0xab613a67, 0xb831c993, 0x4a5a4a90,
+	0x9e902e7b, 0x6cfbad78, 0x7fab5e8c, 0x8dc0dd8f,
+	0xe330a81a, 0x115b2b19, 0x020bd8ed, 0xf0605bee,
+	0x24aa3f05, 0xd6c1bc06, 0xc5914ff2, 0x37faccf1,
+	0x69e9f0d5, 0x9b8273d6, 0x88d28022, 0x7ab90321,
+	0xae7367ca, 0x5c18e4c9, 0x4f48173d, 0xbd23943e,
+	0xf36e6f75, 0x0105ec76, 0x12551f82, 0xe03e9c81,
+	0x34f4f86a, 0xc69f7b69, 0xd5cf889d, 0x27a40b9e,
+	0x79b737ba, 0x8bdcb4b9, 0x988c474d, 0x6ae7c44e,
+	0xbe2da0a5, 0x4c4623a6, 0x5f16d052, 0xad7d5351
+};
+
+/* Reversed/reflected - Little Endian: 0xa833982b. */
+static const uint32_t crc32_tbl16_a833982b[16] = {
+	0x00000000, 0x4589ac8d, 0x8b13591a, 0xce9af597,
+	0xbe152a1f, 0xfb9c8692, 0x35067305, 0x708fdf88,
+	0xd419cc15, 0x91906098, 0x5f0a950f, 0x1a833982,
+	0x6a0ce60a, 0x2f854a87, 0xe11fbf10, 0xa496139d
+};
+static const uint32_t crc32_tbl256_a833982b[256] = {
+	0x00000000, 0x2bddd04f, 0x57bba09e, 0x7c6670d1,
+	0xaf77413c, 0x84aa9173, 0xf8cce1a2, 0xd31131ed,
+	0xf6dd1a53, 0xdd00ca1c, 0xa166bacd, 0x8abb6a82,
+	0x59aa5b6f, 0x72778b20, 0x0e11fbf1, 0x25cc2bbe,
+	0x4589ac8d, 0x6e547cc2, 0x12320c13, 0x39efdc5c,
+	0xeafeedb1, 0xc1233dfe, 0xbd454d2f, 0x96989d60,
+	0xb354b6de, 0x98896691, 0xe4ef1640, 0xcf32c60f,
+	0x1c23f7e2, 0x37fe27ad, 0x4b98577c, 0x60458733,
+	0x8b13591a, 0xa0ce8955, 0xdca8f984, 0xf77529cb,
+	0x24641826, 0x0fb9c869, 0x73dfb8b8, 0x580268f7,
+	0x7dce4349, 0x56139306, 0x2a75e3d7, 0x01a83398,
+	0xd2b90275, 0xf964d23a, 0x8502a2eb, 0xaedf72a4,
+	0xce9af597, 0xe54725d8, 0x99215509, 0xb2fc8546,
+	0x61edb4ab, 0x4a3064e4, 0x36561435, 0x1d8bc47a,
+	0x3847efc4, 0x139a3f8b, 0x6ffc4f5a, 0x44219f15,
+	0x9730aef8, 0xbced7eb7, 0xc08b0e66, 0xeb56de29,
+
+	0xbe152a1f, 0x95c8fa50, 0xe9ae8a81, 0xc2735ace,
+	0x11626b23, 0x3abfbb6c, 0x46d9cbbd, 0x6d041bf2,
+	0x48c8304c, 0x6315e003, 0x1f7390d2, 0x34ae409d,
+	0xe7bf7170, 0xcc62a13f, 0xb004d1ee, 0x9bd901a1,
+	0xfb9c8692, 0xd04156dd, 0xac27260c, 0x87faf643,
+	0x54ebc7ae, 0x7f3617e1, 0x03506730, 0x288db77f,
+	0x0d419cc1, 0x269c4c8e, 0x5afa3c5f, 0x7127ec10,
+	0xa236ddfd, 0x89eb0db2, 0xf58d7d63, 0xde50ad2c,
+	0x35067305, 0x1edba34a, 0x62bdd39b, 0x496003d4,
+	0x9a713239, 0xb1ace276, 0xcdca92a7, 0xe61742e8,
+	0xc3db6956, 0xe806b919, 0x9460c9c8, 0xbfbd1987,
+	0x6cac286a, 0x4771f825, 0x3b1788f4, 0x10ca58bb,
+	0x708fdf88, 0x5b520fc7, 0x27347f16, 0x0ce9af59,
+	0xdff89eb4, 0xf4254efb, 0x88433e2a, 0xa39eee65,
+	0x8652c5db, 0xad8f1594, 0xd1e96545, 0xfa34b50a,
+	0x292584e7, 0x02f854a8, 0x7e9e2479, 0x5543f436,
+
+	0xd419cc15, 0xffc41c5a, 0x83a26c8b, 0xa87fbcc4,
+	0x7b6e8d29, 0x50b35d66, 0x2cd52db7, 0x0708fdf8,
+	0x22c4d646, 0x09190609, 0x757f76d8, 0x5ea2a697,
+	0x8db3977a, 0xa66e4735, 0xda0837e4, 0xf1d5e7ab,
+	0x91906098, 0xba4db0d7, 0xc62bc006, 0xedf61049,
+	0x3ee721a4, 0x153af1eb, 0x695c813a, 0x42815175,
+	0x674d7acb, 0x4c90aa84, 0x30f6da55, 0x1b2b0a1a,
+	0xc83a3bf7, 0xe3e7ebb8, 0x9f819b69, 0xb45c4b26,
+	0x5f0a950f, 0x74d74540, 0x08b13591, 0x236ce5de,
+	0xf07dd433, 0xdba0047c, 0xa7c674ad, 0x8c1ba4e2,
+	0xa9d78f5c, 0x820a5f13, 0xfe6c2fc2, 0xd5b1ff8d,
+	0x06a0ce60, 0x2d7d1e2f, 0x511b6efe, 0x7ac6beb1,
+	0x1a833982, 0x315ee9cd, 0x4d38991c, 0x66e54953,
+	0xb5f478be, 0x9e29a8f1, 0xe24fd820, 0xc992086f,
+	0xec5e23d1, 0xc783f39e, 0xbbe5834f, 0x90385300,
+	0x432962ed, 0x68f4b2a2, 0x1492c273, 0x3f4f123c,
+
+	0x6a0ce60a, 0x41d13645, 0x3db74694, 0x166a96db,
+	0xc57ba736, 0xeea67779, 0x92c007a8, 0xb91dd7e7,
+	0x9cd1fc59, 0xb70c2c16, 0xcb6a5cc7, 0xe0b78c88,
+	0x33a6bd65, 0x187b6d2a, 0x641d1dfb, 0x4fc0cdb4,
+	0x2f854a87, 0x04589ac8, 0x783eea19, 0x53e33a56,
+	0x80f20bbb, 0xab2fdbf4, 0xd749ab25, 0xfc947b6a,
+	0xd95850d4, 0xf285809b, 0x8ee3f04a, 0xa53e2005,
+	0x762f11e8, 0x5df2c1a7, 0x2194b176, 0x0a496139,
+	0xe11fbf10, 0xcac26f5f, 0xb6a41f8e, 0x9d79cfc1,
+	0x4e68fe2c, 0x65b52e63, 0x19d35eb2, 0x320e8efd,
+	0x17c2a543, 0x3c1f750c, 0x407905dd, 0x6ba4d592,
+	0xb8b5e47f, 0x93683430, 0xef0e44e1, 0xc4d394ae,
+	0xa496139d, 0x8f4bc3d2, 0xf32db303, 0xd8f0634c,
+	0x0be152a1, 0x203c82ee, 0x5c5af23f, 0x77872270,
+	0x524b09ce, 0x7996d981, 0x05f0a950, 0x2e2d791f,
+	0xfd3c48f2, 0xd6e198bd, 0xaa87e86c, 0x815a3823
+};
+
+/* Normal - Big Endian: 0x814141ab. */
+/* No additional 16 table required, first 16 items used. */
+static const uint32_t crc32_tbl256_814141ab[256] = {
+	0x00000000, 0x814141ab, 0x83c3c2fd, 0x02828356,
+	0x86c6c451, 0x078785fa, 0x050506ac, 0x84444707,
+	0x8cccc909, 0x0d8d88a2, 0x0f0f0bf4, 0x8e4e4a5f,
+	0x0a0a0d58, 0x8b4b4cf3, 0x89c9cfa5, 0x08888e0e,
+	0x98d8d3b9, 0x19999212, 0x1b1b1144, 0x9a5a50ef,
+	0x1e1e17e8, 0x9f5f5643, 0x9dddd515, 0x1c9c94be,
+	0x14141ab0, 0x95555b1b, 0x97d7d84d, 0x169699e6,
+	0x92d2dee1, 0x13939f4a, 0x11111c1c, 0x90505db7,
+	0xb0f0e6d9, 0x31b1a772, 0x33332424, 0xb272658f,
+	0x36362288, 0xb7776323, 0xb5f5e075, 0x34b4a1de,
+	0x3c3c2fd0, 0xbd7d6e7b, 0xbfffed2d, 0x3ebeac86,
+	0xbafaeb81, 0x3bbbaa2a, 0x3939297c, 0xb87868d7,
+	0x28283560, 0xa96974cb, 0xabebf79d, 0x2aaab636,
+	0xaeeef131, 0x2fafb09a, 0x2d2d33cc, 0xac6c7267,
+	0xa4e4fc69, 0x25a5bdc2, 0x27273e94, 0xa6667f3f,
+	0x22223838, 0xa3637993, 0xa1e1fac5, 0x20a0bb6e,
+
+	0xe0a08c19, 0x61e1cdb2, 0x63634ee4, 0xe2220f4f,
+	0x66664848, 0xe72709e3, 0xe5a58ab5, 0x64e4cb1e,
+	0x6c6c4510, 0xed2d04bb, 0xefaf87ed, 0x6eeec646,
+	0xeaaa8141, 0x6bebc0ea, 0x696943bc, 0xe8280217,
+	0x78785fa0, 0xf9391e0b, 0xfbbb9d5d, 0x7afadcf6,
+	0xfebe9bf1, 0x7fffda5a, 0x7d7d590c, 0xfc3c18a7,
+	0xf4b496a9, 0x75f5d702, 0x77775454, 0xf63615ff,
+	0x727252f8, 0xf3331353, 0xf1b19005, 0x70f0d1ae,
+	0x50506ac0, 0xd1112b6b, 0xd393a83d, 0x52d2e996,
+	0xd696ae91, 0x57d7ef3a, 0x55556c6c, 0xd4142dc7,
+	0xdc9ca3c9, 0x5ddde262, 0x5f5f6134, 0xde1e209f,
+	0x5a5a6798, 0xdb1b2633, 0xd999a565, 0x58d8e4ce,
+	0xc888b979, 0x49c9f8d2, 0x4b4b7b84, 0xca0a3a2f,
+	0x4e4e7d28, 0xcf0f3c83, 0xcd8dbfd5, 0x4cccfe7e,
+	0x44447070, 0xc50531db, 0xc787b28d, 0x46c6f326,
+	0xc282b421, 0x43c3f58a, 0x414176dc, 0xc0003777,
+
+	0x40005999, 0xc1411832, 0xc3c39b64, 0x4282dacf,
+	0xc6c69dc8, 0x4787dc63, 0x45055f35, 0xc4441e9e,
+	0xcccc9090, 0x4d8dd13b, 0x4f0f526d, 0xce4e13c6,
+	0x4a0a54c1, 0xcb4b156a, 0xc9c9963c, 0x4888d797,
+	0xd8d88a20, 0x5999cb8b, 0x5b1b48dd, 0xda5a0976,
+	0x5e1e4e71, 0xdf5f0fda, 0xdddd8c8c, 0x5c9ccd27,
+	0x54144329, 0xd5550282, 0xd7d781d4, 0x5696c07f,
+	0xd2d28778, 0x5393c6d3, 0x51114585, 0xd050042e,
+	0xf0f0bf40, 0x71b1feeb, 0x73337dbd, 0xf2723c16,
+	0x76367b11, 0xf7773aba, 0xf5f5b9ec, 0x74b4f847,
+	0x7c3c7649, 0xfd7d37e2, 0xffffb4b4, 0x7ebef51f,
+	0xfafab218, 0x7bbbf3b3, 0x793970e5, 0xf878314e,
+	0x68286cf9, 0xe9692d52, 0xebebae04, 0x6aaaefaf,
+	0xeeeea8a8, 0x6fafe903, 0x6d2d6a55, 0xec6c2bfe,
+	0xe4e4a5f0, 0x65a5e45b, 0x6727670d, 0xe66626a6,
+	0x622261a1, 0xe363200a, 0xe1e1a35c, 0x60a0e2f7,
+
+	0xa0a0d580, 0x21e1942b, 0x2363177d, 0xa22256d6,
+	0x266611d1, 0xa727507a, 0xa5a5d32c, 0x24e49287,
+	0x2c6c1c89, 0xad2d5d22, 0xafafde74, 0x2eee9fdf,
+	0xaaaad8d8, 0x2beb9973, 0x29691a25, 0xa8285b8e,
+	0x38780639, 0xb9394792, 0xbbbbc4c4, 0x3afa856f,
+	0xbebec268, 0x3fff83c3, 0x3d7d0095, 0xbc3c413e,
+	0xb4b4cf30, 0x35f58e9b, 0x37770dcd, 0xb6364c66,
+	0x32720b61, 0xb3334aca, 0xb1b1c99c, 0x30f08837,
+	0x10503359, 0x911172f2, 0x9393f1a4, 0x12d2b00f,
+	0x9696f708, 0x17d7b6a3, 0x155535f5, 0x9414745e,
+	0x9c9cfa50, 0x1dddbbfb, 0x1f5f38ad, 0x9e1e7906,
+	0x1a5a3e01, 0x9b1b7faa, 0x9999fcfc, 0x18d8bd57,
+	0x8888e0e0, 0x09c9a14b, 0x0b4b221d, 0x8a0a63b6,
+	0x0e4e24b1, 0x8f0f651a, 0x8d8de64c, 0x0ccca7e7,
+	0x044429e9, 0x85056842, 0x8787eb14, 0x06c6aabf,
+	0x8282edb8, 0x03c3ac13, 0x01412f45, 0x80006eee 
 };
 
 
-/* Normal - Big Endian: 0x04c11db7 */
-/* 4 bit = 16 items look-up-table */
-static inline uint32_t
-crc32_be_ex4(const uint8_t *buf, size_t buf_size, const uint32_t init_crc32) {
-	register uint32_t crc = init_crc32;
+/* CRC-32/BZIP2
+ * Alias: CRC-32/AAL5, CRC-32/DECT-B, B-CRC-32
+ * width=32 poly=0x04c11db7 init=0xffffffff refin=false refout=false
+ * xorout=0xffffffff check=0xfc891918 residue=0xc704dd7b name="CRC-32/BZIP2" */
+#define crc32a_update(_crc, _data, _size)				\
+	(~crc32_normal(crc32_tbl256_04c11db7, ~(_crc), (_data), (_size)))
+#define crc32a(_data, _size)						\
+	crc32a_update(~0xffffffff, (_data), (_size))
 
-	if (NULL == buf || 0 == buf_size)
-		return (crc);
-	while (buf_size --) {
-		crc ^= (((uint32_t)(*(buf ++))) << 24);
-		crc = ((crc << 4) ^ crc32_be_table256[(crc >> 28)]);
-		crc = ((crc << 4) ^ crc32_be_table256[(crc >> 28)]);
+/* CRC-32/CKSUM
+ * Alias: CKSUM, CRC-32/POSIX
+ * width=32 poly=0x04c11db7 init=0x00000000 refin=false refout=false
+ * xorout=0xffffffff check=0x765e7680 residue=0xc704dd7b name="CRC-32/CKSUM" */
+#define crc32cksum_update(_crc, _data, _size)				\
+	(~crc32_normal(crc32_tbl256_04c11db7, ~(_crc), (_data), (_size)))
+#define crc32cksum(_data, _size)					\
+	crc32cksum_update(~0x00000000, (_data), (_size))
+
+/* CRC-32/MPEG-2
+ * width=32 poly=0x04c11db7 init=0xffffffff refin=false refout=false
+ * xorout=0x00000000 check=0x0376e6e7 residue=0x00000000 name="CRC-32/MPEG-2" */
+#define crc32mpeg2_update(_crc, _data, _size)				\
+	(crc32_normal(crc32_tbl256_04c11db7, (_crc), (_data), (_size)))
+#define crc32mpeg2(_data, _size)					\
+	crc32mpeg2_update(0xffffffff, (_data), (_size))
+
+
+/* CRC-32/ISO-HDLC
+ * Alias: CRC-32, CRC-32/ADCCP, CRC-32/V-42, CRC-32/XZ, PKZIP
+ * width=32 poly=0x04c11db7 init=0xffffffff refin=true refout=true
+ * xorout=0xffffffff check=0xcbf43926 residue=0xdebb20e3 name="CRC-32/ISO-HDLC" */
+#define crc32b_update(_crc, _data, _size)				\
+	(~crc32_reflect(crc32_tbl256_edb88320, crc32_tbl16_edb88320, ~(_crc), (_data), (_size)))
+#define crc32b(_data, _size)						\
+	crc32b_update(~0xffffffff, (_data), (_size))
+
+/* CRC-32/JAMCRC
+ * Alias: JAMCRC
+ * width=32 poly=0x04c11db7 init=0xffffffff refin=true refout=true
+ * xorout=0x00000000 check=0x340bc6d9 residue=0x00000000 name="CRC-32/JAMCRC" */
+#define crc32jamcrc_update(_crc, _data, _size)				\
+	(crc32_reflect(crc32_tbl256_edb88320, crc32_tbl16_edb88320, (_crc), (_data), (_size)))
+#define crc32jamcrc(_data, _size)					\
+	crc32jamcrc_update(0xffffffff, (_data), (_size))
+
+
+/* CRC-32/ISCSI
+ * Alias: CRC-32/BASE91-C, CRC-32/CASTAGNOLI, CRC-32/INTERLAKEN, CRC-32C
+ * width=32 poly=0x1edc6f41 init=0xffffffff refin=true refout=true
+ * xorout=0xffffffff check=0xe3069283 residue=0xb798b438 name="CRC-32/ISCSI" */
+#define crc32c_update(_crc, _data, _size)				\
+	(~crc32_reflect(crc32_tbl256_1edc6f41, crc32_tbl16_1edc6f41, ~(_crc), (_data), (_size)))
+#define crc32c(_data, _size)						\
+	crc32c_update(~0xffffffff, (_data), (_size))
+
+
+/* CRC-32/BASE91-D
+ * Alias: CRC-32D
+ * width=32 poly=0xa833982b init=0xffffffff refin=true refout=true
+ * xorout=0xffffffff check=0x87315576 residue=0x45270551 name="CRC-32/BASE91-D" */
+#define crc32d_update(_crc, _data, _size)				\
+	(~crc32_reflect(crc32_tbl256_a833982b, crc32_tbl16_a833982b, ~(_crc), (_data), (_size)))
+#define crc32d(_data, _size)						\
+	crc32d_update(~0xffffffff, (_data), (_size))
+
+
+/* CRC-32/AIXM
+ * Alias: CRC-32Q
+ * width=32 poly=0x814141ab init=0x00000000 refin=false refout=false
+ * xorout=0x00000000 check=0x3010bf7f residue=0x00000000 name="CRC-32/AIXM" */
+#define crc32q_update(_crc, _data, _size)				\
+	(crc32_normal(crc32_tbl256_814141ab, (_crc), (_data), (_size)))
+#define crc32q(_data, _size)						\
+	crc32q_update(0x00000000, (_data), (_size))
+
+
+
+#ifdef CRC32_SELF_TEST
+/* 0 - OK, non zero - error */
+static inline int
+crc32_self_test(void) {
+	uint32_t crca, crcb, crcc, crcd, crcq;
+	/* https://crccalc.com/ */
+	const char *data[] = {
+		"123456789",
+		"The quick brown fox jumps over the lazy dog.",
+		"The quick brown fox jumps over the lazy dog.The quick brown fox jumps over the lazy dog."
+	};
+	const size_t data_size[] = {
+		9, 44, 88
+	};
+	const uint32_t result_crc32a[] = {
+		0xfc891918,
+		0xabf72cbd,
+		0x3c6ce7f5
+	};
+	const uint32_t result_crc32b[] = {
+		0xcbf43926,
+		0x519025e9,
+		0x77f135f3
+	};
+	const uint32_t result_crc32c[] = {
+		0xe3069283,
+		0x190097b3,
+		0x05f42d23
+	};
+	const uint32_t result_crc32d[] = {
+		0x87315576,
+		0x99786c4f,
+		0xb840d0c9
+	};
+	const uint32_t result_crc32q[] = {
+		0x3010bf7f,
+		0xa128f1cd,
+		0x75ae4cce
+	};
+
+	/* Simple test. */
+	for (size_t i = 0; i < nitems(data); i ++) {
+		if (result_crc32a[i] != crc32a((const uint8_t*)data[i], data_size[i]))
+			return (1);
+		if (result_crc32b[i] != crc32b((const uint8_t*)data[i], data_size[i]))
+			return (2);
+		if (result_crc32c[i] != crc32c((const uint8_t*)data[i], data_size[i]))
+			return (3);
+		if (result_crc32d[i] != crc32d((const uint8_t*)data[i], data_size[i]))
+			return (4);
+		if (result_crc32q[i] != crc32q((const uint8_t*)data[i], data_size[i]))
+			return (5);
 	}
-	return (crc);
-}
-
-/* 8 bit = 256 items look-up-table */
-static inline uint32_t
-crc32_be_ex8(const uint8_t *buf, size_t buf_size, const uint32_t init_crc32) {
-	register uint32_t crc = init_crc32;
-
-	if (NULL == buf || 0 == buf_size)
-		return (crc);
-	while (buf_size --) {
-		crc = ((crc << 8) ^ crc32_be_table256[((crc >> 24) ^ ((uint32_t)(*(buf ++))))]);
+	/* Partial caclculation test. */
+	for (size_t i = 0; i < nitems(data); i ++) {
+		crca = crc32a((const uint8_t*)data[i], 1);
+		crcb = crc32b((const uint8_t*)data[i], 1);
+		crcc = crc32c((const uint8_t*)data[i], 1);
+		crcd = crc32d((const uint8_t*)data[i], 1);
+		crcq = crc32q((const uint8_t*)data[i], 1);
+		for (size_t j = 1; j < data_size[i]; j ++) {
+			crca = crc32a_update(crca, (((const uint8_t*)data[i]) + j), 1);
+			crcb = crc32b_update(crcb, (((const uint8_t*)data[i]) + j), 1);
+			crcc = crc32c_update(crcc, (((const uint8_t*)data[i]) + j), 1);
+			crcd = crc32d_update(crcd, (((const uint8_t*)data[i]) + j), 1);
+			crcq = crc32q_update(crcq, (((const uint8_t*)data[i]) + j), 1);
+		}
+		if (result_crc32a[i] != crca)
+			return (1);
+		if (result_crc32b[i] != crcb)
+			return (2);
+		if (result_crc32c[i] != crcc)
+			return (3);
+		if (result_crc32d[i] != crcd)
+			return (4);
+		if (result_crc32q[i] != crcq)
+			return (5);
 	}
-	return (crc);
+
+	return (0);
 }
-
-static inline uint32_t
-crc32_be_ex(const uint8_t *buf, const size_t buf_size,
-    const uint32_t init_crc32) {
-
-	if (sizeof(crc32_be_table256) > buf_size)
-		return (crc32_be_ex4(buf, buf_size, init_crc32));
-	return (crc32_be_ex8(buf, buf_size, init_crc32));
-}
-
-static inline uint32_t
-crc32_be(const uint8_t *buf, const size_t buf_size) {
-
-	return (crc32_be_ex(buf, buf_size, CRC32_INIT));
-}
-
-
-/* Reversed - Little Endian: 0xedb88320 */
-/* 4 bit = 16 items look-up-table */
-static inline uint32_t
-crc32_le_ex4(const uint8_t *buf, size_t buf_size,
-    const uint32_t init_crc32) {
-	register uint32_t crc = ~init_crc32;
-
-	if (NULL == buf || 0 == buf_size)
-		return (~crc);
-	while (buf_size --) {
-		crc ^= ((uint32_t)(*(buf ++)));
-		crc = ((crc >> 4) ^ crc32_le_table16[(crc & 0x0000000f)]);
-		crc = ((crc >> 4) ^ crc32_le_table16[(crc & 0x0000000f)]);
-	}
-	return (~crc);
-}
-
-/* 8 bit = 256 items look-up-table */
-static inline uint32_t
-crc32_le_ex8(const uint8_t *buf, size_t buf_size,
-    const uint32_t init_crc32) {
-	register uint32_t crc = ~init_crc32;
-
-	if (NULL == buf || 0 == buf_size)
-		return (~crc);
-	while (buf_size --) {
-		crc = ((crc >> 8) ^ crc32_le_table256[((((uint32_t)(*(buf ++))) ^ crc) & 0x000000ff)]);
-	}
-	return (~crc);
-}
-
-static inline uint32_t
-crc32_le_ex(const uint8_t *buf, const size_t buf_size,
-    const uint32_t init_crc32) {
-
-	if (sizeof(crc32_le_table256) > buf_size)
-		return (crc32_le_ex4(buf, buf_size, init_crc32));
-	return (crc32_le_ex8(buf, buf_size, init_crc32));
-}
-
-static inline uint32_t
-crc32_le(const uint8_t *buf, const size_t buf_size) {
-
-	return (crc32_le_ex(buf, buf_size, ~CRC32_INIT));
-}
+#endif
 
 
 #endif /* __CRC32_H__ */
