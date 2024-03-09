@@ -307,7 +307,7 @@ http_cli_conn_free(http_cli_conn_p cli_conn) {
 	io_buf_free(&cli_conn->snd_data_buf);
 	io_buf_free(&cli_conn->rcv_hdrs_buf);
 	io_buf_free(&cli_conn->rcv_data_buf);
-	host_addr_free(&cli_conn->haddr);
+	host_addr_free(cli_conn->haddr);
 	free(cli_conn);
 	
 }

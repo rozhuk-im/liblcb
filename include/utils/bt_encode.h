@@ -69,7 +69,7 @@ typedef struct bt_en_node_s {
 
 
 bt_en_node_p  bt_en_alloc(uint8_t type, uint8_t *raw, size_t raw_size);
-void	bt_en_free(bt_en_node_p *node);
+void	bt_en_free(bt_en_node_p node);
 int	bt_en_decode(uint8_t *buf, size_t buf_size, bt_en_node_p *ret_data,
 	    size_t *ret_buf_off);
 int	bt_dict_find(bt_en_node_p node, size_t *cur_off, const uint8_t *key_name,

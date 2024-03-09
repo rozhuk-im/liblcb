@@ -83,7 +83,7 @@ int	r_buf_rpos_init_near(r_buf_p r_buf, r_buf_rpos_p rpos,
 int	r_buf_rpos_check_fast(r_buf_p r_buf, r_buf_rpos_p rpos);
 
 r_buf_p	r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size);
-void	r_buf_free(r_buf_p *r_buf);
+void	r_buf_free(r_buf_p r_buf);
 
 size_t	r_buf_wbuf_get(r_buf_p r_buf, size_t min_buf_size, uint8_t **buf);
 int	r_buf_wbuf_set(r_buf_p r_buf, size_t offset, size_t buf_size);

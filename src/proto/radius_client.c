@@ -430,7 +430,6 @@ radius_client_destroy(radius_cli_p rad_cli) {
 		MTX_UNLOCK(&rad_cli->cli_srv_mtx);
 	}
 	MTX_DESTROY(&rad_cli->cli_srv_mtx);
-
 	free(rad_cli);
 }
 static void

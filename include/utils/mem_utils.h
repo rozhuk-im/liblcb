@@ -543,20 +543,6 @@ realloc_items(void **items, const size_t item_size,
 	return (0);
 }
 
-static inline int
-free_ptr(void **ptr) {
-
-	if (NULL == ptr)
-		return (EINVAL);
-	if (NULL == *ptr)
-		return (0);
-
-	free(*ptr);
-	(*ptr) = NULL;
-
-	return (0);
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 /////////////////////// mmap() based allocator /////////////////////////
