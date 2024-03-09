@@ -1,11 +1,10 @@
 #
 # Cmake configuration file for liblcb.
-# Just add: include(liblcb/CMakeLists.txt) in CMakeLists.txt to use
-# this lib.
+# Just add: include(liblcb/CMakeLists.txt) in CMakeLists.txt to use this lib.
 #
 
 ############################# INITIAL SECTION ##########################
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10)
 
 ############################# OPTIONS SECTION ##########################
 
