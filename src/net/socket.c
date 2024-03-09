@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,8 @@
  *
  */
 
-#ifndef __APPLE_USE_RFC_3542
-#define __APPLE_USE_RFC_3542 /* IPV6_PKTINFO */
+#if defined(__APPLE__) && !defined(__APPLE_USE_RFC_3542)
+#	define __APPLE_USE_RFC_3542	1 /* IPV6_PKTINFO */
 #endif
 
 #include <sys/param.h>
