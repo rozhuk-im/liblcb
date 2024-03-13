@@ -50,9 +50,11 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 	struct group *grp, grp_buf;
 	char tmbuf[4096];
 
-	if (2 > argc || NULL == data)
+	if (NULL == data)
 		return (1);
 	memset(data, 0x00, sizeof(cmd_line_data_t));
+	if (2 > argc)
+		return (1);
 
 	for (i = 1; i < argc; i ++) {
 		cur_ptr = (unsigned char*)argv[i];
