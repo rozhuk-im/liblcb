@@ -164,7 +164,7 @@ cmd_line_usage(const char *prog_name, const char *version,
     const char *author_email, const char *url) {
 
 	fprintf(stderr, "%s %s -- (c) %s\n", prog_name, version, author_email);
-	fprintf(stderr, "   BSD licence. Website: %s\n", url);
+	fprintf(stderr, "   Website: %s\n", url);
 #ifdef DEBUG
 	fprintf(stderr, "   Build: "__DATE__" "__TIME__", DEBUG\n");
 #else
