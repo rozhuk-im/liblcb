@@ -322,8 +322,8 @@ radius_client_rnd_factor(tpt_p tpt, uint64_t data) {
 	struct timespec ts;
 
 	clock_gettime(CLOCK_MONOTONIC_FAST, &ts);
-	tm = crc32_le_ex4((uint8_t*)&ts, sizeof(struct timespec), ~CRC32_INIT);
-	tm ^= crc32_le_ex4((uint8_t*)&data, sizeof(uint64_t), ~CRC32_INIT);
+	tm = crc32cksum((uint8_t*)&ts, sizeof(struct timespec));
+	tm ^= crc32cksum((uint8_t*)&data, sizeof(uint64_t));
 	tm = data_xor8(&tm, sizeof(uint32_t));
 	if (0 == (tm & 0x7f)) {
 		tm ++; /* Prevent division by zero. */
