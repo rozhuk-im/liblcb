@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ typedef struct cmd_line_data_s {
 	uid_t	pw_uid;		/* user uid */
 	gid_t	pw_gid;		/* user gid */
 	int	daemon;
+	int	log_level;	/* LOG_DEBUG - LOG_EMERG. */
 	int	verbose;
 	char	*file_name;
 } cmd_line_data_t, *cmd_line_data_p;

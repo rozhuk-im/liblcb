@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include <stdio.h>  /* snprintf, fprintf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #include <stdlib.h> /* malloc, exit */
+#include <syslog.h>
 
 #include "utils/cmd_line_daemon.h"
 
@@ -45,7 +46,7 @@ int
 cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 	int error, i;
 	uint8_t *cur_ptr;
-	char *uid, *gid;
+	char *num, *uid, *gid;
 	struct passwd *pwd, pwd_buf;
 	struct group *grp, grp_buf;
 	char tmbuf[4096];
@@ -53,16 +54,18 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 	if (NULL == data)
 		return (1);
 	memset(data, 0x00, sizeof(cmd_line_data_t));
+	data->log_level = LOG_INFO;
 	if (2 > argc)
 		return (1);
 
 	for (i = 1; i < argc; i ++) {
-		cur_ptr = (unsigned char*)argv[i];
-		if (*cur_ptr++ != '-') {
-			fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
+		cur_ptr = (uint8_t*)argv[i];
+		if ('-' != cur_ptr[0]) {
+			fprintf(stderr, "invalid option: \"%s\".\n", argv[i]);
 			return (0);
 		}
-		while (*cur_ptr) {
+		cur_ptr ++;
+		while (cur_ptr[0]) {
 			switch (*cur_ptr++) {
 			case '?':
 			case 'h':
@@ -72,47 +75,67 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 			case 'D':
 				data->daemon = 1;
 				break;
+			case 'l':
+			case 'L':
+				if (cur_ptr[0]) {
+					num = (char*)cur_ptr;
+				} else if (argv[++ i]) {
+					num = argv[i];
+				} else {
+					fprintf(stderr, "option \"-l\" requires number.\n");
+					return (1);
+				}
+				if (NULL == num)
+					break;
+				data->log_level = atoi(num);
+				if (data->log_level < LOG_EMERG &&
+				    data->log_level > LOG_DEBUG) {
+					fprintf(stderr, "option \"-l\" requires number in range: %i - %i.\n",
+						LOG_EMERG, LOG_DEBUG);
+					return (1);
+				}
+				break;
 			case 'c':
 			case 'C':
-				if (*cur_ptr) {
+				if (cur_ptr[0]) {
 					data->cfg_file_name = (char*)cur_ptr;
 				} else if (argv[++ i]) {
 					data->cfg_file_name = argv[i];
 				} else {
-					fprintf(stderr, "option \"-c\" requires config file name\n");
+					fprintf(stderr, "option \"-c\" requires config file name.\n");
 					return (1);
 				}
 				break;
 			case 'f':
 			case 'F':
-				if (*cur_ptr) {
+				if (cur_ptr[0]) {
 					data->file_name = (char*)cur_ptr;
 				} else if (argv[++ i]) {
 					data->file_name = argv[i];
 				} else {
-					fprintf(stderr, "option \"-f\" requires file name\n");
+					fprintf(stderr, "option \"-f\" requires file name.\n");
 					return (1);
 				}
 				break;
 			case 'p':
 			case 'P':
-				if (*cur_ptr) {
+				if (cur_ptr[0]) {
 					data->pid_file_name = (char*)cur_ptr;
 				} else if (argv[++ i]) {
 					data->pid_file_name = argv[i];
 				} else {
-					fprintf(stderr, "option \"-p\" requires pid file name\n");
+					fprintf(stderr, "option \"-p\" requires pid file name.\n");
 					return (1);
 				}
 				break;
 			case 'u':
 			case 'U':
-				if (*cur_ptr) {
+				if (cur_ptr[0]) {
 					uid = (char*)cur_ptr;
 				} else if (argv[++ i]) {
 					uid = argv[i];
 				} else {
-					fprintf(stderr, "option \"-u\" requires UID\n");
+					fprintf(stderr, "option \"-u\" requires UID.\n");
 					return (1);
 				}
 				if (NULL == uid)
@@ -122,18 +145,19 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 					data->pw_uid = pwd->pw_uid;
 				} else {
 					strerror_r(error, tmbuf, sizeof(tmbuf));
-					fprintf(stderr, "option \"-u\" requires UID, UID %s not found: %i - %s\n",
+					fprintf(stderr, "option \"-u\" requires UID, UID %s not found: %i - %s.\n",
 					    uid, error, tmbuf);
+					return (1);
 				}
 				break;
 			case 'g':
 			case 'G':
-				if (*cur_ptr) {
+				if (cur_ptr[0]) {
 					gid = (char*)cur_ptr;
 				} else if (argv[++ i]) {
 					gid = argv[i];
 				} else {
-					fprintf(stderr, "option \"-g\" requires GID\n");
+					fprintf(stderr, "option \"-g\" requires GID.\n");
 					return (1);
 				}
 				if (NULL == gid)
@@ -143,8 +167,9 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 					data->pw_gid = grp->gr_gid;
 				} else {
 					strerror_r(error, tmbuf, sizeof(tmbuf));
-					fprintf(stderr, "option \"-g\" requires GID, GID %s not found: %i - %s\n",
+					fprintf(stderr, "option \"-g\" requires GID, GID %s not found: %i - %s.\n",
 					    gid, error, tmbuf);
+					return (1);
 				}
 				break;
 			case 'v':
@@ -152,7 +177,7 @@ cmd_line_parse(int argc, char **argv, cmd_line_data_p data) {
 				data->verbose = 1;
 				break;
 			default:
-				fprintf(stderr, "invalid option: \"%c\"\n", (*(cur_ptr-1)));
+				fprintf(stderr, "unknown option: \"%c\".\n", cur_ptr[-1]);
 				return (1);
 			} /* switch (*cur_ptr++) */
 		} /* while (*cur_ptr) */
@@ -173,12 +198,14 @@ cmd_line_usage(const char *prog_name, const char *version,
 	fprintf(stderr, "   Build: "__DATE__" "__TIME__", Release\n");
 #endif
 	fprintf(stderr,
-		"usage: [-d] [-v] [-c file]\n"
+		"usage: [-d] [-l num] [-v] [-c file]\n"
 		"       [-p PID file] [-u uid|usr -g gid|grp]\n"
 		" -h           usage (this screen)\n"
 		" -d           become daemon\n"
-		" -c file      config file\n");
+		" -l num       log level from LOG_EMERG=%i to LOG_DEBUG=%i\n",
+		LOG_EMERG, LOG_DEBUG);
 	fprintf(stderr,
+		" -c file      config file\n"
 		" -p PID file  file name to store PID\n"
 		" -u uid|user  change uid\n"
 		" -g gid|group change gid\n"
