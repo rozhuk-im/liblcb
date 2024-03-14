@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2012 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2012-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,9 +45,6 @@
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
 #include "net/utils.h"
-#ifdef DEBUG
-#include "utils/log.h"
-#endif
 #include "utils/ring_buffer.h"
 
 
@@ -331,9 +328,9 @@ r_buf_rpos_check(r_buf_p r_buf, r_buf_rpos_p rpos, size_t *drop_size_ret) {
 	/* Some data lost for this receiver. */
 	//if (rpos->iov_index <= r_buf->iov_index ||
 	//    (r_buf->round_num - rpos->round_num) > 1) {
-		//LOGD_EV_FMT("AHTUNG 3 - user lost data / to slow receiver!!!");
+		//SYSLOGD_EX(LOG_DEBUG, "AHTUNG 3 - user lost data / to slow receiver!!!");
 	//}
-	//LOGD_EV_FMT("rbuf: rn = %i, index = %i; rpos: rn = %i, index = %i",
+	//SYSLOGD_EX(LOG_DEBUG, "rbuf: rn = %i, index = %i; rpos: rn = %i, index = %i",
 	//    r_buf->round_num, r_buf->iov_index, rpos->round_num, rpos->iov_index);
 
 	/* Calc dropped size. */
@@ -369,17 +366,18 @@ r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
 	//while (r_buf->size > size)
 	//	r_buf->size -= page_size;
 	r_buf->size = size;
-	//LOGD_EV_FMT("mapalloc_fd: size = %zu, r_buf->size = %zu", size, r_buf->size);
+	SYSLOGD_EX(LOG_DEBUG, "mapalloc_fd: size = %zu, r_buf->size = %zu",
+	    size, r_buf->size);
 	r_buf->buf = mapalloc_fd(fd, r_buf->size);
 	if (NULL == r_buf->buf) {
-		//LOGD_ERR(errno, "mapalloc 1");
+		SYSLOGD_ERR(LOG_DEBUG, errno, "mapalloc_fd()");
 		goto err_out;
 	}
 	r_buf->iov_count = ((r_buf->size / min_block_size) + 32);
 	r_buf->iov_size = ALIGNEX((sizeof(iovec_t) * r_buf->iov_count), page_size);
 	r_buf->iov = mapalloc(r_buf->iov_size);
 	if (NULL == r_buf->iov) {
-		//LOGD_ERR(errno, "mapalloc 2");
+		SYSLOGD_ERR(LOG_DEBUG, errno, "mapalloc()");
 		goto err_out;
 	}
 	//r_buf->iov_index = ~0; /* r_buf_wbuf_get() increment this, set to: -1. */
@@ -548,7 +546,7 @@ r_buf_wbuf_set_ex(r_buf_p r_buf, iovec_p iov, size_t iov_cnt) {
 		return (EINVAL);
 	if (buf != r_buf->iov[r_buf->iov_index].iov_base) {
 		r_buf->flags |= RBUF_F_FRAG;
-		LOGD_EV("AHTUNG 4 RBUF_F_FRAG!!!");
+		SYSLOGD_EX(LOG_DEBUG, "AHTUNG 4 RBUF_F_FRAG!!!");
 	}
 	r_buf->iov[r_buf->iov_index].iov_base = buf;
 	r_buf->iov[r_buf->iov_index].iov_len = buf_size;

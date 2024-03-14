@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <syslog.h>
 
 #ifndef IOV_MAX
 #	include <limits.h>
@@ -173,6 +174,38 @@ debug_break(void) {
 #	define debugd_break_if(__a)
 #endif
 
+
+#define SYSLOG_EX(_prio, _fmt, args...)					\
+	syslog((_prio), "%s:%i: %s(): "_fmt,				\
+	    __FILE__, __LINE__, __FUNCTION__, ##args)
+
+#define SYSLOG_ERR(_prio, _error, _fmt, args...) do {			\
+	if (0 == (_error))						\
+		break;							\
+	errno = (_error);						\
+	syslog((_prio), _fmt" Error %i: %m", ##args, (_error));	\
+} while (0)
+
+#define SYSLOG_ERR_EX(_prio, _error, _fmt, args...) do {		\
+	if (0 == (_error))						\
+		break;							\
+	errno = (_error);						\
+	syslog((_prio), "%s:%i: %s(): "_fmt" Error %i: %m",		\
+	    __FILE__, __LINE__, __FUNCTION__, ##args, (_error));	\
+} while (0)
+
+
+#ifdef DEBUG
+#	define SYSLOGD		syslog
+#	define SYSLOGD_EX	SYSLOG_EX
+#	define SYSLOGD_ERR	SYSLOG_ERR
+#	define SYSLOGD_ERR_EX	SYSLOG_ERR_EX
+#else
+#	define SYSLOGD(_prio, _fmt, args...)
+#	define SYSLOGD_EX(_prio, _fmt, args...)
+#	define SYSLOGD_ERR(_prio, _error, _fmt, args...)
+#	define SYSLOGD_ERR_EX(_prio, _error, _fmt, args...)
+#endif
 
 
 #endif /* __MACRO_HELPERS_H__ */

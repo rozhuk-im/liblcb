@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,6 @@
 #include "net/utils.h"
 #include "utils/sys.h"
 #include "utils/macro.h"
-#include "utils/log.h"
 #include "proto/dns_resolv.h"
 
 
@@ -269,7 +268,7 @@ dns_rslvr_cache_entry_alloc(uint8_t *name, size_t name_size,
 	dns_rslvr_cache_entry_p cache_entry;
 
 	if (NULL == name || 0 == name_size || DNS_MAX_NAME_LENGTH < name_size) {
-		LOGD_ERR_FMT(EINVAL, "name = %s, name_size = %zu", name, name_size);
+		SYSLOG_EX(LOG_ERR, "name = %s, name_size = %zu", name, name_size);
 		return (EINVAL);
 	}
 	cache_entry = zalloc((sizeof(dns_rslvr_cache_entry_t) + name_size + sizeof(void*)));
@@ -326,7 +325,7 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 	int error = 0, add;
 
 	if (NULL == cache_entry) {
-		LOGD_ERR_FMT(EINVAL, "cache_entry = NULL.");
+		SYSLOG_EX(LOG_ERR, "cache_entry = NULL.");
 		return (EINVAL);
 	}
 	time_now = time(NULL);
@@ -346,7 +345,7 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 		cache_entry->data_count = 0;
 		cache_entry->data_allocated = 0;
 		cache_entry->pdata = NULL;
-		LOGD_EV_FMT("%s <-> %s Cname <-> IP!!!", cache_entry->name, data);
+		SYSLOGD(LOG_DEBUG, "%s <-> %s Cname <-> IP!!!", cache_entry->name, data);
 	}
 	/* Cname set. */
 	if (DNS_R_CD_F_CNAME & flags) {
@@ -354,7 +353,7 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 		    data, data_count)) { /* Cname point to itself!. */
 			hbucket_entry_unlock(&cache_entry->entry);
 			error = ELOOP;
-			LOGD_ERR_FMT(error, "%s ELOOP!!!", cache_entry->name);
+			SYSLOG_EX(LOG_ERR, "%s ELOOP!!!", cache_entry->name);
 			goto notify_out;
 		}
 		/* If cname - delete all IP addrs, copy new data. */
@@ -363,7 +362,8 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 			if (NULL == tm) {
 				hbucket_entry_unlock(&cache_entry->entry);
 				error = ENOMEM;
-				LOG_ERR_FMT(error, "%s realloc() fail.", cache_entry->name);
+				SYSLOG_ERR_EX(LOG_ERR, error,
+				    "%s realloc() fail.", cache_entry->name);
 				goto notify_out;
 			}
 			cache_entry->pdata = tm;
@@ -404,7 +404,8 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 		if (0 != error) {
 			hbucket_entry_unlock(&cache_entry->entry);
 			error = ENOMEM;
-			LOG_ERR_FMT(error, "%s reallocarray() 2 fail.", cache_entry->name);
+			SYSLOG_ERR_EX(LOG_ERR, error,
+			    "%s realloc_items() fail.", cache_entry->name);
 			goto notify_out;
 		}
 		memcpy(&cache_entry->addrs[cache_entry->data_count], &addrs[i],
@@ -750,7 +751,7 @@ dns_resolv_hostaddr_int(dns_rslvr_p rslvr, int send_request,
 		return (EINVAL);
 	if (NULL == name || 0 == name_size || DNS_MAX_NAME_LENGTH < name_size) {
 		error = EINVAL;
-		LOGD_ERR_FMT(error, "name = %s, name_size = %zu", name, name_size);
+		SYSLOG_EX(LOG_ERR, "name = %s, name_size = %zu", name, name_size);
 		goto err_out;
 	}
 	/* In cache search. */
@@ -838,7 +839,7 @@ ok_out:
 	return (0);
 
 err_out:
-	LOG_ERR_FMT(error, "failed");
+	SYSLOG_ERR(LOG_ERR, error, "dns_resolv_hostaddr_int: failed.");
 	if (0 != send_request) /* Called from: dns_resolver_recv_cb() need callback. */
 		cb_func(task, error, NULL, 0, arg);
 	dns_rslvr_task_free(task);
@@ -941,7 +942,8 @@ dns_resolver_task_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	if (NULL == task) /* Task already done/removed. */
 		return;
 
-	//LOGD_EV_FMT("task %i - %s", task->task_id, task->cache_entry->name);
+	SYSLOGD_EX(LOG_DEBUG, "task %i - %s",
+	    task->task_id, task->cache_entry->name);
 	error = ETIMEDOUT;
 	task->timeouts ++;
 	if (task->timeouts <= task->rslvr->retry_count) { /* Re send query. */
@@ -1002,10 +1004,13 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 	rr_count = total_rr_count;
 	if (0 == rr_count ||
 	    DNS_HDR_FLAG_RCODE_NOERROR != dns_hdr->flags.bits.rcode) {
-		LOGD_EV_FMT("%s, rcode = %i", task->cache_entry->name, dns_hdr->flags.bits.rcode);
+		SYSLOGD_EX(LOG_DEBUG, "%s, rcode = %i",
+		    task->cache_entry->name, dns_hdr->flags.bits.rcode);
 		if (DNS_HDR_FLAG_RCODE_NXDOMAIN != dns_hdr->flags.bits.rcode) {
 			/* Send query to next dns server. */
-			LOGD_EV_FMT("%s - Send query to next dns server.", task->cache_entry->name);
+			SYSLOGD_EX(LOG_DEBUG,
+			    "%s - Send query to next dns server.",
+			    task->cache_entry->name);
 			task->cur_srv_idx ++;
 			error = dns_resolver_send(task);
 		} else {
@@ -1032,12 +1037,12 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 				rr_data += (sizeof(uint32_t) * 4);
 				memcpy(&tmu32, rr_data, sizeof(tmu32));
 				valid_untill = (time_now + MIN(rr_ttl, ntohl(tmu32)));
-				LOGD_EV_FMT("%s, SOA ttl = %i, minimum = %i",
+				SYSLOGD_EX(LOG_DEBUG, "%s, SOA ttl = %i, minimum = %i",
 				    task->cache_entry->name, rr_ttl, ntohl(tmu32));
 				break;
 			}
 			error = EFAULT;//error = dns_hdr->Flags.bits.rcode;
-			LOGD_ERR_FMT(error, "%s - NXDOMAIN", task->cache_entry->name);
+			SYSLOGD_EX(LOG_NOTICE, "%s - NXDOMAIN", task->cache_entry->name);
 		}
 		if (0 != error) /* Report error. */
 			goto call_cb;
@@ -1049,9 +1054,12 @@ dns_resolver_recv_cb(tp_task_p tptask __unused, int error, sockaddr_storage_p ad
 		    task->cache_entry->name, task->cache_entry->name_size, &rr_type,
 		    &rr_class, &rr_ttl, &rr_data_size, (void**)&rr_data, &rr_size);
 		if (0 != error) {
-			//LOGD_ERR_FMT(error, "dns_msg_rr_find(): %s, err = %i, total_rr_count = %zu, rr_count = %zu, msg_size = %zu, Offset = %zu", task->cache_entry->name, error, total_rr_count, rr_count, msg_size, Offset);
-			if (ESPIPE == error)
+			SYSLOGD_ERR_EX(LOG_DEBUG, error,
+			    "dns_msg_rr_find(): %s, err = %i, total_rr_count = %zu, rr_count = %zu, msg_size = %zu, Offset = %zu",
+			    task->cache_entry->name, error, total_rr_count, rr_count, msg_size, Offset);
+			if (ESPIPE == error) {
 				error = 0;
+			}
 			break;
 		}
 		Offset += rr_size;

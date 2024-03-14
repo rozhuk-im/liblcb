@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,11 +56,11 @@
 #include <signal.h>
 #include <pthread.h>
 #include <time.h>
+#include <syslog.h>
 
 #include "utils/macro.h"
 #include "al/os.h"
 #include "utils/mem_utils.h"
-#include "utils/log.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
@@ -152,19 +152,19 @@ static const uint32_t tp_event_to_ep_map[] = {
 
 
 typedef struct thread_pool_thread_s { /* thread pool thread info */
-	volatile size_t running;	/* running */
+	volatile size_t running;	/* Running. */
 	volatile size_t tick_cnt;	/* For detecting hangs thread. */
-	uintptr_t	io_fd;		/* io handle: kqueue (per thread) */
+	uintptr_t	io_fd;		/* IO handle: kqueue (per thread). */
 #ifdef BSD /* BSD specific code. */
-	int		ev_nchanges;	/* passed to kevent */
-	struct kevent	ev_changelist[TPT_ITEM_EV_COUNT]; /* passed to kevent */
+	int		ev_nchanges;	/* Passed to kevent. */
+	struct kevent	ev_changelist[TPT_ITEM_EV_COUNT]; /* Passed to kevent. */
 #endif /* BSD specific code. */
-	pthread_t	pt_id;		/* thread id */
-	int		cpu_id;		/* cpu num or -1 if no bindings */
+	pthread_t	pt_id;		/* Thread id. */
+	int		cpu_id;		/* CPU num or -1 if no bindings. */
 	size_t		thread_num;	/* num in array, short internal thread id. */
 	void		*msg_queue;	/* Queue specific. */
 #ifdef __linux__ /* Linux specific code. */
-	tp_udata_t	pvt_udata;	/* Pool virtual thread support */
+	tp_udata_t	pvt_udata;	/* Pool virtual thread support. */
 #endif	/* Linux specific code. */
 	tp_p		tp;		/*  */
 } tp_thread_t;
@@ -177,8 +177,8 @@ typedef struct thread_pool_s { /* thread pool */
 	size_t		cpu_count;
 	uintptr_t	fd_count;
 	size_t		threads_max;
-	volatile size_t	threads_cnt;	/* worker threads count */
-	tp_thread_t	threads[];	/* worker threads */
+	volatile size_t	threads_cnt;	/* Worker threads count. */
+	tp_thread_t	threads[];	/* Worker threads. */
 } tp_t;
 
 
@@ -203,7 +203,7 @@ void		tpt_cached_time_update_cb(tp_event_p ev, tp_udata_p tp_udata);
  */
 #ifdef BSD /* BSD specific code. */
 
-/* Translate thread pool flags <-> kqueue flags */
+/* Translate thread pool flags <-> kqueue flags. */
 static inline u_short
 tp_flags_to_kq(uint16_t flags) {
 	u_short ret = 0;
@@ -406,25 +406,25 @@ tpt_loop(tpt_p tpt) {
 
 	/* Main loop. */
 	while (0 != tpt->running) {
-		tpt->tick_cnt ++; /* Tic-toc */
+		tpt->tick_cnt ++; /* Tic-toc. */
 		cnt = kevent((int)tpt->io_fd, tpt->ev_changelist, 
-		    tpt->ev_nchanges, &kev, 1, NULL /* infinite wait. */);
+		    tpt->ev_nchanges, &kev, 1, NULL /* Infinite wait. */);
 		if (0 != tpt->ev_nchanges) {
 			mem_bzero(tpt->ev_changelist,
 			    (sizeof(struct kevent) * (size_t)tpt->ev_nchanges));
 			tpt->ev_nchanges = 0;
 		}
-		if (0 == cnt) { /* Timeout */
-			LOGD_EV("kevent: cnt = 0");
+		if (0 == cnt) { /* Timeout. */
+			SYSLOG_EX(LOG_DEBUG, "kevent: cnt = 0");
 			continue;
 		}
-		if (0 > cnt) { /* Error / Exit */
+		if (0 > cnt) { /* Error / Exit. */
 			if (EINTR == errno)
 				continue; /* Non fatal error. */
-			LOG_ERR(errno, "kevent()");
+			SYSLOG_ERR(LOG_ERR, errno, "kevent()");
 			break;
 		}
-		if (pvt->io_fd == kev.ident) { /* Pool virtual thread */
+		if (pvt->io_fd == kev.ident) { /* Pool virtual thread. */
 			//memcpy(&tpt->ev_changelist[tpt->ev_nchanges], &kev,
 			//    sizeof(kev));
 			EV_SET(&tpt->ev_changelist[tpt->ev_nchanges],
@@ -436,26 +436,26 @@ tpt_loop(tpt_p tpt) {
 				continue;
 		}
 		if (NULL == kev.udata) {
-			LOG_EV_FMT("kevent with invalid user data, ident = %zu", kev.ident);
+			syslog(LOG_DEBUG, "kevent with invalid user data, ident = %zu.", kev.ident);
 			debugd_break();
 			continue;
 		}
 		tp_udata = (tp_udata_p)kev.udata;
 		if (tp_udata->ident != kev.ident) {
-			LOG_EV_FMT("kevent with invalid ident, kq_ident = %zu, thr_ident = %zu",
+			syslog(LOG_DEBUG, "kevent with invalid ident, kq_ident = %zu, thr_ident = %zu.",
 			    kev.ident, tp_udata->ident);
 			debugd_break();
 			continue;
 		}
 		if (tp_udata->tpt != tpt &&
 		    tp_udata->tpt != pvt) {
-			LOG_EV_FMT("kevent with invalid tpt, tpt = %zu, thr_tpt = %zu",
-			    tpt, tp_udata->tpt);
+			syslog(LOG_DEBUG, "kevent with invalid tpt, tpt = %zu, thr_tpt = %zu.",
+			    (size_t)tpt, (size_t)tp_udata->tpt);
 			debugd_break();
 			//continue;
 		}
 		if (NULL == tp_udata->cb_func) {
-			LOG_EV_FMT("kevent with invalid user cb_func, ident = %zu", kev.ident);
+			syslog(LOG_DEBUG, "kevent with invalid user cb_func, ident = %zu.", kev.ident);
 			debugd_break();
 			continue;
 		}
@@ -471,7 +471,7 @@ tpt_loop(tpt_p tpt) {
 			ev.event = TP_EV_TIMER;
 			break;
 		default:
-			LOG_EV_FMT("kevent with invalid filter = %i, ident = %zu",
+			syslog(LOG_DEBUG, "kevent with invalid filter = %i, ident = %zu.",
 			    kev.filter, kev.ident);
 			debugd_break();
 			continue;
@@ -497,7 +497,7 @@ tpt_loop(tpt_p tpt) {
 #define TP_EV_OTHER(event)						\
     (TP_EV_READ == (event) ? TP_EV_WRITE : TP_EV_READ)
 
-/* Translate thread pool flags <-> epoll flags */
+/* Translate thread pool flags <-> epoll flags. */
 static inline uint32_t
 tp_flags_to_ep(uint16_t flags) {
 	uint32_t ret = 0;
@@ -600,7 +600,7 @@ tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
 				return (ENOENT);
 			error = 0;
 err_out_timer:
-			close(tfd); /* no need to epoll_ctl(EPOLL_CTL_DEL) */
+			close(tfd); /* No need to epoll_ctl(EPOLL_CTL_DEL). */
 			tp_udata->tpdata = 0;
 			return (error);
 		}
@@ -714,20 +714,20 @@ tpt_loop(tpt_p tpt) {
 	pvt = tp->pvt;
 	/* Main loop. */
 	while (0 != tpt->running) {
-		tpt->tick_cnt ++; /* Tic-toc */
+		tpt->tick_cnt ++; /* Tic-toc. */
 		cnt = epoll_wait((int)tpt->io_fd, &epev, 1, -1 /* infinite wait. */);
-		if (0 == cnt) /* Timeout */
+		if (0 == cnt) /* Timeout. */
 			continue;
-		if (-1 == cnt) { /* Error / Exit */
+		if (-1 == cnt) { /* Error / Exit. */
 			if (EINTR == errno)
 				continue; /* Non fatal error. */
-			LOG_ERR(errno, "epoll_wait()");
+			SYSLOG_ERR(LOG_ERR, errno, "epoll_wait().");
 			debugd_break();
 			break;
 		}
 		/* Single event. */
 		if (NULL == epev.data.ptr) {
-			LOG_EV("epoll event with invalid user data, epev.data.ptr = NULL");
+			syslog(LOG_DEBUG, "epoll event with invalid user data, epev.data.ptr = NULL");
 			debugd_break();
 			continue;
 		}
@@ -741,8 +741,8 @@ tpt_loop(tpt_p tpt) {
 				tp_udata = (tp_udata_p)epev.data.ptr;
 			}
 			if (NULL == tp_udata->cb_func) {
-				LOG_EV_FMT("epoll event with invalid user cb_func, "
-				    "epev.data.u64 = %"PRIu64,
+				syslog(LOG_DEBUG, "epoll event with invalid "
+				    "user cb_func, epev.data.u64 = %"PRIu64,
 				    epev.data.u64);
 				debugd_break();
 				continue;
@@ -762,7 +762,7 @@ tpt_loop(tpt_p tpt) {
 			tfd = TPDATA_TFD_GET(tp_udata->tpdata);
 			itm = read(tfd, &ev.data, sizeof(uint64_t));
 			if (0 != (TP_F_ONESHOT & tpev_flags)) { /* Onetime. */
-				close(tfd); /* no need to epoll_ctl(EPOLL_CTL_DEL) */
+				close(tfd); /* No need to epoll_ctl(EPOLL_CTL_DEL). */
 				tp_udata->tpdata = 0;
 			}
 			tp_udata->cb_func(&ev, tp_udata);
@@ -912,7 +912,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 
 	error = tp_init();
 	if (0 != error) {
-		LOGD_ERR(error, "tp_init()");
+		SYSLOG_ERR(LOG_CRIT, error, "tp_init().");
 		return (error);
 	}
 
@@ -943,7 +943,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 	tp->pvt = &tp->threads[s->threads_max];
 	error = tpt_data_init(tp, -1, (size_t)~0, &tp->threads[s->threads_max]);
 	if (0 != error) {
-		LOGD_ERR(error, "tpt_data_init() - pvt");
+		SYSLOG_ERR(LOG_CRIT, error, "tpt_data_init() - pvt.");
 		goto err_out;
 	}
 	for (i = 0, cur_cpu = 0; i < s->threads_max; i ++, cur_cpu ++) {
@@ -956,7 +956,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 		}
 		error = tpt_data_init(tp, cur_cpu, i, &tp->threads[i]);
 		if (0 != error) {
-			LOGD_ERR(error, "tpt_data_init() - threads");
+			SYSLOG_ERR(LOG_CRIT, error, "tpt_data_init() - threads.");
 			goto err_out;
 		}
 	}
@@ -992,7 +992,7 @@ tpt_msg_shutdown_cb(tpt_p tpt, void *udata __unused) {
 void
 tp_shutdown_wait(tp_p tp) {
 	size_t cnt;
-	/* 1 sec = 1000000000 nanoseconds */
+	/* 1 sec = 1000000000 nanoseconds. */
 	struct timespec rqts = { .tv_sec = 0, .tv_nsec = 100000000 };
 
 	if (NULL == tp)
@@ -1077,18 +1077,18 @@ tp_thread_proc(void *data) {
 	sigset_t sig_set;
 
 	if (NULL == tpt) {
-		LOG_ERR(EINVAL, "invalid data");
+		SYSLOGD_ERR(LOG_DEBUG, EINVAL, "Invalid data.");
 		return (NULL);
 	}
 	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
 
 	tpt->running ++;
-	LOG_INFO_FMT("Thread %zu started...", tpt->thread_num);
+	syslog(LOG_INFO, "Thread %zu started...", tpt->thread_num);
 
 	sigemptyset(&sig_set);
 	sigaddset(&sig_set, SIGPIPE);
 	if (0 != pthread_sigmask(SIG_BLOCK, &sig_set, NULL)) {
-		LOG_ERR(errno, "can't block the SIGPIPE signal");
+		SYSLOG_ERR(LOG_WARNING, errno, "Can't block the SIGPIPE signal.");
 	}
 
 #ifndef DARWIN
@@ -1099,7 +1099,11 @@ tp_thread_proc(void *data) {
 		CPU_SET(tpt->cpu_id, &cs);
 		if (0 == pthread_setaffinity_np(pthread_self(),
 		    sizeof(cpu_set_t), &cs)) {
-			LOG_INFO_FMT("Bind thread %zu to CPU %i",
+			syslog(LOG_INFO, "Bind thread %zu to CPU %i.",
+			    tpt->thread_num, tpt->cpu_id);
+		} else {
+			SYSLOG_ERR(LOG_WARNING, errno,
+			    "Can't Bind thread %zu to CPU %i.",
 			    tpt->thread_num, tpt->cpu_id);
 		}
 	}
@@ -1111,7 +1115,7 @@ tp_thread_proc(void *data) {
 	tpt->running = 0; /* Reset state on exit or on error. */
 	tpt->tp->threads_cnt --;
 	pthread_setspecific(tp_tls_key_tpt, NULL);
-	LOG_INFO_FMT("Thread %zu exited...", tpt->thread_num);
+	syslog(LOG_INFO, "Thread %zu exited...", tpt->thread_num);
 
 	return (NULL);
 }
@@ -1170,7 +1174,7 @@ tp_thread_get_rr(tp_p tp) {
 	return (&tp->threads[tp->rr_idx]);
 }
 
-/* Return io_fd that handled by all threads */
+/* Return io_fd that handled by all threads. */
 tpt_p
 tp_thread_get_pvt(tp_p tp) {
 

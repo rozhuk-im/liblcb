@@ -42,7 +42,7 @@
 
 #include "utils/macro.h"
 #include "proto/http_server.h"
-#include "core_auth_plugin.h"
+//#include "core_auth_plugin.h"
 
 
 typedef struct http_srv_auth_plugin_s {

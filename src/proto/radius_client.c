@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2014-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,6 @@
 #include "net/socket_address.h"
 #include "net/utils.h"
 #include "utils/buf_str.h"
-#include "utils/log.h"
 #include "proto/radius_client.h"
 #ifdef RADIUS_CLIENT_XML_CONFIG
 #include "utils/xml.h"
@@ -224,13 +223,13 @@ radius_client_server_xml_load_settings(const uint8_t *buf, size_t buf_size,
 	/* address */
 	if (0 != xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
 	    &ptm, &tm, (const uint8_t*)"address", NULL)) {
-		LOG_ERR(EINVAL, "Radius client: server addr not set.");
+		syslog(LOG_CRIT, "Radius client: server addr not set.");
 		return (EINVAL);
 	}
 	if (0 != sa_addr_port_from_str(&s->addr, (const char*)ptm, tm)) {
 		memcpy(straddr, ptm, MIN(STR_ADDR_LEN, tm));
 		straddr[MIN(STR_ADDR_LEN, tm)] = 0;
-		LOG_ERR_FMT(EINVAL, "Radius client: invalid server addr: %s", straddr);
+		syslog(LOG_CRIT, "Radius client: invalid server addr: %s", straddr);
 		return (EINVAL);
 	}
 	sa_addr_port_to_str(&s->addr, straddr, sizeof(straddr), NULL);
@@ -238,7 +237,7 @@ radius_client_server_xml_load_settings(const uint8_t *buf, size_t buf_size,
 	if (0 != xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
 	    &ptm, &tm, (const uint8_t*)"secret", NULL) ||
 	    RADIUS_A_T_USER_PASSWORD_MAX_LEN <= tm) {
-		LOG_ERR_FMT(EINVAL, "Radius client: shared secret not set for server: %s", straddr);
+		syslog(LOG_CRIT, "Radius client: shared secret not set for server: %s", straddr);
 		return (EINVAL);
 	}
 	memcpy(&s->shared_secret, ptm, tm);
@@ -303,11 +302,11 @@ radius_client_xml_load_start(const uint8_t *buf, size_t buf_size, tp_p tp,
 		/* Add server. */
 		error = radius_client_server_add((*rad_cli), &srv_s);
 		if (0 != error) {
-			LOG_ERR_FMT(error, "radius_client_server_add(): %s",
+			SYSLOG_ERR(LOG_ERR, error, "radius_client_server_add(): %s",
 			    straddr);
 			continue;
 		}
-		LOG_INFO_FMT("Radius client: server %s", straddr);
+		syslog(LOG_INFO, "Radius client: server %s", straddr);
 	}
 
 	return (0);
@@ -526,7 +525,7 @@ radius_client_socket_alloc(uint16_t family, radius_cli_thr_p thr) {
 	if (NULL == thr)
 		return (EINVAL);
 	if (tp_thread_get_current() != thr->tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return (0);
 	}
 	skts = ((AF_INET == family) ? &thr->skts4 : &thr->skts6);
@@ -581,7 +580,7 @@ radius_client_socket_free(radius_cli_skt_p skt) {
 		return;
 	tpt = skt->thr->tpt;
 	if (tp_thread_get_current() != tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
 	tp_task_destroy(skt->io_pkt_rcvr);
@@ -618,7 +617,7 @@ radius_client_query_alloc(radius_cli_p rad_cli, tpt_p tpt, size_t query_id,
     io_buf_p buf, radius_cli_cb cb_func, void *arg, radius_cli_query_p *query_ret) {
 	radius_cli_query_p query;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == rad_cli || NULL == tpt || NULL == cb_func || NULL == query_ret)
 		return (EINVAL);
 	if (RADIUS_PKT_HDR_ID_MAX_COUNT <= query_id &&
@@ -648,7 +647,7 @@ radius_client_query_alloc(radius_cli_p rad_cli, tpt_p tpt, size_t query_id,
 void
 radius_client_query_free(radius_cli_query_p query) {
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == query)
 		return;
 	freezero(query, sizeof(radius_cli_query_t));
@@ -658,7 +657,7 @@ void
 radius_client_query_unlink_skt(radius_cli_query_p query) {
 	radius_cli_skt_p skt;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == query || NULL == query->skt)
 		return;
 	/* Remove query from socket. */
@@ -709,9 +708,9 @@ static void
 radius_client_query_done_tpt_msg_cb(tpt_p tpt, void *udata) {
 	radius_cli_query_p query = (radius_cli_query_p)udata;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (tp_thread_get_current() != tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
 	query->cb_func(query, query->pkt, query->error, query->buf, query->udata);
@@ -749,7 +748,7 @@ radius_client_query(radius_cli_p rad_cli, tpt_p tpt, size_t query_id,
 		    radius_client_query_tpt_msg_cb, query);
 	//}
 	if (0 != error) {
-		LOG_ERR_FMT(error, "radius_client_send() failed");
+		SYSLOG_ERR(LOG_ERR, error, "tpt_msg_send() failed.");
 		radius_client_query_free(query);
 		return (error);
 	}
@@ -764,7 +763,7 @@ radius_client_query_tpt_msg_cb(tpt_p tpt, void *udata) {
 	radius_cli_query_p query = (radius_cli_query_p)udata;
 
 	if (tp_thread_get_current() != tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
 	error = radius_client_send_new(tpt, query);
@@ -794,11 +793,11 @@ radius_client_send_new(tpt_p tpt, radius_cli_query_p query) {
 	size_t i, query_id = 0;
 	int error;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == query)
 		return (EINVAL);
 	if (tp_thread_get_current() != tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return (0);
 	}
 
@@ -888,7 +887,7 @@ sign_and_send:
 	    &query->buf->used, (uint8_t*)srv->s.shared_secret,
 	    srv->s.shared_secret_size, 1);
 	if (0 != error) {
-		LOG_ERR(error, "radius_pkt_sign()");
+		SYSLOG_ERR(LOG_ERR, error, "radius_pkt_sign()");
 		return (error);
 	}
 	/* Gen new retrans time. */
@@ -902,7 +901,7 @@ sign_and_send:
 	query->retrans_count = 0; /* Reset timeouts counter. */
 	query->retrans_duration = 0; /* Reset timeouts total time. */
 	error = radius_client_send(query);
-	LOG_ERR(error, "radius_client_send()");
+	SYSLOG_ERR(LOG_ERR, error, "radius_client_send().");
 	return (error);
 }
 
@@ -911,11 +910,11 @@ radius_client_send(radius_cli_query_p query) {
 	int error;
 	radius_cli_srv_p srv;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == query)
 		return (EINVAL);
 	if (tp_thread_get_current() != query->skt->thr->tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return (0);
 	}
 
@@ -941,16 +940,17 @@ radius_client_query_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	radius_cli_srv_p srv;
 	int error;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	tpt_ev_enable_args1(0, TP_EV_TIMER, tp_udata);
 	if (NULL == query) /* Task already done/removed. */
 		return;
 	if (tp_thread_get_current() != query->skt->thr->tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
 
-	//LOGD_EV_FMT("query %i - %s", query->query_id, query->cache_entry->name);
+	SYSLOGD(LOG_DEBUG, "Query %i - %s.",
+	    query->query_id, query->cache_entry->name);
 	rad_cli = query->rad_cli;
 	srv = &query->rad_cli->srv[query->cur_srv_idx];
 	error = ETIMEDOUT;
@@ -1002,9 +1002,9 @@ radius_client_recv_cb(tp_task_p tptask __unused, int error,
 	radius_cli_query_p query;
 	rad_pkt_hdr_p pkt;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (tp_thread_get_current() != skt->thr->tpt) {
-		LOG_EV("tpt MISSMATCH!!!!!!!!!");
+		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		goto rcv_next;
 	}
 	if (0 != error)

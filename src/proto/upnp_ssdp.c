@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,6 @@
 #include "net/socket.h"
 #include "net/socket_address.h"
 #include "net/utils.h"
-#include "utils/log.h"
 #include "proto/upnp_ssdp.h"
 
 
@@ -204,25 +203,29 @@ upnp_ssdp_init__int(void) {
 	error = sa_addr_port_from_str(&ssdp_v4_mc_addr, UPNP_SSDP_V4_ADDR,
 	    (sizeof(UPNP_SSDP_V4_ADDR) - 1));
 	sa_port_set(&ssdp_v4_mc_addr, UPNP_SSDP_PORT);
-	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V4_ADDR)");
+	SYSLOG_ERR(LOG_CRIT, error,
+	    "sa_addr_port_from_str(UPNP_SSDP_V4_ADDR).");
 
 	error = sa_addr_port_from_str(&ssdp_v6_mc_addr_link_local,
 	    UPNP_SSDP_V6_ADDR_LINK_LOCAL,
 	    (sizeof(UPNP_SSDP_V6_ADDR_LINK_LOCAL) - 1));
 	sa_port_set(&ssdp_v6_mc_addr_link_local, UPNP_SSDP_PORT);
-	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_LINK_LOCAL)");
+	SYSLOG_ERR(LOG_CRIT, error,
+	    "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_LINK_LOCAL).");
 	
 	error = sa_addr_port_from_str(&ssdp_v6_mc_addr_site_local,
 	    UPNP_SSDP_V6_ADDR_SITE_LOCAL,
 	    (sizeof(UPNP_SSDP_V6_ADDR_SITE_LOCAL) - 1));
 	sa_port_set(&ssdp_v6_mc_addr_site_local, UPNP_SSDP_PORT);
-	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_SITE_LOCAL)");
+	SYSLOG_ERR(LOG_CRIT, error,
+	    "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_SITE_LOCAL).");
 
 	error = sa_addr_port_from_str(&ssdp_v6_mc_addr_event,
 	    UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV,
 	    (sizeof(UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV) - 1));
 	sa_port_set(&ssdp_v6_mc_addr_event, UPNP_SSDP_V6_EVENT_PORT);
-	LOG_ERR(error, "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV)");
+	SYSLOG_ERR(LOG_CRIT, error,
+	    "sa_addr_port_from_str(UPNP_SSDP_V6_ADDR_LINK_LOCAL_EV).");
 
 	ssdp_static_initialized ++;
 }
@@ -306,17 +309,17 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &skt);
 	if (0 != error) {
-		LOG_ERR(error, "skt_bind_ap");
+		SYSLOG_ERR(LOG_CRIT, error, "skt_bind_ap().");
 		goto err_out;
 	}
 	/* Tune socket. */
 	error = skt_opts_apply_ex(skt, SO_F_UDP_BIND_AF_MASK,
 	    &s->skt_opts, AF_INET, NULL);
-	LOG_ERR_FMT(error, "skt_opts_apply_ex(), this is not fatal.");
+	SYSLOG_ERR(LOG_NOTICE, error, "skt_opts_apply_ex(), this is not fatal.");
 
 	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {
-		LOG_ERR(error, "skt_enable_recv_ifindex");
+		SYSLOG_ERR(LOG_CRIT, error, "skt_enable_recv_ifindex().");
 		goto err_out;
 	}
 	error = tp_task_notify_create(tp_thread_get_rr(tp), skt,
@@ -334,17 +337,17 @@ skip_ipv4:
 	    (SO_F_NONBLOCK | SO_F_REUSEADDR | SO_F_REUSEPORT),
 	    &skt);
 	if (0 != error) {
-		LOG_ERR(error, "skt_bind_ap");
+		SYSLOG_ERR(LOG_CRIT, error, "skt_bind_ap().");
 		goto err_out;
 	}
 	/* Tune socket. */
 	error = skt_opts_apply_ex(skt, SO_F_UDP_BIND_AF_MASK,
 	    &s->skt_opts, AF_INET6, NULL);
-	LOG_ERR_FMT(error, "skt_opts_apply_ex(), this is not fatal.");
+	SYSLOG_ERR(LOG_NOTICE, error, "skt_opts_apply_ex(), this is not fatal.");
 
 	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {
-		LOG_ERR(error, "skt_enable_recv_ifindex");
+		SYSLOG_ERR(LOG_CRIT, error, "skt_enable_recv_ifindex().");
 		goto err_out;
 	}
 	error = tp_task_notify_create(tp_thread_get_rr(tp), skt,
@@ -426,7 +429,7 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	if (0 == ann_interval) {
 		ann_interval = UPNP_SSDP_DEF_ANNOUNCE_INTERVAL;
 	}
-	/* sec->ms */
+	/* sec->ms. */
 	ann_interval *= 1000;
 
 	/* UUID point to UUID in nt_uuid. */
@@ -636,7 +639,8 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 	dev_if->url6_size = url6_size;
 	memcpy(dev_if->url4, url4, url4_size);
 	memcpy(dev_if->url6, url6, url6_size);
-	//LOG_EV_FMT("url4 (%zu) = %s, url6 (%zu) = %s", url4_size, dev_if->url4, url6_size, dev_if->url6);
+	SYSLOGD_EX(LOG_DEBUG, "url4 (%zu) = %s, url6 (%zu) = %s",
+	    url4_size, dev_if->url4, url6_size, dev_if->url6);
 	/* Add to device dev_ifs list. */
 	dev_ifs_new = reallocarray(dev->dev_ifs, (dev->dev_ifs_cnt + 4),
 	    sizeof(upnp_ssdp_dev_if_p));
@@ -739,7 +743,7 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 		error = skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v4),
 		    1, if_index, &ssdp_v4_mc_addr);
 		if (0 != error) {
-			LOG_ERR(error, "skt_mc_join4");
+			SYSLOG_ERR(LOG_CRIT, error, "skt_mc_join(IPv4).");
 			goto err_out;
 		}
 	}
@@ -747,13 +751,13 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 		error = skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
 		    1, if_index, &ssdp_v6_mc_addr_link_local);
 		if (0 != error) {
-			LOG_ERR(error, "skt_mc_join6_1");
+			SYSLOG_ERR(LOG_CRIT, error, "skt_mc_join(IPv6, link_local).");
 			goto err_out;
 		}
 		error = skt_mc_join(tp_task_ident_get(ssdp->mc_rcvr_v6),
 		    1, if_index, &ssdp_v6_mc_addr_site_local);
 		if (0 != error) {
-			LOG_ERR(error, "skt_mc_join6_2");
+			SYSLOG_ERR(LOG_CRIT, error, "skt_mc_join(IPv6, site_local).");
 			goto err_out;
 		}
 	}
@@ -900,7 +904,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	http_req_line_data_t req_data;
 
 	if (0 != error) {
-		LOG_ERR(error, "on receive");
+		SYSLOG_ERR(LOG_DEBUG, error, "On receive.");
 		return (TP_TASK_CB_CONTINUE);
 	}
 
@@ -910,10 +914,11 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 		    addr, &if_index);
 		if (-1 == ios) {
 			error = errno;
-			if (0 == error)
+			if (0 == error) {
 				error = EINVAL;
+			}
 			error = SKT_ERR_FILTER(error);
-			LOG_ERR(error, "recvmsg");
+			SYSLOG_ERR(LOG_NOTICE, error, "recvmsg().");
 			break;
 		}
 		if (0 == ios)
@@ -922,38 +927,40 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 		/* Get iface data. */
 		s_if = upnp_ssdp_get_if_by_index(ssdp, if_index);
 		if (NULL == s_if) {
-			LOG_EV_FMT("No configured iface for this packet. (%i)",
+			syslog(LOG_INFO, "No configured iface for this packet. (%i)",
 			    if_index);
 			continue;
 		}
-#if DEBUG
+#ifdef DEBUG
 		buf[ios] = 0;
-		sa_addr_port_to_str((sockaddr_storage_t*)addr,
-		    straddr, sizeof(straddr), NULL);
-		LOG_EV_FMT("recvfrom ip: %s (%i) - %zu bytes\r\n%s",
+		sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
+		syslog(LOG_DEBUG, "recvfrom ip: %s (%i) - %zu bytes.\n%s",
 		    straddr, if_index, ios, buf);
 #endif
 		ptm = mem_find_cstr(buf, (size_t)ios, CRLFCRLF);
 		/* no/bad request. */
 		if (NULL == ptm) {
 			sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-			LOG_EV_FMT("error: no http header, client ip: %s", straddr);
+			syslog(LOG_DEBUG, "No http header, client ip: %s.", straddr);
 			continue;
 		}
 		req_hdr = buf;
 		req_hdr_len = (size_t)(ptm - buf);
 
-		if (0 != http_parse_req_line(req_hdr, req_hdr_len, &req_data) ||
-		    HTTP_REQ_METHOD_M_SEARCH != req_data.method_code ||
-		    1 != req_data.abs_path_size || req_data.abs_path[0] != '*') {
-			//sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-			//LOG_EV_FMT("error: bad http header or request, client ip: %s", straddr);
+		if (0 != http_parse_req_line(req_hdr, req_hdr_len, &req_data)) {
+			sa_addr_port_to_str(addr, straddr,
+			    sizeof(straddr), NULL);
+			syslog(LOG_NOTICE,
+			    "Bad http header or request, client ip: %s.",
+			    straddr);
 			continue;
 		}
+		if (HTTP_REQ_METHOD_M_SEARCH != req_data.method_code ||
+		    1 != req_data.abs_path_size || req_data.abs_path[0] != '*')
+			continue;
 		if (0 != http_req_sec_chk(req_hdr, req_hdr_len, req_data.method_code)) {
 			/* Something wrong in headers. */
-			//sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-			//LOG_EV_FMT("error: http_req_sec_chk() !!! bad http header or request, client ip: %s", straddr);
+			SYSLOGD(LOG_WARNING, "http_req_sec_chk() !!! bad http header or request, client ip: %s.", straddr);
 			continue;
 		}
 #if 0
@@ -961,7 +968,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 		    (uint8_t*)"host", 4, &ptm, &tm) || 15 > tm ||
 		    0 != memcmp(ptm, UPNP_SSDP_V4_ADDR, 15)) {
 			sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-			LOG_EV_FMT("error: bad http HOST (%s) in request, client ip: %s", ptm, straddr);
+			syslog(LOG_NOTICE, "Bad http HOST (%s) in request, client ip: %s.", ptm, straddr);
 			continue;
 		}
 #endif
@@ -969,21 +976,21 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 		    (const uint8_t*)"man", 3, &ptm, &tm) ||
 		    0 != mem_cmpn_cstr("\"ssdp:discover\"", ptm, tm)) {
 			sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-			LOG_EV_FMT("error: bad http MAN in request, client ip: %s",
+			syslog(LOG_WARNING, "Bad http MAN in request, client ip: %s.",
 			    straddr);
 			continue;
 		}
 		if (0 != http_hdr_val_get(req_hdr, req_hdr_len,
 		    (const uint8_t*)"mx", 2, &ptm, &tm)) {
 			sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-			LOG_EV_FMT("error: bad http MX in request, client ip: %s",
+			syslog(LOG_WARNING, "Bad http MX in request, client ip: %s.",
 			    straddr);
 			continue;
 		}
 		if (0 != http_hdr_val_get(req_hdr, req_hdr_len,
 		    (const uint8_t*)"st", 2, &ptm, &tm)) {
 			sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-			LOG_EV_FMT("error: bad http ST in request, client ip: %s",
+			syslog(LOG_WARNING, "Bad http ST in request, client ip: %s.",
 			    straddr);
 			continue;
 		}
@@ -1186,7 +1193,7 @@ upnp_ssdp_dev_notify_sendto(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 			return (0); /* IPv6 disabled. */
 		break;
 	default:
-		LOGD_ERR(EINVAL, "Bad addr->ss_family.");
+		SYSLOGD_EX(LOG_DEBUG, "Bad addr->ss_family.");
 		return (EINVAL);
 	}
 	for (i = 0; i < dev->dev_ifs_cnt; i ++) { /* Send to all associated ifaces. */
@@ -1258,7 +1265,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 			ipmrn.imr_ifindex = (int)s_if->if_index;
 			if (0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_IF,
 			    &ipmrn, sizeof(ipmrn))) {
-				LOG_ERR(errno, "setsockopt: IP_MULTICAST_IF");
+				SYSLOG_ERR(LOG_ERR, errno, "setsockopt(IP_MULTICAST_IF)");
 			}
 		}
 		url = dev_if->url4;
@@ -1276,7 +1283,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 		if (NULL != s_if) {
 			if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 			    &s_if->if_index, sizeof(uint32_t))) {
-				LOG_ERR(errno, "setsockopt: IPV6_MULTICAST_IF");
+				SYSLOG_ERR(LOG_ERR, errno, "setsockopt(IPV6_MULTICAST_IF)");
 			}
 		}
 		url = dev_if->url6;
@@ -1405,7 +1412,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 	    (sockaddr_p)addr, sa_size(addr))) {
 		error = errno;
 		sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-		LOG_ERR_FMT(error, "sendto: %s, size = %zu", straddr, buf.used);
+		SYSLOG_ERR(LOG_ERR, error, "sendto(%s, size = %zu).", straddr, buf.used);
 		return (error);
 	}
 

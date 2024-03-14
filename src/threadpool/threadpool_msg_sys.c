@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,6 @@
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
-#include "utils/log.h"
 #include "al/os.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
@@ -120,7 +119,7 @@ tpt_msg_recv_and_process(tp_event_p ev, tp_udata_p tp_udata) {
 		cnt = (readed / sizeof(tpt_msg_pkt_t));
 		for (i = 0; i < cnt; i ++) { /* Process loop. */
 			if (0 == TPT_MSG_PKT_IS_VALID(&msg[i])) { /* Try recover. */
-				LOG_EV("tpt_msg_pkt_t damaged!!!");
+				SYSLOGD_EX(LOG_WARNING, "tpt_msg_pkt_t damaged!!!");
 				debugd_break();
 				ptm = ((uint8_t*)&msg[i]);
 				pend = (((uint8_t*)&msg) + readed);

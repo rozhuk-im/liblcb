@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,12 +27,13 @@
  *
  */
 
+/* Required: devel/cunit */
 
 #include <sys/param.h>
 
 #ifdef __linux__ /* Linux specific code. */
-#define _GNU_SOURCE /* See feature_test_macros(7) */
-#define __USE_GNU 1
+#	define _GNU_SOURCE /* See feature_test_macros(7) */
+#	define __USE_GNU 1
 #endif /* Linux specific code. */
 
 #include <sys/types.h>
@@ -47,6 +48,7 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <errno.h>
 #include <err.h>
+#include <syslog.h>
 
 #include <CUnit/Automated.h>
 #include <CUnit/Basic.h>
@@ -56,15 +58,10 @@
 
 
 #undef PACKAGE_NAME
-#define PACKAGE_NAME	"test core_tp"
+#define PACKAGE_NAME	"test threadpool"
 
-#if 0
-#	include "core_log.h"
-#else
-#	define LOG_INFO(fmt)			fprintf(stdout, fmt"\n")
-#	define LOG_INFO_FMT(fmt, args...)	fprintf(stdout, fmt"\n", ##args)
-	static uintptr_t core_log_fd;
-#endif
+#define LOG_CONS_INFO(fmt)		fprintf(stdout, fmt"\n")
+#define LOG_CONS_INFO_FMT(fmt, args...)	fprintf(stdout, fmt"\n", ##args)
 
 
 #define THREADS_COUNT_MAX		16
@@ -127,27 +124,28 @@ int
 main(int argc __unused, char *argv[] __unused) {
 	CU_pSuite psuite = NULL;
 
-	core_log_fd = (uintptr_t)open("/dev/stdout", (O_WRONLY | O_APPEND));
+	openlog(PACKAGE_NAME, (LOG_CONS | LOG_NDELAY | LOG_PERROR | LOG_PID), LOG_USER);
+	setlogmask(LOG_UPTO(LOG_DEBUG));
 
-	LOG_INFO("\n\n");
-	LOG_INFO(PACKAGE_NAME": started");
+	LOG_CONS_INFO("\n\n");
+	LOG_CONS_INFO(PACKAGE_NAME": started!");
 #ifdef DEBUG
-	LOG_INFO("Build: "__DATE__" "__TIME__", DEBUG");
+	LOG_CONS_INFO("Build: "__DATE__" "__TIME__", DEBUG");
 #else
-	LOG_INFO("Build: "__DATE__" "__TIME__", Release");
+	LOG_CONS_INFO("Build: "__DATE__" "__TIME__", Release");
 #endif
 
 	setpriority(PRIO_PROCESS, 0, -20);
 
-	/* initialize the CUnit test registry */
+	/* Initialize the CUnit test registry. */
 	if (CUE_SUCCESS != CU_initialize_registry())
 		goto err_out;
-	/* add a suite to the registry */
-	psuite = CU_add_suite("Core Thread Poll", init_suite, clean_suite);
+	/* Add a suite to the registry. */
+	psuite = CU_add_suite("Thread Poll", init_suite, clean_suite);
 	if (NULL == psuite)
 		goto err_out;
 
-	/* add the tests to the suite */
+	/* Add the tests to the suite. */
 	if (NULL == CU_add_test(psuite, "test of test_tp_init1() - threads count = 1", test_tp_init1) ||
 	    NULL == CU_add_test(psuite, "test of tp_threads_create()", test_tp_threads_create) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_count_max_get()", test_tp_thread_count_max_get) ||
@@ -211,20 +209,21 @@ main(int argc __unused, char *argv[] __unused) {
 		goto err_out;
 	}
 
-	/* Run all tests using the basic interface */
+	/* Run all tests using the basic interface. */
 	CU_basic_set_mode(CU_BRM_VERBOSE);
 	CU_basic_run_tests();
 	printf("\n");
 	CU_basic_show_failures(CU_get_failure_list());
 	printf("\n\n");
 
-	/* Run all tests using the automated interface */
+	/* Run all tests using the automated interface. */
 	CU_automated_run_tests();
 	CU_list_tests_to_file();
 
 err_out:
-	/* Clean up registry and return */
+	/* Clean up registry and return. */
 	CU_cleanup_registry();
+	closelog();
 
 	return ((int)CU_get_error());
 }
@@ -234,7 +233,7 @@ static void
 test_sleep(const time_t sec, const long nsec) { 
 	struct timespec rqts;
 
-	/* 1 sec = 1000000000 nanoseconds */
+	/* 1 sec = 1000000000 nanoseconds. */
 	if (nsec < 1000000000) {
 		rqts.tv_sec = sec;
 		rqts.tv_nsec = nsec;
@@ -618,7 +617,7 @@ test_tpt_ev_add_ex_rd(uint16_t flags, uint8_t res, int remove_ok) {
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	if (res != thr_arr[0]) {
 		CU_FAIL("tpt_ev_add_args(TP_EV_READ) - not work") /* Fail. */
-		LOG_INFO_FMT("%i", (int)thr_arr[0]);
+		LOG_CONS_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	read(pipe_fd[0], buf, sizeof(buf));
@@ -693,7 +692,7 @@ test_tpt_ev_add_ex_rw(uint16_t flags, uint8_t res, int remove_ok) {
 	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
 	if (res != thr_arr[0]) {
 		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE) - not work") /* Fail. */
-		LOG_INFO_FMT("%i", (int)thr_arr[0]);
+		LOG_CONS_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	read(pipe_fd[0], buf, sizeof(buf));
@@ -760,7 +759,7 @@ test_tpt_ev_add_ex_tmr(uint16_t flags, uint8_t res, int remove_ok) {
 	test_sleep(0, 300000000);
 	if (res != thr_arr[0]) {
 		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER) - not work") /* Fail. */
-		LOG_INFO_FMT("%i", (int)thr_arr[0]);
+		LOG_CONS_INFO_FMT("%i", (int)thr_arr[0]);
 	}
 	/* Clean. */
 	if (0 != remove_ok) {

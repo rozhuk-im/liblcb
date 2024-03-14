@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,13 +46,8 @@
 #include "proto/http.h"
 
 #include "utils/macro.h"
-#include "utils/log.h"
 #include "proto/http_server.h"
 #include "proto/http_server_auth.h"
-#ifdef HTTP_SRV_XML_CONFIG
-#include "utils/helpers.h"
-#include "utils/xml.h"
-#endif
 
 
 
@@ -96,7 +91,7 @@ http_srv_auth_on_req_rcv_cb(http_srv_cli_p cli, void *udata,
 	auth_pl_param_t params[8];
 	sockaddr_storage addr;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == cli || NULL == udata || NULL == req)
 		return (500);
 	auth_ctx = udata;
@@ -211,7 +206,7 @@ login_password_ok:
 		return (401); /* Retry. */
 		break;
 	}
-	LOG_ERR(error, "auth_basic pluin error");
+	SYSLOG_ERR(LOG_NOTICE, error, "Auth_basic pluin error.");
 	return (500);
 }
 
@@ -224,7 +219,7 @@ http_srv_auth_on_auth_pl_responce_cb(auth_pl_p plugin, void *cr_ctx,
 	struct iovec iov[4];
 	size_t iov_cnt = 0;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == cli)
 		return;
 	auth_ctx = (http_srv_cli_auth_ctx_p)http_srv_cli_get_udata(cli);
@@ -232,23 +227,23 @@ http_srv_auth_on_auth_pl_responce_cb(auth_pl_p plugin, void *cr_ctx,
 	if (0 != error) {
 		cli->resp_p_flags |= HTTP_SRV_RESP_P_F_CONN_CLOSE;
 		http_srv_snd_err(cli, 500, NULL, 0); /* Internal Server Error. */
-		LOG_ERR(error, "auth_plugin_radius_auth_cb()");
+		SYSLOG_ERR(LOG_NOTICE, error, "auth_plugin_radius_auth_cb().");
 		return;
 	}
 	switch (pkt->code) {
 	case RADIUS_PKT_TYPE_ACCESS_ACCEPT:
-		LOGD_EV("RADIUS_PKT_TYPE_ACCESS_ACCEPT...");
+		SYSLOGD_EX(LOG_DEBUG, "RADIUS_PKT_TYPE_ACCESS_ACCEPT...");
 		cli->flags |= HTTP_SRV_CLI_F_AUTHORIZED;
 		http_srv_cli_req_rcv_cb(cli);
 		break;
 	case RADIUS_PKT_TYPE_ACCESS_REJECT:
-		LOGD_EV("RADIUS_PKT_TYPE_ACCESS_REJECT...");
+		SYSLOGD_EX(LOG_DEBUG, "RADIUS_PKT_TYPE_ACCESS_REJECT...");
 		//cli->resp_p_flags |= HTTP_SRV_RESP_P_F_CONN_CLOSE;
 		http_srv_snd_err(cli, 401, NULL, 0); /* Unauthorized. - Retry */
 		return;
 		break;
 	case RADIUS_PKT_TYPE_ACCESS_CHALLENGE:
-		LOGD_EV("RADIUS_PKT_TYPE_ACCESS_CHALLENGE...");
+		SYSLOGD_EX(LOG_DEBUG, "RADIUS_PKT_TYPE_ACCESS_CHALLENGE...");
 		iov[0].iov_base = (void*)tmbuf;
 		memcpy(iov[0].iov_base, "WWW-Authenticate: Basic realm=\"", 31);
 		iov[0].iov_len = 31;
@@ -268,14 +263,11 @@ http_srv_auth_on_auth_pl_responce_cb(auth_pl_p plugin, void *cr_ctx,
 }
 
 
-
-
-
 /* http_srv_on_resp_snd_cb */
 int
 http_srv_auth_on_rep_snd_cb(http_srv_cli_p cli, void *udata) {
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	return (HTTP_SRV_CB_NONE);
 }
 
@@ -286,7 +278,7 @@ http_srv_auth_on_destroy_cb(http_srv_cli_p cli, void *udata) {
 	http_srv_on_destroy_cb on_destroy_old;
 	void *udata_old;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == udata)
 		return;
 	auth_ctx = udata;
@@ -307,7 +299,7 @@ http_srv_auth_ok(http_srv_cli_p cli, http_srv_cli_auth_ctx_p auth_ctx) {
 	http_srv_on_req_rcv_cb on_req_rcv_old;
 	void *udata_old;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == auth_ctx)
 		return (500);
 	/* Remember(cache) on_req_rcv_cb and udata.  */
@@ -328,7 +320,7 @@ http_srv_auth_start(http_srv_cli_p cli, auth_pl_p plugin,
     http_srv_req_p req) {
 	http_srv_cli_auth_ctx_p auth_ctx;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == cli || NULL == plugin || NULL == req)
 		return (500);
 	if (http_srv_auth_on_req_rcv_cb == http_srv_cli_get_on_req_rcv(cli))
@@ -359,7 +351,7 @@ http_srv_auth_start(http_srv_cli_p cli, auth_pl_p plugin,
 void
 http_srv_auth_cleanup(http_srv_cli_p cli, http_srv_cli_auth_ctx_p auth_ctx) {
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == auth_ctx)
 		return;
 	if (NULL != auth_ctx->plugin) {
@@ -372,6 +364,3 @@ http_srv_auth_cleanup(http_srv_cli_p cli, http_srv_cli_auth_ctx_p auth_ctx) {
 	http_srv_cli_set_udata(cli, auth_ctx->udata_old);
 	free(auth_plugin);
 }
-
-
-

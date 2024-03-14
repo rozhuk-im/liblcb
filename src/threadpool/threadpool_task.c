@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,9 +42,6 @@
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
 #include "net/socket.h"
-#ifdef DEBUG
-#	include "utils/log.h"
-#endif
 #include "threadpool/threadpool_task.h"
 
 
@@ -533,11 +530,9 @@ tp_task_handler(int type, tp_event_p ev, tp_udata_p tp_udata,
 				    IO_BUF_TR_SIZE_GET(tptask->buf),
 				    MSG_DONTWAIT);
 			}
-#if defined(DEBUG) && defined(TP_TASK_EXTRA_LOG)
-			LOGD_EV_FMT("ev->data = %zu, ios = %zu, "
+			SYSLOGD_EX(LOG_DEBUG, "ev->data = %zu, ios = %zu, "
 			    "transfered_size = %zu, eof = %i, err = %i",
 			    ev->data, ios, transfered_size, eof, errno);
-#endif
 			if (-1 == ios) /* Error. */
 				goto err_out;
 			if (0 == ios) { /* All data read. */

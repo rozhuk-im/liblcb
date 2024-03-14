@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,6 @@
 #include "net/utils.h"
 #include "utils/info.h"
 #include "net/hostname_list.h"
-#include "utils/log.h"
 #include "proto/http_server.h"
 #ifdef HTTP_SRV_XML_CONFIG
 #	include "utils/buf_str.h"
@@ -228,10 +227,11 @@ http_srv_xml_load_hostnames(const uint8_t *buf, size_t buf_size,
 		memcpy(strbuf, data, data_size);
 		strbuf[data_size] = 0;
 		if (0 != error) {
-			LOG_ERR_FMT(error, "hostname_list_add(%s)", strbuf);
+			SYSLOG_ERR(LOG_WARNING, error,
+			    "hostname_list_add(%s).", strbuf);
 			continue;
 		}
-		LOG_INFO_FMT("hostname: %s", strbuf);
+		syslog(LOG_INFO, "hostname: %s", strbuf);
 	}
 	return (0);
 }
@@ -272,13 +272,14 @@ http_srv_xml_load_bind(const uint8_t *buf, size_t buf_size,
 	/* address */
 	if (0 != xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
 	    &data, &data_size, (const uint8_t*)"address", NULL)) {
-		LOG_ERR(EINVAL, "HTTP server: server addr not set.");
+		syslog(LOG_CRIT, "HTTP server: server addr not set.");
 		return (EINVAL);
 	}
 	if (0 != sa_addr_port_from_str(&s->addr, (const char*)data, data_size)) {
 		memcpy(straddr, data, MIN((sizeof(straddr) - 1), data_size));
 		straddr[MIN((sizeof(straddr) - 1), data_size)] = 0;
-		LOG_ERR_FMT(EINVAL, "HTTP server: invalid addr: %s (len=%zu)", straddr, data_size);
+		syslog(LOG_CRIT, "HTTP server: invalid addr: %s (len=%zu).",
+		    straddr, data_size);
 		return (EINVAL);
 	}
 	if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
@@ -289,7 +290,8 @@ http_srv_xml_load_bind(const uint8_t *buf, size_t buf_size,
 		if (0 != error) {
 			memcpy(straddr, data, MIN((sizeof(straddr) - 1), data_size));
 			straddr[MIN((sizeof(straddr) - 1), data_size)] = 0;
-			LOG_ERR_FMT(error, "HTTP server: cant get addr for: %s", straddr);
+			SYSLOG_ERR(LOG_CRIT, error,
+			    "HTTP server: cant get addr for: %s.", straddr);
 			return (error);
 		}
 		sa_port_set(&s->addr, tm16);
@@ -333,7 +335,7 @@ http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, tp_p tp,
 	error = http_srv_create(tp, on_conn, ccb, &hst_name_lst,
 	    &srv_s, udata, http_srv);
 	if (0 != error) {
-		LOG_ERR(error, "http_srv_create()");
+		SYSLOG_ERR(LOG_CRIT, error, "http_srv_create().");
 		hostname_list_deinit(&hst_name_lst);
 		return (error);
 	}
@@ -345,7 +347,7 @@ http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, tp_p tp,
 		http_srv_bind_def_settings(&srv_s.skt_opts, &bind_s);
 		error = http_srv_xml_load_bind(data, data_size, &bind_s);
 		if (0 != error) {
-			LOG_ERR(error, "http_srv_xml_load_bind()");
+			SYSLOG_ERR(LOG_ERR, error, "http_srv_xml_load_bind().");
 			continue;
 		}
 		/* Read hostnames. */
@@ -356,17 +358,17 @@ http_srv_xml_load_start(const uint8_t *buf, size_t buf_size, tp_p tp,
 		/* Try bind... */
 		error = http_srv_bind_add((*http_srv), &bind_s, &hst_name_lst, NULL, NULL);
 		if (0 != error) {
-			LOG_ERR_FMT(error, "http_srv_bind_add(): %s,"
-			    " backlog = %i, tcp_cc = %s",
+			SYSLOG_ERR(LOG_ERR, error, "http_srv_bind_add(): %s,"
+			    " backlog = %i, tcp_cc = %s.",
 			    straddr, bind_s.skt_opts.backlog, bind_s.skt_opts.tcp_cc);
 			continue;
 		}
-		LOG_INFO_FMT("bind %s, backlog = %i, tcp_cc = %s",
+		syslog(LOG_INFO, "bind %s, backlog = %i, tcp_cc = %s.",
 		    straddr, bind_s.skt_opts.backlog, bind_s.skt_opts.tcp_cc);
 	}
 	if (0 == http_srv_get_bind_count((*http_srv))) {
 no_http_svr:
-		LOG_INFO("no bind address specified, nothink to do...");
+		syslog(LOG_NOTICE, "no bind address specified, nothink to do...");
 		return (EINVAL);
 	}
 
@@ -384,7 +386,7 @@ http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
 	http_srv_p srv = NULL;
 	struct timespec ts;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	
 	if (NULL == srv_ret) {
 		error = EINVAL;
@@ -433,13 +435,15 @@ http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
 
 	(*srv_ret) = srv;
 	return (0);
+
 err_out:
 	hostname_list_deinit(hst_name_lst);
 	if (NULL != srv) {
 		free(srv);
 	}
 	/* Error. */
-	LOG_ERR(error, "err_out");
+	SYSLOG_ERR_EX(LOG_ERR, error, "err_out.");
+
 	return (error);
 }
 
@@ -447,7 +451,7 @@ void
 http_srv_shutdown(http_srv_p srv) {
 	size_t i;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == srv || NULL != srv->bnd)
 		return;
 	for (i = 0; i < srv->bind_count; i ++) {
@@ -459,7 +463,7 @@ void
 http_srv_destroy(http_srv_p srv) {
 	size_t i;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == srv)
 		return;
 	if (NULL != srv->bnd) {
@@ -585,7 +589,7 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 	int error;
 	http_srv_bind_p bnd = NULL;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == srv || NULL == s)
 		return (EINVAL);
 
@@ -625,7 +629,8 @@ err_out:
 	/* Error. */
 	bnd->srv = NULL;
 	http_srv_bind_remove(bnd);
-	LOG_ERR(error, "err_out");
+	SYSLOG_ERR_EX(LOG_ERR, error, "err_out.");
+
 	return (error);
 }
 
@@ -633,7 +638,7 @@ void
 http_srv_bind_shutdown(http_srv_bind_p bnd) {
 	size_t i;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == bnd)
 		return;
 	for (i = 0; i < bnd->tptasks_cnt; i ++) {
@@ -646,7 +651,7 @@ http_srv_bind_remove(http_srv_bind_p bnd) {
 	size_t i;
 	http_srv_p srv;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == bnd)
 		return;
 	if (NULL != bnd->srv) {
@@ -713,7 +718,7 @@ http_srv_cli_alloc(http_srv_bind_p bnd, tpt_p tpt, uintptr_t skt,
     http_srv_cli_ccb_p ccb, void *udata) {
 	http_srv_cli_p cli;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 
 	cli = mem_znew(http_srv_cli_t);
 	if (NULL == cli)
@@ -742,7 +747,7 @@ err_out:
 void
 http_srv_cli_free(http_srv_cli_p cli) {
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 
 	if (NULL == cli)
 		return;
@@ -1011,7 +1016,7 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 	if (0 != error) {
 		close((int)skt);
 		srv->stat.errors ++;
-		LOG_ERR(error, "on new conn");
+		SYSLOG_ERR(LOG_DEBUG, error, "On new conn.");
 		return (TP_TASK_CB_CONTINUE);
 	}
 
@@ -1026,8 +1031,11 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 #else
 	tpt = tp_thread_get_rr(srv->tp);
 #endif
-	ccb = srv->ccb; /* memcpy */
+	ccb = srv->ccb; /* memcpy(). */
 	udata = NULL;
+
+	sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
+	syslog(LOG_DEBUG, "New client: %s (fd: %zu)", straddr, skt);
 
 	/* Call back handler. */
 	if (NULL != srv->on_conn) {
@@ -1046,10 +1054,6 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 			break;
 		}
 	}
-	if (0 != LOG_IS_ENABLED()) {
-		sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-		LOGD_INFO_FMT("New client: %s (fd: %zu)", straddr, skt);
-	}
 
 	cli = http_srv_cli_alloc(bnd, tpt, skt, &ccb, udata);
 	if (NULL == cli) {
@@ -1058,14 +1062,15 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 		}
 		close((int)skt);
 		srv->stat.errors ++;
-		LOG_ERR_FMT(ENOMEM, "%s: http_srv_cli_alloc()", straddr);
+		SYSLOG_ERR(LOG_ERR, ENOMEM, "%s: http_srv_cli_alloc().", straddr);
 		return (TP_TASK_CB_CONTINUE);
 	}
 	sa_copy(addr, &cli->addr);
 	/* Tune socket. */
 	error = skt_opts_apply_ex(skt, SO_F_TCP_ES_CONN_MASK,
 	    &bnd->s.skt_opts, addr->ss_family, NULL);
-	LOG_ERR_FMT(error, "%s: skt_opts_apply_ex(), this is not fatal.", straddr);
+	SYSLOG_ERR(LOG_NOTICE, error,
+	    "%s: skt_opts_apply_ex(), this is not fatal.", straddr);
 	/* Receive http request. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
 	/* Shedule data receive / Receive http request. */
@@ -1074,7 +1079,7 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 	    cli->tptask, TP_EV_READ, 0, bnd->s.skt_opts.rcv_timeout, 0,
 	    cli->rcv_buf, http_srv_recv_done_cb);
 	if (0 != error) { /* Error. */
-		LOG_ERR_FMT(error, "client ip: %s", straddr);
+		SYSLOG_ERR(LOG_ERR, error, "tp_task_start_ex(): client ip: %s.", straddr);
 		srv->stat.errors ++;
 		http_srv_cli_free(cli);
 	}
@@ -1096,7 +1101,7 @@ http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
 	int action;
 	sockaddr_storage_t addr;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	debugd_break_if(NULL == arg);
 	debugd_break_if(tptask != ((http_srv_cli_p)arg)->tptask);
 	debugd_break_if(buf != ((http_srv_cli_p)arg)->rcv_buf);
@@ -1110,10 +1115,9 @@ http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
 	action = tp_task_cb_check(buf, eof, transfered_size);
 	if (0 != error || TP_TASK_CB_ERROR == action) { /* Fail! :( */
 err_out:
-		if (0 != error &&
-		    0 != LOG_IS_ENABLED()) {
+		if (0 != error) {
 			sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-			LOG_ERR_FMT(error, "client ip: %s", straddr);
+			SYSLOG_ERR(LOG_ERR, error, "client ip: %s", straddr);
 		}
 		switch (error) {
 		case 0:
@@ -1146,10 +1150,8 @@ err_out:
 	if (NULL == ptm) { /* No HTTP headers end found. */
 		if (TP_TASK_CB_CONTINUE != action) { /* Cant receive more, drop. */
 drop_cli_without_hdr:
-			if (0 != LOG_IS_ENABLED()) {
-				sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-				LOG_INFO_FMT("error: no http header, client ip: %s", straddr);
-			}
+			sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
+			syslog(LOG_DEBUG, "No http header, client ip: %s", straddr);
 			srv->stat.http_errors ++;
 			http_srv_cli_free(cli);
 			return (TP_TASK_CB_NONE);
@@ -1182,10 +1184,8 @@ http_hdr_found:
 
 	/* Parse request line. */
 	if (0 != http_parse_req_line(cli->req.hdr, cli->req.hdr_size, &cli->req.line)) {
-		if (0 != LOG_IS_ENABLED()) {
-			sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-			LOG_INFO_FMT("http_parse_req_line(): %s", straddr);
-		}
+		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
+		syslog(LOG_DEBUG, "http_parse_req_line(): %s", straddr);
 		srv->stat.http_errors ++;
 		cli->resp.status_code = 400;
 stop_and_drop_with_http_err:
@@ -1199,10 +1199,8 @@ stop_and_drop_with_http_err:
 	if (0 != http_req_sec_chk(cli->req.hdr, cli->req.hdr_size,
 	    cli->req.line.method_code)) {
 		/* Something wrong in headers. */
-		if (0 != LOG_IS_ENABLED()) {
-			sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-			LOG_INFO_FMT("http_req_sec_chk(): %s !!!", straddr);
-		}
+		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
+		syslog(LOG_NOTICE, "http_req_sec_chk() !!! bad http header or request, client ip: %s.", straddr);
 		srv->stat.insecure_requests ++;
 		cli->resp.status_code = 400;
 		goto stop_and_drop_with_http_err;
@@ -1247,7 +1245,8 @@ handle_content_length:
 		}
 		tp_task_flags_del(tptask, TP_TASK_F_CB_AFTER_EVERY_READ);
 		IO_BUF_TR_SIZE_SET(buf, (cli->req.data_size - tm));
-		//LOGD_EV_FMT("tm = %zu, buf->transfer_size = %zu...", tm, IO_BUF_TR_SIZE_GET(buf));
+		SYSLOGD_EX(LOG_DEBUG, "tm = %zu, buf->transfer_size = %zu...",
+		    tm, IO_BUF_TR_SIZE_GET(buf));
 		goto continue_recv;
 	}
 	
@@ -1259,7 +1258,7 @@ req_received: /* Full request received! */
 	}
 	srv->stat.requests_total ++;
 
-	LOGD_EV_FMT("req in: size=%zu, req line size = %zu, hdr_size = %zu"
+	SYSLOGD_EX(LOG_DEBUG, "req in: size=%zu, req line size = %zu, hdr_size = %zu"
 	    "\n==========================================="
 	    "\n%.*s"
 	    "\n===========================================",
@@ -1294,14 +1293,12 @@ req_received: /* Full request received! */
 	if (NULL != cli->req.line.host) {
 		if (0 != mem_cmpn(cli->req.host, cli->req.host_size,
 		    cli->req.line.host, cli->req.line.host_size)) {
-			if (0 != LOG_IS_ENABLED()) {
-				sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-				LOG_INFO_FMT("%s: host in request line: \"%.*s\" "
-				    "does not euqual host in headers: \"%.*s\".",
-				    straddr,
-				    (int)cli->req.line.host_size, cli->req.line.host,
-				    (int)cli->req.host_size, cli->req.host);
-			}
+			sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
+			syslog(LOG_NOTICE, "%s: host in request line: \"%.*s\" "
+			    "does not euqual host in headers: \"%.*s\".",
+			    straddr,
+			    (int)cli->req.line.host_size, cli->req.line.host,
+			    (int)cli->req.host_size, cli->req.host);
 			srv->stat.insecure_requests ++;
 			cli->resp.status_code = 400;
 			cli->resp.p_flags |= HTTP_SRV_RESP_P_F_GEN_ERR_PAGES; /* Generate error page. */
@@ -1314,11 +1311,9 @@ req_received: /* Full request received! */
 		if (0 != sa_addr_is_loopback(&addr) && /* To loopback */
 		    0 == sa_addr_is_loopback(&cli->addr)) { /* From net */
 conn_from_net_to_loopback:
-			if (0 != LOG_IS_ENABLED()) {
-				sa_addr_port_to_str(&cli->addr, straddr,
-				    sizeof(straddr), NULL);
-				LOG_INFO_FMT("HACKING ATTEMPT: %s set in host header loopback address.", straddr);
-			}
+			sa_addr_port_to_str(&cli->addr, straddr,
+			    sizeof(straddr), NULL);
+			syslog(LOG_NOTICE, "HACKING ATTEMPT: %s set in host header loopback address.", straddr);
 			srv->stat.insecure_requests ++;
 			cli->resp.status_code = 403;
 			cli->resp.p_flags |= HTTP_SRV_RESP_P_F_GEN_ERR_PAGES; /* Generate error page. */
@@ -1487,7 +1482,7 @@ http_srv_send_responce(http_srv_cli_p cli, const uint8_t **delimiter) {
 	}
 	if (0 != error) { /* Error. */
 		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-		LOG_ERR_FMT(error, "client ip: %s", straddr);
+		SYSLOG_ERR(LOG_ERR, error, "http_srv_send_responce: client ip: %s.", straddr);
 		cli->bnd->srv->stat.errors ++;
 		http_srv_cli_free(cli);
 	}
@@ -1514,7 +1509,7 @@ http_srv_resume_responce(http_srv_cli_p cli) {
 	error = tp_task_restart(cli->tptask);
 	if (0 != error) { /* Error. */
 		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-		LOG_ERR_FMT(error, "client ip: %s", straddr);
+		SYSLOG_ERR(LOG_ERR, error, "http_srv_resume_responce: client ip: %s.", straddr);
 		cli->bnd->srv->stat.errors ++;
 		http_srv_cli_free(cli);
 	}
@@ -1538,7 +1533,7 @@ http_srv_resume_next_request(http_srv_cli_p cli) {
 	    cli->rcv_buf, http_srv_recv_done_cb);
 	if (0 != error) { /* Error. */
 		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
-		LOG_ERR_FMT(error, "client ip: %s", straddr);
+		SYSLOG_ERR(LOG_ERR, error, "http_srv_resume_next_request: client ip: %s.", straddr);
 		cli->bnd->srv->stat.errors ++;
 		http_srv_cli_free(cli);
 	}
@@ -1554,16 +1549,13 @@ http_srv_snd_done_cb(tp_task_p tptask, int error, io_buf_p buf __unused,
 	http_srv_cli_p cli = (http_srv_cli_p)arg;
 	char straddr[STR_ADDR_LEN];
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	debugd_break_if(NULL == arg);
 	debugd_break_if(tptask != ((http_srv_cli_p)arg)->tptask);
 
 	if (0 != error) { /* Fail! :( */
-		if (0 != LOG_IS_ENABLED()) {
-			sa_addr_port_to_str(&cli->addr, straddr,
-			    sizeof(straddr), NULL);
-			LOG_ERR_FMT(error, "client: %s", straddr);
-		}
+		sa_addr_port_to_str(&cli->addr, straddr, sizeof(straddr), NULL);
+		SYSLOG_ERR(LOG_ERR, error, "http_srv_snd_done_cb: client ip: %s.", straddr);
 		switch (error) {
 		case ETIMEDOUT:
 			cli->bnd->srv->stat.timeouts ++;
@@ -1752,7 +1744,7 @@ http_srv_snd(http_srv_cli_p cli) {
 		hdrs[hdrs_size ++] = '\n';
 	}
 
-	LOGD_EV_FMT("\r\n%.*s", (int)hdrs_size, hdrs);
+	SYSLOGD_EX(LOG_DEBUG, "\r\n%.*s", (int)hdrs_size, hdrs);
 
 	/* Send data... */
 	/* Try "zero copy" send first. */
@@ -1836,7 +1828,7 @@ http_srv_snd(http_srv_cli_p cli) {
 			if ((hdrs_size - cli->buf->offset) >
 			    IO_BUF_FREE_SIZE(cli->buf)) {
 				error = ENOMEM;
-				LOG_ERR(error, "Not enough space in socket buffer and in io_buf for HTTP headers, increace skt_snd_buf or/and hdrs_reserve_size.");
+				syslog(LOG_ERR, "Not enough space in socket buffer and in io_buf for HTTP headers, increace skt_snd_buf or/and hdrs_reserve_size.");
 				return (error);
 			}
 			memmove((cli->buf->data + hdrs_size),

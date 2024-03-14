@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,6 @@
 #include "net/utils.h"
 #include "proto/sap_rcvr.h"
 #include "utils/data_cache.h"
-#include "utils/log.h"
 
 #define RECV_BUF_SIZE	4096
 
@@ -267,7 +266,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 	uint16_t port, media_proto = 0; /* udp/rtp/srtp*/
 
 	if (0 != error) {
-		LOG_ERR(error, "on receive");
+		SYSLOG_ERR(LOG_DEBUG, error, "On receive.");
 		goto rcv_next;
 	}
 
@@ -278,22 +277,23 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 		if (0 == error) {
 			error = EINVAL;
 		}
-		LOG_ERR(error, "recvmsg");
+		error = SKT_ERR_FILTER(error);
+		SYSLOG_ERR(LOG_NOTICE, error, "recvmsg().");
 		goto rcv_next;
 	}
 	transfered_size = (size_t)ios;
 	if (0 == sap_packet_is_valid(buf, transfered_size)) {
-		LOG_EV_FMT("SAP bad packet.");
+		syslog(LOG_NOTICE, "SAP bad packet.");
 		goto rcv_next;
 	}
-	/*LOG_EV_FMT("SAP: size=%zu, flags: [V:%i,A:%i,R:%i,T:%i,E:%i,C:%i], "
+	SYSLOGD_EX(LOG_DEBUG, "SAP: size=%zu, flags: [V:%i,A:%i,R:%i,T:%i,E:%i,C:%i], "
 	    "auth len = %i, msg id hash = %i",
 	    transfered_size,
 	    sap_hdr->flags.bits.v, sap_hdr->flags.bits.a, sap_hdr->flags.bits.r,
 	    sap_hdr->flags.bits.t, sap_hdr->flags.bits.e, sap_hdr->flags.bits.c,
-	    sap_hdr->auth_len, sap_hdr->msg_id_hash);*/
+	    sap_hdr->auth_len, sap_hdr->msg_id_hash);
 	if (0 != sap_hdr->flags.bits.e || 0 != sap_hdr->flags.bits.c) {
-		LOG_EV_FMT("SAP data encrypted or/and compressed.", NULL);
+		syslog(LOG_INFO, "SAP data encrypted or/and compressed.");
 		goto rcv_next;
 	}
 
@@ -301,10 +301,10 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 	sdp_msg_size = (transfered_size - (size_t)(sdp_msg - buf));
 	buf[transfered_size] = 0;
 	if (0 != sdp_msg_sec_chk(sdp_msg, sdp_msg_size)) {
-		LOG_EV("SAP data: BAD!!!");
+		syslog(LOG_NOTICE, "SAP data: BAD!!!");
 		goto rcv_next;
 	}
-	//LOG_EV_FMT("SAP data: (%zu) %s", sdp_msg_size, sdp_msg);
+	//SYSLOGD_EX(LOG_DEBUG, "SAP data: (%zu) %s", sdp_msg_size, sdp_msg);
 	
 	sdp_msg_type_get(sdp_msg, sdp_msg_size, 'm', NULL, &media, &media_size);
 	if (8 > media_size ||
@@ -388,7 +388,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 	sdpl->flags = 1;
 	sdpl->if_index = if_index;
 
-	LOG_EV_FMT("SAP data: (%zu) %s", sdp_msg_size, sdp_msg);
+	SYSLOGD_EX(LOG_DEBUG, "SAP data: (%zu) %s", sdp_msg_size, sdp_msg);
 	data_cache_item_unlock(dc_item);
 
 

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015  - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2015-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,6 @@
 #include "net/utils.h"
 #include "utils/info.h"
 #include "net/hostname_list.h"
-#include "utils/log.h"
 #include "proto/http_client.h"
 
 
@@ -175,7 +174,7 @@ http_cli_create(http_cli_cb ccb, http_cli_settings_p s, void *udata,
 	int error;
 	http_cli_p cli = NULL;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	
 	if (NULL == cli_ret) {
 		error = EINVAL;
@@ -224,7 +223,7 @@ err_out:
 void
 http_cli_destroy(http_cli_p cli) {
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == cli)
 		return;
 	free(cli);
@@ -865,8 +864,8 @@ http_srv_new_conn_cb(io_task_p iotask, int error, uintptr_t skt,
 	/* Tune socket. */
 	error = io_net_skt_opts_set_ex(skt, SO_F_TCP_ES_CONN_MASK,
 	    &bnd->s.skt_opts, NULL);
-	if (0 != error)
-		LOG_ERR_FMT(error, "%s: io_net_skt_opts_set_ex(), this is not fatal.", straddr);
+	SYSLOG_ERR(LOG_NOTICE, error,
+	    "%s: skt_opts_apply_ex(), this is not fatal.", straddr);
 	/* Receive http request. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
 	/* Shedule data receive / Receive http request. */
@@ -896,7 +895,7 @@ http_cli_recv_done_cb(io_task_p iotask, int error, io_buf_p buf, int eof,
 	int action;
 	struct sockaddr_storage addr;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 
 	bnd = cli->bnd;
 	srv = bnd->srv;
@@ -1426,7 +1425,7 @@ http_cli_snd_done_cb(io_task_p iotask __unused, int error, io_buf_p buf __unused
 	int action;
 	size_t tm;
 
-	LOGD_EV("...");
+	SYSLOGD_EX(LOG_DEBUG, "...");
 
 	srv = cli->bnd->srv;
 	if (0 != error) { /* Fail! :( */
