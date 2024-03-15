@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2021 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,6 +95,9 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 		if (0 == xml_get_val_int32_args(buf, buf_size, NULL,
 		    &opts->backlog,
 		    (const uint8_t*)"backlog", NULL)) {
+			if (1 > opts->backlog) { /* Force apply system wide limit. */
+				opts->backlog = INT_MAX;
+			}
 			opts->mask |= SO_F_BACKLOG;
 		}
 	}

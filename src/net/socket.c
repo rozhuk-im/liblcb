@@ -636,6 +636,9 @@ err_out:
 int
 skt_listen(uintptr_t skt, int backlog) {
 
+	if (1 > backlog) { /* Force apply system wide limit. */
+		backlog = INT_MAX;
+	}
 	if (-1 == listen((int)skt, backlog))
 		return (errno);
 
