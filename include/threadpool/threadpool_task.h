@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -286,20 +286,20 @@ int	tp_task_pkt_rcvr_create(tpt_p tpt, uintptr_t ident,
 /* Call tp_task_destroy() then no needed. */
 
 
-int	tp_task_create_accept(tpt_p tpt, uintptr_t ident,
+int	tp_task_accept_create(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint64_t timeout,
 	    tp_task_accept_cb cb_func, void *udata,
 	    tp_task_p *tptask_ret);
 /* Valid flags: TP_TASK_F_CLOSE_ON_DESTROY */
 
-int	tp_task_create_bind_accept(tpt_p tpt,
+int	tp_task_bind_accept_create(tpt_p tpt,
 	    const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
 	    uint32_t flags, uint64_t timeout,
 	    tp_task_accept_cb cb_func, void *udata,
 	    tp_task_p *tptask_ret);
 /* Valid flags: TP_TASK_F_CLOSE_ON_DESTROY */
 
-int	tp_task_create_multi_bind_accept(tp_p tp,
+int	tp_task_bind_accept_multi_create(tp_p tp,
 	    const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
 	    uint32_t flags, uint64_t timeout,
 	    tp_task_accept_cb cb_func, void *udata,
@@ -314,16 +314,16 @@ int	tp_task_create_multi_bind_accept(tp_p tp,
  * Returns pointer to array of tp_task_p and array size (elems count).
  */
 
-int	tp_task_create_connect(tpt_p tpt, uintptr_t ident,
+int	tp_task_connect_create(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint64_t timeout, tp_task_connect_cb cb_func,
 	    void *udata, tp_task_p *tptask_ret);
 
-int	tp_task_create_connect_send(tpt_p tpt, uintptr_t ident,
+int	tp_task_connect_send_create(tpt_p tpt, uintptr_t ident,
 	    uint32_t flags, uint64_t timeout, io_buf_p buf,
 	    tp_task_cb cb_func, void *udata, tp_task_p *tptask_ret);
 /* timeout - for connect, then for send (write) data. */
 
-int	tp_task_create_connect_ex(tpt_p tpt, uint32_t flags,
+int	tp_task_connect_ex_create(tpt_p tpt, uint32_t flags,
 	    uint64_t timeout, tp_task_conn_prms_p conn_prms,
 	    tp_task_connect_ex_cb cb_func, void *udata,
 	    tp_task_p *tptask_ret);

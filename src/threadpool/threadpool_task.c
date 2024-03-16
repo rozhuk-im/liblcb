@@ -849,7 +849,7 @@ tp_task_pkt_rcvr_create(tpt_p tpt, uintptr_t ident, uint32_t flags,
 }
 
 int
-tp_task_create_accept(tpt_p tpt, uintptr_t ident, uint32_t flags,
+tp_task_accept_create(tpt_p tpt, uintptr_t ident, uint32_t flags,
     uint64_t timeout, tp_task_accept_cb cb_func, void *udata,
     tp_task_p *tptask_ret) {
 	int error;
@@ -862,7 +862,7 @@ tp_task_create_accept(tpt_p tpt, uintptr_t ident, uint32_t flags,
 }
 
 int
-tp_task_create_bind_accept(tpt_p tpt,
+tp_task_bind_accept_create(tpt_p tpt,
     const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
     uint32_t flags, uint64_t timeout, tp_task_accept_cb cb_func, void *udata,
     tp_task_p *tptask_ret) {
@@ -889,7 +889,7 @@ tp_task_create_bind_accept(tpt_p tpt,
 	if (0 != error) { /* Non fatal error. */
 		skt_opts->bit_vals &= ~(err_mask & SO_F_ACC_FILTER);
 	}
-	error = tp_task_create_accept(tpt, skt, flags, timeout,
+	error = tp_task_accept_create(tpt, skt, flags, timeout,
 	    cb_func, udata, tptask_ret);
 	if (0 == error)
 		return (0);
@@ -902,7 +902,7 @@ err_out: /* Error. */
 }
 
 int
-tp_task_create_multi_bind_accept(tp_p tp,
+tp_task_bind_accept_multi_create(tp_p tp,
     const sockaddr_storage_t *addr, int type, int protocol, skt_opts_p skt_opts,
     uint32_t flags, uint64_t timeout, tp_task_accept_cb cb_func, void *udata,
     size_t *tptasks_count_ret, tp_task_p **tptasks_ret) {
@@ -938,7 +938,7 @@ tp_task_create_multi_bind_accept(tp_p tp,
 		{
 			tpt = tp_thread_get_rr(tp);
 		}
-		error = tp_task_create_bind_accept(tpt,
+		error = tp_task_bind_accept_create(tpt,
 		    addr, type, protocol, skt_opts,
 		    flags, timeout, cb_func, udata, &tptasks[tptasks_cnt]);
 		if (0 != error)
@@ -967,7 +967,7 @@ err_out: /* Error. */
 
 
 int
-tp_task_create_connect(tpt_p tpt, uintptr_t ident, uint32_t flags,
+tp_task_connect_create(tpt_p tpt, uintptr_t ident, uint32_t flags,
     uint64_t timeout, tp_task_connect_cb cb_func, void *udata,
     tp_task_p *tptask_ret) {
 	int error;
@@ -980,7 +980,7 @@ tp_task_create_connect(tpt_p tpt, uintptr_t ident, uint32_t flags,
 }
 
 int
-tp_task_create_connect_send(tpt_p tpt, uintptr_t ident,
+tp_task_connect_send_create(tpt_p tpt, uintptr_t ident,
     uint32_t flags, uint64_t timeout, io_buf_p buf, tp_task_cb cb_func,
     void *udata, tp_task_p *tptask_ret) {
 	int error;
@@ -1133,7 +1133,7 @@ shedule_delay_timer:
 }
 
 int
-tp_task_create_connect_ex(tpt_p tpt, uint32_t flags,
+tp_task_connect_ex_create(tpt_p tpt, uint32_t flags,
     uint64_t timeout, tp_task_conn_prms_p conn_prms,
     tp_task_connect_ex_cb cb_func, void *udata, tp_task_p *tptask_ret) {
 	int error;

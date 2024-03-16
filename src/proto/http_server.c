@@ -606,7 +606,7 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 	skt_opts_cvt(SKT_OPTS_MULT_K, &bnd->s.skt_opts);
 
 	/* Create listen sockets per thread or on one on rand thread. */
-	error = tp_task_create_multi_bind_accept(srv->tp,
+	error = tp_task_bind_accept_multi_create(srv->tp,
 	    &bnd->s.addr, SOCK_STREAM, IPPROTO_TCP, &bnd->s.skt_opts,
 	    TP_TASK_F_CLOSE_ON_DESTROY, 0, http_srv_new_conn_cb, bnd,
 	    &bnd->tptasks_cnt, &bnd->tptasks);
