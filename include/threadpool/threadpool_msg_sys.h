@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,6 +97,11 @@ int	tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
 
 
 /* Functions set for async callback with some additional params. */
+/* It designed to be used in tpt_msg_done_cb or any other one time call back
+ * function, like tp_task_connect_cb, tp_task_connect_ex_cb, etc...
+ * On init (call tpt_msg_async_op_alloc()) set destination thread and
+ * call back function that will be called by destination thread after
+ * tpt_msg_async_op_cb_free() called. */
 #define TP_MSG_AOP_UDATA_CNT	((size_t)6)
 /* Typical names */
 #define TP_MSG_AOP_ARG0		((size_t)0)
