@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,15 +61,17 @@ signal_install(sig_t func) {
 
 void
 make_daemon(void) {
-	int error;
-	char err_descr[256];
+	int error, nullfd;
+	char err_descr[256], *err_source = NULL;
 
 	switch (fork()) {
 	case -1:
+		err_source = "fork()";
+err_out:
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
-		fprintf(stderr, "make_daemon: fork() failed: %i %s\n",
-		    error, err_descr);
+		fprintf(stderr, "make_daemon: %s failed: %i %s\n",
+		    err_source, error, err_descr);
 		exit(error);
 		/* return; */
 	case 0: /* Child. */
@@ -81,11 +83,20 @@ make_daemon(void) {
 	/* Child... */
 	setsid();
 	setpgid(getpid(), 0);
+	chdir("/");
 
 	/* Close stdin, stdout, stderr. */
-	close(0);
-	close(1);
-	close(2);
+	nullfd = open("/dev/null", O_RDWR);
+	if (-1 == nullfd) {
+		err_source = "open(\"/dev/null\")";
+		goto err_out;
+	}
+	dup2(nullfd, STDIN_FILENO);
+	dup2(nullfd, STDOUT_FILENO);
+	dup2(nullfd, STDERR_FILENO);
+	if (STDERR_FILENO < nullfd) {
+		close(nullfd);
+	}
 }
 
 int
