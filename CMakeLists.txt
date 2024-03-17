@@ -84,6 +84,8 @@ chk_function_exists(freezero)
 chk_function_exists(pipe2)
 chk_function_exists(accept4)
 chk_function_exists(rtprio)
+chk_function_exists(pthread_setname_np)
+chk_function_exists(pthread_set_name_np)
 
 # Check macros.
 chk_symbol_exists(sys/socket.h SOCK_NONBLOCK)

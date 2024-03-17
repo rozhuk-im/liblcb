@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #include <unistd.h> /* close, write, sysconf */
 #include <pthread.h>
+#include <pthread_np.h>
 
 /* Secure version of memset(). */
 static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
@@ -310,14 +311,14 @@ strlcpy(char * restrict dst, const char * restrict src, size_t size) {
 /* pthread_create(2) can spuriously fail on Linux. This is a function
  * to wrap pthread_create(2) to retry if it fails with EAGAIN. */
 static inline int
-pthread_create_eagain(pthread_t *handle, const pthread_attr_t *attr,
+pthread_create_eagain(pthread_t *thread, const pthread_attr_t *attr,
     void *(*fn)(void*), void *arg) {
 	int error;
 	const size_t max_tries = 20;
 	struct timespec rqts = { .tv_sec = 0 };
 
 	for (size_t i = 1; i <= max_tries; i ++) {
-		error = pthread_create(handle, attr, fn, arg);
+		error = pthread_create(thread, attr, fn, arg);
 		if (0 == error || /* Ok, done. */
 		    EAGAIN != error) /* Other error. */
 			return (error);
@@ -327,6 +328,22 @@ pthread_create_eagain(pthread_t *handle, const pthread_attr_t *attr,
 	}
 
 	return (EAGAIN);
+}
+
+static inline void
+pthread_set_name(pthread_t thread, const char *name) {
+
+	if (NULL == thread) {
+		thread = pthread_self();
+	}
+	if (NULL == name) {
+		name = "";
+	}
+#ifdef HAVE_PTHREAD_SETNAME_NP
+	pthread_setname_np(thread, name);
+#elif defined(HAVE_PTHREAD_SET_NAME_NP)
+	pthread_set_name_np(thread, name);
+#endif
 }
 
 
