@@ -139,7 +139,7 @@ skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret) {
 #endif
 }
 
-/* Check is congestion control algorithm avaible. */
+/* Check is congestion control algorithm available. */
 int
 skt_is_tcp_cc_avail(const char *cc, size_t cc_size) {
 #ifdef TCP_CONGESTION

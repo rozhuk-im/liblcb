@@ -44,7 +44,7 @@ typedef struct hostname_s {
 } hostname_t, *hostname_p;
 
 typedef struct hostname_list_s {
-	size_t		allocated;	/* Num of avaible struct hostname_p. */
+	size_t		allocated;	/* Num of available struct hostname_p. */
 	size_t		count;		/* Num of used struct hostname_p. */
 	hostname_p	*names;
 	int		any_name;	/* name = '*' */

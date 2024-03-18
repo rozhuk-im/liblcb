@@ -1420,7 +1420,7 @@ ok_exit:
 		(*carry) = crr;
 	return;
 }
-/* a_count - all avaible digits, b_count - set to non zero digits count. */
+/* a_count - all available digits, b_count - set to non zero digits count. */
 static inline int
 bn_digits_add(bn_digit_t *a, size_t a_count, bn_digit_t *b, size_t b_count,
     bn_digit_t *carry) {

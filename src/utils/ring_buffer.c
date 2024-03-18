@@ -439,7 +439,7 @@ r_buf_wbuf_pos_inc(r_buf_p r_buf) {
 }
 #endif
 
-/* Return pointer to buf and size avaible to write. */
+/* Return pointer to buf and size available to write. */
 size_t
 r_buf_wbuf_get(r_buf_p r_buf, size_t min_buf_size, uint8_t **buf) {
 	size_t buf_size; /* Avaible size. */

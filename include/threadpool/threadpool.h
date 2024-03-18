@@ -63,8 +63,8 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 /* Only for set.	val			FreeBSD			__linux__ */
 #define TP_F_ONESHOT	(((uint16_t)1) << 0) /* Set: EV_ONESHOT		EPOLLONESHOT */ /* Delete event after recv. */
 #define TP_F_DISPATCH	(((uint16_t)1) << 1) /* Set: EV_DISPATCH	EPOLLONESHOT */ /* DISABLE event after recv. */
-#define TP_F_EDGE	(((uint16_t)1) << 2) /* Set: EV_CLEAR		EPOLLET */ /* Report only if avaible data changed.*/
- 									/* If not set will report if data/space avaible untill disable/delete event. */
+#define TP_F_EDGE	(((uint16_t)1) << 2) /* Set: EV_CLEAR		EPOLLET */ /* Report only if available data changed.*/
+ 									/* If not set will report if data/space available untill disable/delete event. */
 #define TP_F_S_MASK	0x0007u /* For internal use: flags set mask. */
 /* Return only. */
 #define TP_F_EOF	(((uint16_t)1) << 3) /* Ret: EV_EOF		EPOLLRDHUP */

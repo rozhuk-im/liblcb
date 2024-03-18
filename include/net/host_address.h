@@ -54,7 +54,7 @@ typedef struct host_addr_s {
 	uint8_t		*name;		/* Hostname. */
 	size_t		name_size;	/* Host name size. */
 	uint16_t	port;		/* Port. */
-	size_t		allocated;	/* Num of avaible sockaddr_storage_t. */
+	size_t		allocated;	/* Num of available sockaddr_storage_t. */
 	size_t		count;		/* Num of used sockaddr_storage_t. */
 } host_addr_t, *host_addr_p;
 

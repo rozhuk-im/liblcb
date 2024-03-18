@@ -930,7 +930,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 
 	cpu_count = (size_t)sysconf(_SC_NPROCESSORS_CONF);
 	if ((size_t)-1 == cpu_count) {
-		cpu_count = 1; /* At least 1 processor avaible. */
+		cpu_count = 1; /* At least 1 processor available. */
 	}
 	if (0 == s->threads_max) {
 		s->threads_max = cpu_count;

@@ -60,7 +60,7 @@ typedef struct r_buf_s { /* Ring buf. */
 } r_buf_t, *r_buf_p;
 
 #define RBUF_F_FRAG	(((uint32_t)1) << 0) /* Fragmented. */
-#define RBUF_F_FULL	(((uint32_t)1) << 1) /* Buffer is full: to detect round_num == 0 but data avaible. */
+#define RBUF_F_FULL	(((uint32_t)1) << 1) /* Buffer is full: to detect round_num == 0 but data available. */
 
 
 typedef struct r_buf_rpos_s { /* Ring buf read pos. */
