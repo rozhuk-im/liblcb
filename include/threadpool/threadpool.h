@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -104,9 +104,11 @@ int	tp_signal_handler_add_tp(tp_p tp);
 void	tp_signal_handler(int sig);
 
 
+#define TP_NAME_SIZE		16
 typedef struct thread_pool_settings_s { /* Settings */
 	uint32_t	flags;	/* TP_S_F_* */
 	size_t		threads_max;
+	char		name[TP_NAME_SIZE]; /* Thread pool name. Used as prefix for threads names. */
 } tp_settings_t, *tp_settings_p;
 
 #define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs */

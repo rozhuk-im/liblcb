@@ -50,6 +50,7 @@
 #include <sys/fcntl.h> /* open, fcntl */
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
+#include <stdio.h>  /* snprintf, fprintf */
 #include <unistd.h> /* close, write, sysconf */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <errno.h>
@@ -174,6 +175,7 @@ typedef struct thread_pool_s { /* thread pool */
 	tpt_p		pvt;		/* Pool virtual thread. */
 	size_t		rr_idx;
 	uint32_t	flags;
+	char		name[TP_NAME_SIZE];
 	size_t		cpu_count;
 	uintptr_t	fd_count;
 	size_t		threads_max;
@@ -843,6 +845,7 @@ tp_settings_def(tp_settings_p s_ret) {
 	/* Default settings. */
 	s_ret->flags = TP_S_DEF_FLAGS;
 	s_ret->threads_max = TP_S_DEF_THREADS_MAX;
+	strlcpy(s_ret->name, "TP", sizeof(s_ret->name));
 }
 
 #ifdef THREAD_POOL_SETTINGS_XML
@@ -937,6 +940,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 		return (ENOMEM);
 	fd_max_count = (uintptr_t)getdtablesize();
 	tp->flags = s->flags;
+	memcpy(tp->name, s->name, TP_NAME_SIZE);
 	tp->cpu_count = cpu_count;
 	tp->threads_max = s->threads_max;
 	tp->fd_count = fd_max_count;
@@ -1026,6 +1030,7 @@ int
 tp_threads_create(tp_p tp, int skip_first) {
 	size_t i;
 	tpt_p tpt;
+	char thr_name[64];
 
 	if (NULL == tp)
 		return (EINVAL);
@@ -1040,6 +1045,8 @@ tp_threads_create(tp_p tp, int skip_first) {
 		if (0 == pthread_create_eagain(&tpt->pt_id, NULL,
 		    tp_thread_proc, tpt)) {
 			tp->threads_cnt ++;
+			snprintf(thr_name, sizeof(thr_name), "%s: %zu", tp->name, i);
+			pthread_set_name(tpt->pt_id, thr_name);
 		} else {
 			tpt->running = 0;
 		}
@@ -1083,12 +1090,15 @@ tp_thread_proc(void *data) {
 	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
 
 	tpt->running ++;
-	syslog(LOG_INFO, "Thread %zu started...", tpt->thread_num);
+	syslog(LOG_INFO, "%s: thread %zu started...",
+	    tpt->tp->name, tpt->thread_num);
 
 	sigemptyset(&sig_set);
 	sigaddset(&sig_set, SIGPIPE);
 	if (0 != pthread_sigmask(SIG_BLOCK, &sig_set, NULL)) {
-		SYSLOG_ERR(LOG_WARNING, errno, "Can't block the SIGPIPE signal.");
+		SYSLOG_ERR(LOG_WARNING, errno,
+		    "%s: Can't block the SIGPIPE signal for thread %zu.",
+		    tpt->tp->name, tpt->thread_num);
 	}
 
 #ifndef DARWIN
@@ -1099,12 +1109,12 @@ tp_thread_proc(void *data) {
 		CPU_SET(tpt->cpu_id, &cs);
 		if (0 == pthread_setaffinity_np(pthread_self(),
 		    sizeof(cpu_set_t), &cs)) {
-			syslog(LOG_INFO, "Bind thread %zu to CPU %i.",
-			    tpt->thread_num, tpt->cpu_id);
+			syslog(LOG_INFO, "%s: bind thread %zu to CPU %i.",
+			    tpt->tp->name, tpt->thread_num, tpt->cpu_id);
 		} else {
 			SYSLOG_ERR(LOG_WARNING, errno,
-			    "Can't Bind thread %zu to CPU %i.",
-			    tpt->thread_num, tpt->cpu_id);
+			    "%s: can't Bind thread %zu to CPU %i.",
+			    tpt->tp->name, tpt->thread_num, tpt->cpu_id);
 		}
 	}
 #endif
@@ -1115,7 +1125,8 @@ tp_thread_proc(void *data) {
 	tpt->running = 0; /* Reset state on exit or on error. */
 	tpt->tp->threads_cnt --;
 	pthread_setspecific(tp_tls_key_tpt, NULL);
-	syslog(LOG_INFO, "Thread %zu exited...", tpt->thread_num);
+	syslog(LOG_INFO, "%s: thread %zu exited...",
+	    tpt->tp->name, tpt->thread_num);
 
 	return (NULL);
 }
