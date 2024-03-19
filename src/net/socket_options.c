@@ -71,7 +71,7 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 		return (EINVAL);
 	/* Read from config. */
 
-	/* SO_F_NONBLOCK: never read, app internal. */
+	/* SO_F_CLOEXEC, SO_F_NONBLOCK: never read, app internal. */
 	/* SO_F_HALFCLOSE_RD */
 	if (0 != (SO_F_HALFCLOSE_RD & mask)) {
 		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
@@ -360,6 +360,15 @@ skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
 		return (EINVAL);
 	_mask = (mask & (opts->mask | SO_F_FAIL_ON_ERR));
 
+	/* SO_F_CLOEXEC */
+	if (0 != (SO_F_CLOEXEC & _mask)) {
+		error = fd_set_cloexec(skt, (SO_F_CLOEXEC & opts->bit_vals));
+		if (0 != error) {
+			error_mask |= SO_F_CLOEXEC;
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
+		}
+	}
 	/* SO_F_NONBLOCK */
 	if (0 != (SO_F_NONBLOCK & _mask)) {
 		error = fd_set_nonblocking(skt, (SO_F_NONBLOCK & opts->bit_vals));

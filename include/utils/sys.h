@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,8 @@ int	file_size_get(const char *file_name, size_t file_name_size,
 
 int	get_cpu_count(void);
 time_t	gettime_monotonic(void);
-int	fd_set_nonblocking(uintptr_t fd, int nonblocked);
+int	fd_set_cloexec(const uintptr_t fd, const int cloexec);
+int	fd_set_nonblocking(const uintptr_t fd, const int nonblock);
 
 
 #endif /* __SYS_H__ */

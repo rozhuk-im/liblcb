@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,17 +65,17 @@ typedef struct socket_options_s {
 
 /* Continue, first flags see in net/socket.h. */
 /* Socket level. */
-#define SO_F_HALFCLOSE_RD	(((uint32_t)1) <<  4) /* shutdown(SHUT_RD) */
-#define SO_F_HALFCLOSE_WR	(((uint32_t)1) <<  5) /* shutdown(SHUT_WR) */
+#define SO_F_HALFCLOSE_RD	(((uint32_t)1) <<  5) /* shutdown(SHUT_RD) */
+#define SO_F_HALFCLOSE_WR	(((uint32_t)1) <<  6) /* shutdown(SHUT_WR) */
 #define SO_F_HALFCLOSE_RDWR	(SO_F_HALFCLOSE_RD | SO_F_HALFCLOSE_WR) /* shutdown(SHUT_RDWR) */
-#define SO_F_BACKLOG		(((uint32_t)1) <<  6) /* backlog is readed from config. */
-#define SO_F_KEEPALIVE		(((uint32_t)1) <<  7) /* SO_KEEPALIVE */
-#define SO_F_RCVBUF		(((uint32_t)1) <<  8) /* SO_RCVBUF */
-#define SO_F_RCVLOWAT		(((uint32_t)1) <<  9) /* SO_RCVLOWAT */
-#define SO_F_RCVTIMEO		(((uint32_t)1) << 10) /* SO_RCVTIMEO - no set to skt */
-#define SO_F_SNDBUF		(((uint32_t)1) << 11) /* SO_SNDBUF */
-#define SO_F_SNDLOWAT		(((uint32_t)1) << 12) /* SO_SNDLOWAT */
-#define SO_F_SNDTIMEO		(((uint32_t)1) << 13) /* SO_SNDTIMEO - no set to skt */
+#define SO_F_BACKLOG		(((uint32_t)1) <<  7) /* backlog is readed from config. */
+#define SO_F_KEEPALIVE		(((uint32_t)1) <<  8) /* SO_KEEPALIVE */
+#define SO_F_RCVBUF		(((uint32_t)1) <<  9) /* SO_RCVBUF */
+#define SO_F_RCVLOWAT		(((uint32_t)1) << 10) /* SO_RCVLOWAT */
+#define SO_F_RCVTIMEO		(((uint32_t)1) << 11) /* SO_RCVTIMEO - no set to skt */
+#define SO_F_SNDBUF		(((uint32_t)1) << 12) /* SO_SNDBUF */
+#define SO_F_SNDLOWAT		(((uint32_t)1) << 13) /* SO_SNDLOWAT */
+#define SO_F_SNDTIMEO		(((uint32_t)1) << 14) /* SO_SNDTIMEO - no set to skt */
 /* IP level. */
 #define SO_F_IP_HOPLIM_U	(((uint32_t)1) << 16) /* IP_TTL / IPV6_UNICAST_HOPS */
 #define SO_F_IP_HOPLIM_M	(((uint32_t)1) << 17) /* IP_MULTICAST_TTL / IPV6_MULTICAST_HOPS */
@@ -96,7 +96,8 @@ typedef struct socket_options_s {
 #define SO_F_KEEPALIVE_MASK	(SO_F_KEEPALIVE | SO_F_TCP_KEEPIDLE |	\
 				SO_F_TCP_KEEPINTVL | SO_F_TCP_KEEPCNT)
 
-#define SO_F_BIT_VALS_MASK	(SO_F_NONBLOCK | SO_F_BROADCAST |	\
+#define SO_F_BIT_VALS_MASK	(SO_F_CLOEXEC | SO_F_NONBLOCK | 	\
+				SO_F_BROADCAST |			\
 				SO_F_REUSEADDR | SO_F_REUSEPORT | 	\
 				SO_F_KEEPALIVE | 			\
 				SO_F_IP_MULTICAST_LOOP |		\

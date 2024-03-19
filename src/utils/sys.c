@@ -348,28 +348,42 @@ gettime_monotonic(void) {
 	return (ts.tv_sec);
 }
 
-/* Set file/socket to non blocking mode */
+/* Set file/socket CLOEXEC mode. */
 int
-fd_set_nonblocking(uintptr_t fd, int nonblocked) {
-	int opts;
+fd_set_cloexec(const uintptr_t fd, const int cloexec) {
+	int cf, tf; /* File descriptor flags. */
 
 	if ((uintptr_t)-1 == fd)
 		return (EINVAL);
-
-	opts = fcntl((int)fd, F_GETFL); /* Read current options. */
-	if (-1 == opts)
+	/* This part can be simplificated to only call:
+	 * fcntl(fd, F_SETFD, ((0 != cloexec) ? FD_CLOEXEC : 0))
+	 * if build system some how check that only FD_CLOEXEC defined for
+	 * F_SETFD. */
+	cf = fcntl((int)fd, F_GETFD); /* Read current flags. */
+	if (-1 == cf)
 		return (errno);
-	if (0 == nonblocked) {
-		if (0 == (opts & O_NONBLOCK))
-			return (0); /* Allready set. */
-		opts &= ~O_NONBLOCK;
-	} else {
-		if (0 != (opts & O_NONBLOCK))
-			return (0); /* Allready set. */
-		opts |= O_NONBLOCK;
-	}
-	if (-1 == fcntl((int)fd, F_SETFL, opts)) /* Update options. */
+	tf = ((0 != cloexec) ? (cf | FD_CLOEXEC) : (cf & ~FD_CLOEXEC));
+	if (cf == tf)
+		return (0); /* Allready set. */
+	if (-1 == fcntl((int)fd, F_SETFD, tf)) /* Update flags. */
 		return (errno);
+	return (0);
+}
 
+/* Set file/socket to non blocking mode. */
+int
+fd_set_nonblocking(const uintptr_t fd, const int nonblock) {
+	int cf, tf; /* File status flags. */
+
+	if ((uintptr_t)-1 == fd)
+		return (EINVAL);
+	cf = fcntl((int)fd, F_GETFL); /* Read current flags. */
+	if (-1 == cf)
+		return (errno);
+	tf = ((0 != nonblock) ? (cf | O_NONBLOCK) : (cf & ~O_NONBLOCK));
+	if (cf == tf)
+		return (0); /* Allready set. */
+	if (-1 == fcntl((int)fd, F_SETFL, tf)) /* Update flags. */
+		return (errno);
 	return (0);
 }

@@ -372,7 +372,13 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 	if (NULL == skt_ret)
 		return (EINVAL);
 
-	/* Create blocked/nonblocked socket. */
+#ifdef HAVE_SOCK_CLOEXEC
+	if (0 != (SO_F_CLOEXEC & flags)) {
+		type |= SOCK_CLOEXEC;
+	} else {
+		type &= ~SOCK_CLOEXEC;
+	}
+#endif
 #ifdef HAVE_SOCK_NONBLOCK
 	if (0 != (SO_F_NONBLOCK & flags)) {
 		type |= SOCK_NONBLOCK;
@@ -380,26 +386,33 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 		type &= ~SOCK_NONBLOCK;
 	}
 #endif
+
 	skt = (uintptr_t)socket(domain, type, protocol);
-	if ((uintptr_t)-1 == skt) {
-		error = errno;
+	if ((uintptr_t)-1 == skt)
 		goto err_out;
-	}
-#ifndef HAVE_SOCK_NONBLOCK
-	if (0 != (SO_F_NONBLOCK & flags)) {
-		if (-1 == fcntl((int)skt, F_SETFL, O_NONBLOCK)) {
-			error = errno;
+
+#ifndef HAVE_SOCK_CLOEXEC
+	if (0 != (SO_F_CLOEXEC & flags)) {
+		/* For old BSD and linux only FD_CLOEXEC was defined for 
+		 * F_SETFD, no additional code required. */
+		if (-1 == fcntl((int)skt, F_SETFD, FD_CLOEXEC))
 			goto err_out;
-		}
 	}
 #endif
+#ifndef HAVE_SOCK_NONBLOCK
+	if (0 != (SO_F_NONBLOCK & flags)) {
+		/* Old BSD and linux have no other meaning flags for sockets,
+		 * no additional code required. */
+		if (-1 == fcntl((int)skt, F_SETFL, O_NONBLOCK))
+			goto err_out;
+	}
+#endif
+
 	/* Tune socket. */
 	if (0 != (SO_F_BROADCAST & flags)) {
 		if (0 != setsockopt((int)skt, SOL_SOCKET, SO_BROADCAST,
-		    &on, sizeof(int))) {
-			error = errno;
+		    &on, sizeof(int)))
 			goto err_out;
-		}
 	}
 #ifdef SO_NOSIGPIPE
 	setsockopt((int)skt, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(int));
@@ -414,6 +427,7 @@ skt_create(int domain, int type, int protocol, uint32_t flags,
 
 err_out:
 	/* Error. */
+	error = errno;
 	close((int)skt);
 	(*skt_ret) = (uintptr_t)-1;
 
@@ -430,13 +444,9 @@ skt_accept(uintptr_t skt, sockaddr_storage_t *addr, socklen_t *addrlen,
 
 	if (NULL == skt_ret)
 		return (EINVAL);
-	/*
-	 * On Linux, the new socket returned by accept() does not
-	 * inherit file status flags such as O_NONBLOCK and O_ASYNC
-	 * from the listening socket.
-	 */
 	s = (uintptr_t)accept4((int)skt, (sockaddr_p)addr, addrlen,
-	    (0 != (SO_F_NONBLOCK & flags)) ? SOCK_NONBLOCK : 0);
+	    (((0 != (SO_F_CLOEXEC & flags)) ? SOCK_CLOEXEC : 0) |
+	     ((0 != (SO_F_NONBLOCK & flags)) ? SOCK_NONBLOCK : 0)));
 	if ((uintptr_t)-1 == s)
 		return (errno);
 #ifdef SO_NOSIGPIPE

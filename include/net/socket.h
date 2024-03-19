@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2019 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,10 +53,11 @@
      0 : (__error))
 
 
-#define SO_F_NONBLOCK		(((uint32_t)1) <<  0) /* SOCK_NONBLOCK */
-#define SO_F_BROADCAST		(((uint32_t)1) <<  1) /* SO_BROADCAST */
-#define SO_F_REUSEADDR		(((uint32_t)1) <<  2) /* SO_REUSEADDR */
-#define SO_F_REUSEPORT		(((uint32_t)1) <<  3) /* SO_REUSEPORT / SO_REUSEPORT_LB */
+#define SO_F_CLOEXEC		(((uint32_t)1) <<  0) /* SOCK_CLOEXEC */
+#define SO_F_NONBLOCK		(((uint32_t)1) <<  1) /* SOCK_NONBLOCK */
+#define SO_F_BROADCAST		(((uint32_t)1) <<  2) /* SO_BROADCAST */
+#define SO_F_REUSEADDR		(((uint32_t)1) <<  3) /* SO_REUSEADDR */
+#define SO_F_REUSEPORT		(((uint32_t)1) <<  4) /* SO_REUSEPORT / SO_REUSEPORT_LB */
 /* Other flags in net/socket_options.h. */
 
 
@@ -82,7 +83,7 @@ int	skt_create(int domain, int type, int protocol, uint32_t flags,
 	    uintptr_t *skt_ret);
 int	skt_accept(uintptr_t skt, sockaddr_storage_p addr,
 	    socklen_t *addrlen, uint32_t flags, uintptr_t *skt_ret);
-#define SKT_CREATE_FLAG_MASK	(SO_F_NONBLOCK | SO_F_BROADCAST)
+#define SKT_CREATE_FLAG_MASK	(SO_F_CLOEXEC | SO_F_NONBLOCK | SO_F_BROADCAST)
 
 int	skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
 	    uint32_t flags, uintptr_t *skt_ret);

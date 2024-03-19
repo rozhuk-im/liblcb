@@ -350,22 +350,54 @@ pthread_set_name(pthread_t thread, const char *name) {
 #ifndef HAVE_PIPE2
 static inline int
 pipe2(int fildes[2], int flags) {
-	int error;
+	int error, tf;
 
 	error = pipe(fildes);
 	if (0 != error)
 		return (error);
-	if (0 != (O_NONBLOCK & flags)) {
-		if (-1 == fcntl((int)fildes[0], F_SETFL, O_NONBLOCK) ||
-		    -1 == fcntl((int)fildes[1], F_SETFL, O_NONBLOCK)) {
-			error = errno;
+
+	if (0 != (O_CLOEXEC & flags)) {
+#if defined(BSD) || defined(__linux__)
+		/* For old BSD and linux that have no pipe2() only FD_CLOEXEC
+		 * was defined as file descriptor flags, so we not need to read
+		 * and merge in FD_CLOEXEC. */
+		tf = FD_CLOEXEC;
+#else
+		/* File descriptor flags should be identical, read only one fd. */
+		tf = fcntl(fildes[0], F_GETFD);
+		if (-1 == tf)
 			goto err_out;
-		}
+		tf |= FD_CLOEXEC;
+#endif
+		if (-1 == fcntl(fildes[0], F_SETFD, tf) ||
+		    -1 == fcntl(fildes[1], F_SETFD, tf))
+			goto err_out;
+	}
+
+	if (0 != (O_NONBLOCK & flags)) {
+#if defined(BSD) || defined(__linux__)
+		/* For old BSD and linux that have no pipe2() only limited 
+		 * flags available to change via this:
+		 * BSD: O_NONBLOCK, O_APPEND, O_DIRECT, O_ASYNC, O_SYNC, O_DSYNC.
+		 * Linux: O_APPEND, O_ASYNC, O_DIRECT, O_NOATIME, O_NONBLOCK.
+		 * It is save to skip read flags and force set only O_NONBLOCK. */
+		tf = O_NONBLOCK;
+#else
+		/* File status flags should be identical, read only one fd. */
+		tf = fcntl(fildes[0], F_GETFL);
+		if (-1 == tf)
+			goto err_out;
+		tf |= O_NONBLOCK;
+#endif
+		if (-1 == fcntl(fildes[0], F_SETFL, tf) ||
+		    -1 == fcntl(fildes[1], F_SETFL, tf))
+			goto err_out;
 	}
 
 	return (0);
 
 err_out:
+	error = errno;
 	close(fildes[0]);
 	close(fildes[1]);
 	fildes[0] = -1;
@@ -375,7 +407,15 @@ err_out:
 }
 #endif
 
+
 #ifndef HAVE_ACCEPT4
+/* On systems without SOCK_CLOEXEC and accept4() we must define
+ * SOCK_CLOEXEC to compile and use accept4().
+ * Use HAVE_SOCK_CLOEXEC to make sure that you will not pass
+ * SOCK_CLOEXEC to any other function in your code. */
+#ifndef SOCK_CLOEXEC
+#	define SOCK_CLOEXEC	0x10000000
+#endif
 /* On systems without SOCK_NONBLOCK and accept4() we must define
  * SOCK_NONBLOCK to compile and use accept4().
  * Use HAVE_SOCK_NONBLOCK to make sure that you will not pass
@@ -385,19 +425,60 @@ err_out:
 #endif
 static inline int
 accept4(int skt, struct sockaddr *addr, socklen_t *addrlen, int flags) {
-	int s;
+	int s, cf, tf;
 
 	s = accept(skt, addr, addrlen);
 	if (-1 == s)
 		return (-1);
-	if (0 != (SOCK_NONBLOCK & flags)) {
-		if (-1 == fcntl((int)s, F_SETFL, O_NONBLOCK)) {
-			close(s);
-			return (-1);
+
+	/* CLOEXEC. */
+#if defined(BSD) || defined(__linux__)
+	/* For old BSD and linux that have no accept4() only FD_CLOEXEC
+	 * was defined as file descriptor flags, so we not need to read
+	 * and merge in FD_CLOEXEC.
+	 * O_CLOEXEC does not inherit, so we only set it without checks. */
+	if (0 != (SOCK_CLOEXEC & flags)) {
+		if (-1 == fcntl(s, F_SETFD, FD_CLOEXEC))
+			goto err_out;
+	}
+#else
+	/* File descriptor flags read and change if needed. */
+	cf = fcntl(s, F_GETFD);
+	if (-1 == cf)
+		goto err_out;
+	tf = ((0 != (SOCK_CLOEXEC & flags)) ?
+	    (cf | FD_CLOEXEC) : (cf & ~FD_CLOEXEC));
+	if (cf != tf) { /* Need update flags? */
+		if (-1 == fcntl(s, F_SETFD, tf))
+			goto err_out;
+	}
+#endif
+
+	/* NONBLOCK. */
+#ifdef __linux__
+	/* For old linux that have no accept4() - O_NONBLOCK does not inherit,
+	 * so only set required, no need to check/unsed.
+	 * BSD do inherit, check/unset required.
+	 * Other is unknown, assume worst case scenario and do check/unset. */
+	if (0 != (SOCK_NONBLOCK & flags))
+#endif
+	{
+		cf = fcntl(s, F_GETFL); /* Read current flags. */
+		if (-1 == cf)
+			goto err_out;
+		tf = ((0 != (SOCK_NONBLOCK & flags)) ?
+		    (cf | O_NONBLOCK) : (cf & ~O_NONBLOCK));
+		if (cf != tf) { /* Need update flags? */
+			if (-1 == fcntl(s, F_SETFL, tf)) /* Update flags. */
+				goto err_out;
 		}
 	}
 
 	return (s);
+
+err_out:
+	close(s);
+	return (-1);
 }
 #endif
 
