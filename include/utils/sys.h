@@ -40,6 +40,7 @@
 
 void	signal_install(sig_t func);
 void	make_daemon(void);
+int	std_syslog_redirector(const int prio_skip_mask);
 int	write_pid(const char *file_name);
 int	set_user_and_group(uid_t pw_uid, gid_t pw_gid);
 int	user_home_dir_get(char *buf, size_t buf_size, size_t *buf_size_ret);

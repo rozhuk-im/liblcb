@@ -42,7 +42,11 @@
 #include <unistd.h> /* close, write, sysconf */
 #include <stdlib.h> /* malloc, exit */
 #include <signal.h>
+#include <poll.h>
+#include <syslog.h>
 
+#include "utils/macro.h"
+#include "utils/mem_utils.h"
 #include "al/os.h"
 #include "utils/sys.h"
 
@@ -98,6 +102,132 @@ err_out:
 		close(nullfd);
 	}
 }
+
+
+/* WARNING!
+ * While use with openlog(..., LOG_PERROR, ...) call
+ * std_syslog_redirector(LOG_MASK(LOG_ERR)) to avoid infinite messages loop.
+ * 
+ * close(STDOUT_FILENO) + close(STDERR_FILENO) - will trigger cleanup
+ * and thread exit.
+ * 
+ * If printf(...)/fprintf(stdout, ...) not logged than check:
+ * 1. \n at end of string is present.
+ * 2. fflush(stdout) may be required to avoid caching.
+ */
+static void *
+std_syslog_redirector_proc(void *data) {
+	sigset_t sig_set;
+	int fildes[2];
+	const int prio_skip_mask = (int)(size_t)data;
+	const int target_fd[2] = { STDOUT_FILENO, STDERR_FILENO };
+	const int syslog_prio[2] = { LOG_INFO, LOG_ERR };
+	struct pollfd fds[2];
+	uint8_t buf[2][4096], *cur_pos, *le;
+	size_t i, fds_cnt = nitems(fds), buf_pos[2] = { 0, 0 };
+	ssize_t ios;
+
+	syslog(LOG_DEBUG, "STD syslog redirector starting...");
+
+	/* Set thread name for better debugging. */
+	pthread_set_name(NULL, "STD syslog redirector");
+	/* Block PIPE signal. */
+	sigemptyset(&sig_set);
+	sigaddset(&sig_set, SIGPIPE);
+	if (0 != pthread_sigmask(SIG_BLOCK, &sig_set, NULL)) {
+		SYSLOG_ERR(LOG_WARNING, errno,
+		    "std_syslog_redirector: can't block the SIGPIPE signal.");
+	}
+	/* Create pipes and make them as stdout and stderr. */
+	memset(&fds, 0x00, sizeof(fds));
+	for (i = 0; i < nitems(fds); i ++) {
+		if (0 != (prio_skip_mask & LOG_MASK(syslog_prio[i]))) {
+			fds[i].fd = -1;
+			fds_cnt --;
+			continue;
+		}
+		if (-1 == pipe2(fildes, (O_CLOEXEC | O_NONBLOCK))) {
+			SYSLOG_ERR(LOG_ERR, errno,
+			    "std_syslog_redirector: pipe2() fail, exiting.");
+			return (NULL);
+		}
+		fds[i].fd = fildes[0]; /* Read side descriptor. */
+		fds[i].events = (POLLIN | POLLERR | POLLHUP);
+		/* Replace target std descriptor with pipe~s write side descriptor. */
+		dup2(fildes[1], target_fd[i]);
+		close(fildes[1]);
+	}
+
+	/* Read and syslog() loop. */
+	for (; 0 != fds_cnt;) {
+		/* Wait for new data in STDOUT_FILENO, STDERR_FILENO. */
+		if (0 >= poll(fds, nitems(fds), -1)) {
+			for (i = 0; i < nitems(fds); i ++) { /* Cleanup descriptors. */
+				close(fds[i].fd);
+			}
+			SYSLOG_ERR(LOG_ERR, errno,
+			    "std_syslog_redirector: poll() fail, exiting.");
+			break;
+		}
+		for (i = 0; i < nitems(fds); i ++) {
+			if (-1 == fds[i].fd ||
+			    0 == fds[i].revents)
+				continue;
+			fds[i].revents = 0;
+			ios = read(fds[i].fd, &buf[i][buf_pos[i]],
+			    (sizeof(buf[0]) - buf_pos[i]));
+			if (0 >= ios) { /* Error or EOF. */
+				close(fds[i].fd);
+				fds[i].fd = -1;
+				fds_cnt --;
+				continue;
+			}
+			buf_pos[i] += (size_t)ios;
+			/* Lines to syslog(). */
+			for (cur_pos = buf[i];;) {
+				le = mem_chr_ptr(cur_pos, buf[i], buf_pos[i], '\n');
+				if (NULL == le)
+					break;
+				syslog(syslog_prio[i], "%.*s",
+				    (int)(le - cur_pos), cur_pos);
+				cur_pos = (le + 1);
+			}
+			/* Tail handle. */
+			ios = (cur_pos - buf[i]); /* Processed data size. */
+			if (buf_pos[i] <= (size_t)ios) { /* All data sysloged. */
+				buf_pos[i] = 0;
+				continue;
+			}
+			if (0 == ios &&
+			    sizeof(buf[0]) == buf_pos[i]) { /* Log line > buf size, flush. */
+				syslog(syslog_prio[i], "%.*s...",
+				    (int)buf_pos[i], cur_pos);
+				buf_pos[i] = 0;
+				continue;
+			}
+			/* Shift buf. */
+			memmove(buf[i], cur_pos, (buf_pos[i] - (size_t)ios));
+			buf_pos[i] -= (size_t)ios;
+		}
+	}
+
+	syslog(LOG_DEBUG, "STD syslog redirector exit.");
+
+	return (NULL);
+}
+int
+std_syslog_redirector(const int prio_skip_mask) {
+	pthread_t pt_id;
+
+	if (0 != (prio_skip_mask & ~(LOG_MASK(LOG_INFO) | LOG_MASK(LOG_ERR))))
+		return (EINVAL); /* Some unsupported bits set. */
+	if ((LOG_MASK(LOG_INFO) | LOG_MASK(LOG_ERR)) ==
+	    (prio_skip_mask & (LOG_MASK(LOG_INFO) | LOG_MASK(LOG_ERR))))
+		return (EINVAL); /* Nothink to do. */
+	return (pthread_create_eagain(&pt_id, NULL,
+	    std_syslog_redirector_proc, (void*)(size_t)prio_skip_mask));
+}
+
 
 int
 write_pid(const char *file_name) {
