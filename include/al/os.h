@@ -34,12 +34,16 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/event.h>
+#include <sys/syscall.h>
 #include <inttypes.h>
 #include <errno.h>
 #include <time.h>
 #include <fcntl.h> /* open, fcntl */
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <strings.h> /* explicit_bzero */
 #include <unistd.h> /* close, write, sysconf */
+#include <stdlib.h> /* malloc, realloc */
 #include <pthread.h>
 #include <pthread_np.h>
 
@@ -482,5 +486,34 @@ err_out:
 }
 #endif
 
+
+#if defined(BSD) && !defined(SYS_kqueuex) && defined(SYS_kqueue)
+#ifndef KQUEUE_CLOEXEC
+#	define KQUEUE_CLOEXEC	0x00000001	/* close on exec */
+#endif
+int
+kqueuex(u_int flags) {
+	int fd;
+
+	if (0 != (~(KQUEUE_CLOEXEC) & flags)) {
+		errno = EINVAL;
+		return (-1);
+	}
+	fd = kqueue();
+	if (-1 == fd)
+		return (-1);
+	/* For old BSD that have no kqueuex() only FD_CLOEXEC
+	 * was defined as file descriptor flags, so we not need to read
+	 * and merge in FD_CLOEXEC. */
+	if (0 != (KQUEUE_CLOEXEC & flags)) {
+		if (-1 == fcntl(fd, F_SETFD, FD_CLOEXEC)) {
+			close(fd);
+			return (-1);
+		}
+	}
+
+	return (fd);
+}
+#endif
 
 #endif /* __ABSTRACTION_LAYER_OS_H__ */
