@@ -501,7 +501,7 @@ tpt_loop(tpt_p tpt) {
 
 /* Translate thread pool flags <-> epoll flags. */
 static inline uint32_t
-tp_flags_to_ep(uint16_t flags) {
+tp_flags_to_ep(const int op, const uint16_t flags) {
 	uint32_t ret = 0;
 
 	if (0 == flags)
@@ -511,6 +511,10 @@ tp_flags_to_ep(uint16_t flags) {
 	}
 	if (0 != (TP_F_EDGE & flags)) {
 		ret |= EPOLLET;
+	}
+	if (0 != (TP_F_EXCLUSIVE & flags) &&
+	    TP_CTL_ADD == op) {
+		ret |= EPOLLEXCLUSIVE;
 	}
 	return (ret);
 }
@@ -532,6 +536,7 @@ tpt_data_event_init(tpt_p tpt) {
 		/* Add pool virtual thread to normal thread. */
 		mem_bzero(&ev, sizeof(tp_event_t));
 		ev.event = TP_EV_READ;
+		ev.flags = TP_F_EXCLUSIVE;
 		tpt->pvt_udata.cb_func = NULL;
 		tpt->pvt_udata.ident = tpt->tp->pvt->io_fd;
 		tpt->pvt_udata.tpt = tpt;
@@ -691,7 +696,8 @@ err_out_timer:
 		epev.events |= EPOLLET; /* Mark as level trig, to only once report HUP/ERR. */
 	} else {
 		tp_udata->tpdata &= ~TPDATA_F_DISABLED;
-		epev.events |= (tp_event_to_ep_map[ev->event] | tp_flags_to_ep(ev->flags));
+		epev.events |= tp_event_to_ep_map[ev->event];
+		epev.events |= tp_flags_to_ep(op, ev->flags);
 	}
 	error = epoll_ctl_ex((int)tp_udata->tpt->io_fd,
 	    tfd, (int)tp_udata->ident, &epev);
