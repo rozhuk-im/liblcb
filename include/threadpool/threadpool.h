@@ -106,14 +106,16 @@ void	tp_signal_handler(int sig);
 
 
 #define TP_NAME_SIZE		16
-typedef struct thread_pool_settings_s { /* Settings */
+typedef struct thread_pool_settings_s { /* Settings. */
 	uint32_t	flags;	/* TP_S_F_* */
 	size_t		threads_max;
 	char		name[TP_NAME_SIZE]; /* Thread pool name. Used as prefix for threads names. */
 } tp_settings_t, *tp_settings_p;
 
-#define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs */
-//--#define TP_S_F_SHARE_EVENTS	(((uint32_t)1) << 1)	/* Not affected if threads_max = 1 */
+#define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs. */
+//--#define TP_S_F_SHARE_EVENTS	(((uint32_t)1) << 1)	/* Not affected if threads_max = 1. */
+#define TP_S_F_CLOEXEC		(((uint32_t)1) << 31)	/* Set CLOEXEC flag on kqueue()/epoll() and tpt_msg_queue (pipe()). 
+							 * Not loaded from setting - internal app use only. */
 
 /* Default values. */
 #define TP_S_DEF_FLAGS		(TP_S_F_BIND2CPU)

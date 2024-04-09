@@ -261,11 +261,13 @@ static int
 tpt_data_event_init(tpt_p tpt) {
 	struct kevent kev;
 
-	tpt->io_fd = (uintptr_t)kqueue();
+	tpt->io_fd = (uintptr_t)kqueuex(
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? KQUEUE_CLOEXEC : 0));
 	if ((uintptr_t)-1 == tpt->io_fd)
 		return (errno);
 	/* Init threads message exchange. */
-	tpt->msg_queue = tpt_msg_queue_create(tpt);
+	tpt->msg_queue = tpt_msg_queue_create(tpt,
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? TP_MSG_Q_F_CLOEXEC : 0));
 	if (NULL == tpt->msg_queue)
 		return (errno);
 	if (NULL != tpt->tp->pvt &&
@@ -524,11 +526,13 @@ tpt_data_event_init(tpt_p tpt) {
 	int error;
 	tp_event_t ev;
 
-	tpt->io_fd = epoll_create(tpt->tp->fd_count);
+	tpt->io_fd = epoll_create1(
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? EPOLL_CLOEXEC : 0));
 	if ((uintptr_t)-1 == tpt->io_fd)
 		return (errno);
 	/* Init threads message exchange. */
-	tpt->msg_queue = tpt_msg_queue_create(tpt);
+	tpt->msg_queue = tpt_msg_queue_create(tpt,
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? TP_MSG_Q_F_CLOEXEC : 0));
 	if (NULL == tpt->msg_queue)
 		return (errno);
 	if (NULL != tpt->tp->pvt &&

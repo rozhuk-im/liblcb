@@ -238,14 +238,15 @@ tpt_msg_one_by_one_proxy_cb(tpt_p tpt, void *udata) {
 
 
 tpt_msg_queue_p
-tpt_msg_queue_create(tpt_p tpt) { /* Init threads message exchange. */
+tpt_msg_queue_create(tpt_p tpt, const uint32_t flags) { /* Init threads message exchange. */
 	int error;
 	tpt_msg_queue_p msg_queue;
 
 	msg_queue = mem_znew(tpt_msg_queue_t);
 	if (NULL == msg_queue)
 		return (NULL);
-	if (-1 == pipe2(msg_queue->fd, O_NONBLOCK))
+	if (-1 == pipe2(msg_queue->fd,
+	    (O_NONBLOCK | (0 != (TP_MSG_Q_F_CLOEXEC & flags) ? O_CLOEXEC : 0))))
 		goto err_out;
 	msg_queue->udata.cb_func = tpt_msg_recv_and_process;
 	msg_queue->udata.ident = (uintptr_t)msg_queue->fd[0];

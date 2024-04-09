@@ -49,7 +49,9 @@ typedef void (*tpt_msg_done_cb)(tpt_p tpt, size_t send_msg_cnt,
 typedef void (*tpt_msg_async_op_cb)(tpt_p tpt, void **udata);
 
 
-tpt_msg_queue_p tpt_msg_queue_create(tpt_p tpt);
+tpt_msg_queue_p tpt_msg_queue_create(tpt_p tpt, const uint32_t flags);
+#define TP_MSG_Q_F_CLOEXEC	(((uint32_t)1) <<  0) /* Pass O_CLOEXEC to pipe2(). */
+
 void		tpt_msg_queue_destroy(tpt_msg_queue_p msg_queue);
 
 
