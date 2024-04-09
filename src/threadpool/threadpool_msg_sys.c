@@ -246,16 +246,20 @@ tpt_msg_queue_create(tpt_p tpt, const uint32_t flags) { /* Init threads message 
 	if (NULL == msg_queue)
 		return (NULL);
 	if (-1 == pipe2(msg_queue->fd,
-	    (O_NONBLOCK | (0 != (TP_MSG_Q_F_CLOEXEC & flags) ? O_CLOEXEC : 0))))
-		goto err_out;
+	    (O_NONBLOCK | (0 != (TP_MSG_Q_F_CLOEXEC & flags) ? O_CLOEXEC : 0)))) {
+		/* Can not use tpt_msg_queue_destroy() here: fd not initialized. */
+		free(msg_queue);
+		return (NULL);
+	}
 	msg_queue->udata.cb_func = tpt_msg_recv_and_process;
 	msg_queue->udata.ident = (uintptr_t)msg_queue->fd[0];
 	error = tpt_ev_add_args2(tpt, TP_EV_READ, 0, &msg_queue->udata);
-	if (0 == error)
-		return (msg_queue);
-err_out:
-	free(msg_queue);
-	return (NULL);
+	if (0 != error) {
+		errno = error;
+		tpt_msg_queue_destroy(msg_queue);
+		return (NULL);
+	}
+	return (msg_queue);
 }
 
 void
@@ -265,9 +269,10 @@ tpt_msg_queue_destroy(tpt_msg_queue_p msg_queue) {
 		return;
 	close(msg_queue->fd[0]);
 	close(msg_queue->fd[1]);
+	free(msg_queue);
 }
 
-	
+
 int
 tpt_msg_send(tpt_p dst, tpt_p src, uint32_t flags,
     tpt_msg_cb msg_cb, void *udata) {
