@@ -386,7 +386,7 @@ tp_task_restart(tp_task_p tptask) {
 		return (EINVAL);
 	if (0 != tptask->timeout) { /* Set io timeout timer */
 		error = tpt_ev_add_args(tptask->tpt, TP_EV_TIMER,
-		    TP_F_DISPATCH, 0, tptask->timeout,
+		    TP_F_DISPATCH, TP_FF_T_MSEC, tptask->timeout,
 		    &tptask->tp_timer);
 		if (0 != error)
 			return (error);
@@ -420,7 +420,7 @@ tp_task_enable(tp_task_p tptask, int enable) {
 		return (EINVAL);
 	if (0 != tptask->timeout) {
 		error = tpt_ev_enable_args(enable, TP_EV_TIMER,
-		    TP_F_DISPATCH, 0, tptask->timeout,
+		    TP_F_DISPATCH, TP_FF_T_MSEC, tptask->timeout,
 		    &tptask->tp_timer);
 		if (0 != error)
 			return (error);
@@ -474,7 +474,7 @@ tp_task_handler_post_int(tp_event_p ev, tp_task_p tptask, int cb_ret) {
 	/* tp_task_enable() */
 	if (0 != tptask->timeout) {
 		tpt_ev_q_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH,
-		    0, tptask->timeout, &tptask->tp_timer);
+		    TP_FF_T_MSEC, tptask->timeout, &tptask->tp_timer);
 	}
 	if (0 != (tptask->event_flags & TP_F_DISPATCH) ||
 	    TP_EV_TIMER == ev->event) {
@@ -1127,7 +1127,7 @@ shedule_delay_timer:
 	    conn_prms->retry_delay >= time_limit_ms)
 		return (-1); /* No more tries. */
 	error = tpt_ev_add_args(tptask->tpt, TP_EV_TIMER,
-	    TP_F_DISPATCH, 0, conn_prms->retry_delay,
+	    TP_F_DISPATCH, TP_FF_T_MSEC, conn_prms->retry_delay,
 	    &tptask->tp_timer);
 	return (error);
 }

@@ -73,13 +73,13 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 
 /* Event fflags. */
 /* TP_EV_TIMER specific: if not set - the default is milliseconds. */
-#define TP_FF_T_SEC	(((uint32_t)1) << 0) /* data is seconds. */
-#define TP_FF_T_MSEC	(((uint32_t)1) << 1) /* data is milliseconds. */
-#define TP_FF_T_USEC	(((uint32_t)1) << 2) /* data is microseconds. */
-#define TP_FF_T_NSEC	(((uint32_t)1) << 3) /* data is nanoseconds. */
-#define TP_FF_T_ABSTIME	(((uint32_t)1) << 4) /* timeout is absolute. */
-#define TP_FF_T_TM_MASK	0x0000000fu /* For internal use: fflags set mask for time. */
-#define TP_FF_T_MASK	0x0000001fu /* For internal use: fflags set mask. */
+#define TP_FF_T_SEC	0x00000000u /* data is seconds. */
+#define TP_FF_T_MSEC	0x00000001u /* data is milliseconds. */
+#define TP_FF_T_USEC	0x00000002u /* data is microseconds. */
+#define TP_FF_T_NSEC	0x00000003u /* data is nanoseconds. */
+#define TP_FF_T_ABSTIME	(((uint32_t)1) << 3) /* timeout is absolute. */
+#define TP_FF_T_TM_MASK	0x00000003u /* For internal use: fflags set mask for time. */
+#define TP_FF_T_MASK	0x00000007u /* For internal use: fflags set mask. */
 
 
 typedef void (*tp_cb)(tp_event_p ev, tp_udata_p tp_udata);

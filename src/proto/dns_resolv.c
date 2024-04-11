@@ -502,7 +502,8 @@ dns_rslvr_task_alloc(dns_rslvr_p rslvr, dns_resolv_cb cb_func, void *arg,
 	task->cb_func = cb_func;
 	task->udata = arg;
 	error = tpt_ev_add_args(tp_thread_get_pvt(rslvr->tp), TP_EV_TIMER,
-	    TP_F_DISPATCH, 0, rslvr->timeout, &rslvr->tasks_tmr[task_id]);
+	    TP_F_DISPATCH, TP_FF_T_MSEC, rslvr->timeout,
+	    &rslvr->tasks_tmr[task_id]);
 	if (0 != error) {
 		dns_rslvr_task_free(task);
 		return (error);
@@ -926,7 +927,7 @@ dns_resolver_send(dns_rslvr_task_p task) {
 	    (sockaddr_p)&task->rslvr->dns_addrs[task->cur_srv_idx],
 	    sa_size(&task->rslvr->dns_addrs[task->cur_srv_idx])))
 		return (errno);
-	tpt_ev_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
+	tpt_ev_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH, TP_FF_T_MSEC,
 	    task->rslvr->timeout, &task->rslvr->tasks_tmr[task->task_id]);
 
 	return (0);

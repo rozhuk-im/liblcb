@@ -876,7 +876,7 @@ radius_client_send_new(tpt_p tpt, radius_cli_query_p query) {
 	skt->queries_count ++;
 	skt->skts->queries_count ++;
 	query->skt = skt;
-	error = tpt_ev_add_args(tpt, TP_EV_TIMER, TP_F_DISPATCH, 0,
+	error = tpt_ev_add_args(tpt, TP_EV_TIMER, TP_F_DISPATCH, TP_FF_T_MSEC,
 	    srv->s.retrans_time_init, &query->skt->queries_tmr[query->query_id]);
 	if (0 != error)
 		return (error);
@@ -919,7 +919,7 @@ radius_client_send(radius_cli_query_p query) {
 	}
 
 	srv = &query->rad_cli->srv[query->cur_srv_idx];
-	error = tpt_ev_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH, 0,
+	error = tpt_ev_enable_args(1, TP_EV_TIMER, TP_F_DISPATCH, TP_FF_T_MSEC,
 	    query->retrans_time, &query->skt->queries_tmr[query->query_id]);
 	if (0 != error)
 		return (error);

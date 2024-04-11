@@ -750,7 +750,7 @@ test_tpt_ev_add_ex_tmr(uint16_t flags, uint8_t res, int remove_ok) {
 	tp_udata.cb_func = tpt_ev_add_tmr_cb;
 	tp_udata.ident = TEST_TIMER_ID;
 	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_TIMER,
-	    flags, 0, TEST_TIMER_INTERVAL, &tp_udata)) {
+	    flags, TP_FF_T_MSEC, TEST_TIMER_INTERVAL, &tp_udata)) {
 		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER)") /* Fail. */
 		tpt_ev_del_args1(TP_EV_TIMER, &tp_udata);
 		return; /* Fail. */

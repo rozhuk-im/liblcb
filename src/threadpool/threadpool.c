@@ -237,7 +237,6 @@ tp_fflags_to_kq(uint16_t event, uint32_t fflags) {
 		case TP_FF_T_SEC:
 			ret |= NOTE_SECONDS;
 			break;
-		case 0:
 		case TP_FF_T_MSEC:
 			ret |= NOTE_MSECONDS;
 			break;
@@ -656,7 +655,6 @@ err_out_timer:
 			new_tmr.it_value.tv_sec = (time_t)ev->data;
 			new_tmr.it_value.tv_nsec = 0;
 			break;
-		case 0:
 		case TP_FF_T_MSEC:
 			new_tmr.it_value.tv_sec = (ev->data / 1000ul);
 			new_tmr.it_value.tv_nsec = ((ev->data % 1000ul) * 1000000ul);
@@ -1303,16 +1301,6 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 #endif
 		if (0 != (~(TP_FF_T_MASK) & ev->fflags))
 			return (EINVAL); /* Invalid fflags: some unknown bits is set. */
-		switch ((TP_FF_T_TM_MASK & ev->fflags)) {
-		case 0:
-		case TP_FF_T_SEC:
-		case TP_FF_T_MSEC:
-		case TP_FF_T_USEC:
-		case TP_FF_T_NSEC:
-			break;
-		default:
-			return (EINVAL); /* Invalid fflags. */
-		}
 		break;
 	default:
 		return (EINVAL); /* Bad event. */

@@ -470,7 +470,7 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	dev->ann_tmr.cb_func = upnp_ssdp_timer_cb;
 	dev->ann_tmr.ident = (uintptr_t)dev;
 	error = tpt_ev_add_args(tp_thread_get_pvt(ssdp->tp),
-	    TP_EV_TIMER, 0, 0, dev->ann_interval, &dev->ann_tmr);
+	    TP_EV_TIMER, 0, TP_FF_T_MSEC, dev->ann_interval, &dev->ann_tmr);
 	if (0 != error)
 		goto err_out;
 	/* Send announces. */
