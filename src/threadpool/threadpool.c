@@ -229,6 +229,12 @@ tp_fflags_to_kq(uint16_t event, uint32_t fflags) {
 	u_int ret = 0;
 
 	switch (event) {
+	case TP_EV_READ:
+	case TP_EV_WRITE:
+		if (0 != (TP_FF_RW_LOWAT & fflags)) {
+			ret |= NOTE_LOWAT;
+		}
+		break;
 	case TP_EV_TIMER:
 		if (0 != (TP_FF_T_ABSTIME & fflags)) {
 			ret |= NOTE_ABSTIME;
@@ -247,9 +253,6 @@ tp_fflags_to_kq(uint16_t event, uint32_t fflags) {
 			ret |= NOTE_NSECONDS;
 			break;
 		}
-		break;
-	default:
-		ret = (u_int)fflags;
 		break;
 	}
 
@@ -305,11 +308,22 @@ tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
 	    tp_fflags_to_kq(ev->event, ev->fflags),
 	    ev->data,
 	    (void*)tp_udata);
-	if (TP_EV_TIMER == ev->event) { /* Timer: force update. */
+
+	switch (ev->event) {
+	case TP_EV_READ:
+	case TP_EV_WRITE:
+		if (0 != (NOTE_LOWAT & kev.fflags) &&
+		    0 == kev.data) { /* LOWAT can not be 0. */
+			kev.data = 1;
+		}
+		break;
+	case TP_EV_TIMER: /* Timer: force update. */
 		if (0 != ((EV_ADD | EV_ENABLE) & kev.flags)) {
 			kev.flags |= (EV_ADD | EV_ENABLE);
 		}
+		break;
 	}
+
 	if (-1 == kevent((int)tp_udata->tpt->io_fd, &kev, 1, NULL, 0, NULL))
 		return (errno);
 	if (0 != (EV_ERROR & kev.flags))
@@ -591,7 +605,8 @@ epoll_ctl_ex(int epfd, int op, int fd, struct epoll_event *event) {
 
 static int
 tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
-	int error = 0, tfd, clockid = CLOCK_MONOTONIC, tmr_flags = 0;
+	int error = 0, tfd, clockid = CLOCK_MONOTONIC, tmr_flags = 0, op_guess;
+	uint32_t lowat;
 	struct itimerspec new_tmr;
 	struct epoll_event epev;
 
@@ -690,7 +705,7 @@ err_out_timer:
 		return (errno);
 	}
 
-	tfd = ((0 == tp_udata->tpdata) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD);
+	op_guess = ((0 == tp_udata->tpdata) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD);
 	TPDATA_TFD_SET(tp_udata->tpdata, 0);
 	TPDATA_EV_FL_SET(tp_udata->tpdata, ev->event, ev->flags); /* Remember original event and flags. */
 	if (TP_CTL_DISABLE == op) { /* Disable event. */
@@ -701,8 +716,29 @@ err_out_timer:
 		epev.events |= tp_event_to_ep_map[ev->event];
 		epev.events |= tp_flags_to_ep(op, ev->flags);
 	}
+
+	/* fflags. */
+	switch (ev->event) {
+	case TP_EV_READ:
+		if (0 != (TP_FF_RW_LOWAT & ev->fflags)) {
+			lowat = ((0 == ev->data) ? 1 : ev->data); /* LOWAT can not be 0. */
+			setsockopt((int)tp_udata->ident, SOL_SOCKET, SO_RCVLOWAT,
+			    &lowat, sizeof(uint32_t));
+		}
+		break;
+	case TP_EV_WRITE:
+#if 0		/* Linux allways fail on set SO_SNDLOWAT. May be in future. */
+		if (0 != (TP_FF_RW_LOWAT & ev->fflags)) {
+			lowat = ((0 == ev->data) ? 1 : ev->data); /* LOWAT can not be 0. */
+			setsockopt((int)tp_udata->ident, SOL_SOCKET, SO_SNDLOWAT,
+			    &lowat, sizeof(uint32_t))
+		}
+#endif
+		break;
+	}
+
 	error = epoll_ctl_ex((int)tp_udata->tpt->io_fd,
-	    tfd, (int)tp_udata->ident, &epev);
+	    op_guess, (int)tp_udata->ident, &epev);
 	if (0 != error) {
 		tp_udata->tpdata = 0;
 	}
@@ -1282,6 +1318,9 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 	    NULL == ev ||
 	    NULL == tp_udata)
 		return (EINVAL);
+	/* flags. */
+	if (0 != (~(TP_F_S_MASK) & ev->flags))
+		return (EINVAL); /* Invalid flags: some unknown bits is set. */
 	/* tp_udata */
 	if (NULL == tp_udata->cb_func ||
 	    (uintptr_t)-1 == tp_udata->ident ||
@@ -1293,6 +1332,8 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 	case TP_EV_WRITE:
 		if (tp_udata->tpt->tp->fd_count <= tp_udata->ident)
 			return (EBADF); /* Bad FD. */
+		if (0 != (~(TP_FF_RW_MASK) & ev->fflags))
+			return (EINVAL); /* Invalid fflags: some unknown bits is set. */
 		break;
 	case TP_EV_TIMER:
 #if 0 /* XXX: check this. */

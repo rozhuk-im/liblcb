@@ -72,6 +72,9 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_F_ERROR	(((uint16_t)1) << 9) /* Ret: EV_EOF+fflags	EPOLLERR +  getsockopt(SO_ERROR) */ /* fflags contain error code. */
 
 /* Event fflags. */
+/* TP_EV_READ/TP_EV_WRITE specific. */
+#define TP_FF_RW_LOWAT	(((uint32_t)1) << 0) /* For sockets: set SO_RCVLOWAT/SO_SNDLOWAT. */
+#define TP_FF_RW_MASK	0x00000001u /* For internal use: fflags set mask. */
 /* TP_EV_TIMER specific: if not set - the default is seconds. */
 #define TP_FF_T_SEC	0x00000000u /* data is seconds. */
 #define TP_FF_T_MSEC	0x00000001u /* data is milliseconds. */
