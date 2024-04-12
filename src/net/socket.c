@@ -70,12 +70,12 @@
 int
 skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 
-	if (0 == lowat) {
-		lowat ++;
+	if (0 == lowat) { /* LOWAT can not be 0. */
+		lowat = 1;
 	}
-	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(int)))
+	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(uint32_t)))
 		return (errno);
-	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_RCVLOWAT, &lowat, sizeof(int)))
+	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_RCVLOWAT, &lowat, sizeof(uint32_t)))
 		return (errno);
 
 	return (0);
@@ -84,13 +84,13 @@ skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 int
 skt_snd_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat) {
 
-	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(int)))
+	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(uint32_t)))
 		return (errno);
 #ifdef BSD /* Linux allways fail on set SO_SNDLOWAT. */
-	if (0 == lowat) {
-		lowat ++;
+	if (0 == lowat) { /* LOWAT can not be 0. */
+		lowat = 1;
 	}
-	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_SNDLOWAT, &lowat, sizeof(int)))
+	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_SNDLOWAT, &lowat, sizeof(uint32_t)))
 		return (errno);
 #endif /* BSD specific code. */
 
