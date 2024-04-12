@@ -72,12 +72,12 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_F_ERROR	(((uint16_t)1) << 9) /* Ret: EV_EOF+fflags	EPOLLERR +  getsockopt(SO_ERROR) */ /* fflags contain error code. */
 
 /* Event fflags. */
-/* TP_EV_TIMER specific: if not set - the default is milliseconds. */
+/* TP_EV_TIMER specific: if not set - the default is seconds. */
 #define TP_FF_T_SEC	0x00000000u /* data is seconds. */
 #define TP_FF_T_MSEC	0x00000001u /* data is milliseconds. */
 #define TP_FF_T_USEC	0x00000002u /* data is microseconds. */
 #define TP_FF_T_NSEC	0x00000003u /* data is nanoseconds. */
-#define TP_FF_T_ABSTIME	(((uint32_t)1) << 3) /* timeout is absolute. */
+#define TP_FF_T_ABSTIME	(((uint32_t)1) << 2) /* timeout is absolute. */
 #define TP_FF_T_TM_MASK	0x00000003u /* For internal use: fflags set mask for time. */
 #define TP_FF_T_MASK	0x00000007u /* For internal use: fflags set mask. */
 
