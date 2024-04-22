@@ -84,6 +84,8 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_FF_T_TM_MASK	0x00000003u /* For internal use: fflags set mask for time. */
 #define TP_FF_T_MASK	0x00000007u /* For internal use: fflags set mask. */
 
+static const char *tp_ff_time_units[] = { "s", "ms", "us", "ns", NULL };
+
 
 typedef void (*tp_cb)(tp_event_p ev, tp_udata_p tp_udata);
 
