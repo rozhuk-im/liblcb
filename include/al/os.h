@@ -34,7 +34,6 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/event.h>
 #include <sys/syscall.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -45,7 +44,14 @@
 #include <unistd.h> /* close, write, sysconf */
 #include <stdlib.h> /* malloc, realloc */
 #include <pthread.h>
-#include <pthread_np.h>
+
+#ifdef BSD /* BSD specific code. */
+#	include <sys/event.h>
+#	ifndef DARWIN
+#		include <pthread_np.h>
+#	endif
+#endif /* BSD specific code. */
+
 
 /* Secure version of memset(). */
 static void *(*volatile memset_volatile)(void*, int, size_t) = memset;
@@ -344,7 +350,15 @@ pthread_set_name(pthread_t thread, const char *name) {
 		name = "";
 	}
 #ifdef HAVE_PTHREAD_SETNAME_NP
+#ifdef __APPLE__ /* Ugly apple can not set names for other threads. */
+	if (pthread_self() == thread) {
+		pthread_setname_np(name);
+	}
+#elif defined(__NetBSD__)
+	pthread_setname_np(thread, "%s", name)
+#else
 	pthread_setname_np(thread, name);
+#endif
 #elif defined(HAVE_PTHREAD_SET_NAME_NP)
 	pthread_set_name_np(thread, name);
 #endif
@@ -487,11 +501,11 @@ err_out:
 #endif
 
 
-#if defined(BSD) && !defined(SYS_kqueuex) && defined(SYS_kqueue)
+#if defined(BSD) && !defined(HAVE_KQUEUEX)
 #ifndef KQUEUE_CLOEXEC
-#	define KQUEUE_CLOEXEC	0x00000001	/* close on exec */
+#	define KQUEUE_CLOEXEC	0x00000001	/* Close on exec. */
 #endif
-int
+static int
 kqueuex(u_int flags) {
 	int fd;
 
