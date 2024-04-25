@@ -218,9 +218,11 @@ tp_flags_to_kq(uint16_t flags) {
 	if (0 != (TP_F_DISPATCH & flags)) {
 		ret |= EV_DISPATCH;
 	}
+#ifdef TP_F_EDGE
 	if (0 != (TP_F_EDGE & flags)) {
 		ret |= EV_CLEAR;
 	}
+#endif
 	return (ret);
 }
 
@@ -524,13 +526,17 @@ tp_flags_to_ep(const int op, const uint16_t flags) {
 	if (0 != ((TP_F_ONESHOT | TP_F_DISPATCH) & flags)) {
 		ret |= EPOLLONESHOT;
 	}
+#ifdef TP_F_EDGE
 	if (0 != (TP_F_EDGE & flags)) {
 		ret |= EPOLLET;
 	}
+#endif
+#ifdef TP_F_EXCLUSIVE
 	if (0 != (TP_F_EXCLUSIVE & flags) &&
 	    TP_CTL_ADD == op) {
 		ret |= EPOLLEXCLUSIVE;
 	}
+#endif
 	return (ret);
 }
 
@@ -553,7 +559,8 @@ tpt_data_event_init(tpt_p tpt) {
 		/* Add pool virtual thread to normal thread. */
 		mem_bzero(&ev, sizeof(tp_event_t));
 		ev.event = TP_EV_READ;
-		ev.flags = TP_F_EXCLUSIVE;
+		/* ev.flags = TP_F_EXCLUSIVE; Should be here, but it is not
+		 * implemented on BSD and does not work with epoll() fd on linux. */
 		tpt->pvt_udata.cb_func = NULL;
 		tpt->pvt_udata.ident = tpt->tp->pvt->io_fd;
 		tpt->pvt_udata.tpt = tpt;
@@ -1443,25 +1450,4 @@ tpt_ev_enable_args1(int enable, uint16_t event, tp_udata_p tp_udata) {
 	return (tpt_ev_post_validate_args(
 	    ((0 != enable) ? TP_CTL_ENABLE : TP_CTL_DISABLE),
 	    event, 0, 0, 0, tp_udata));
-}
-
-
-int
-tpt_timer_add(tpt_p tpt, int enable, uintptr_t ident,
-    uint64_t timeout, uint16_t flags, uint32_t fflags, tp_cb cb_func,
-    tp_udata_p tp_udata) {
-	int error;
-
-	if (NULL == tp_udata)
-		return (EINVAL);
-	tp_udata->cb_func = cb_func;
-	tp_udata->ident = ident;
-	tp_udata->tpt = tpt;
-	error = tpt_ev_post_validate_args(TP_CTL_ADD, TP_EV_TIMER,
-	    flags, fflags, timeout, tp_udata);
-	if (0 != error ||
-	    0 != enable)
-		return (error);
-	tpt_ev_enable_args1(0, TP_EV_TIMER, tp_udata);
-	return (0);
 }

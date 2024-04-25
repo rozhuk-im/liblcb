@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,9 @@
 #	include <inttypes.h>
 #	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
 #	include <stdio.h> /* snprintf, fprintf */
+#	ifndef __unused
+#		define __unused	__attribute__((__unused__))
+#	endif
 #endif
 
 

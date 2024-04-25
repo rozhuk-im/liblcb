@@ -53,8 +53,8 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 } tp_event_t, *tp_event_p;
 
 /* Events		val	FreeBSD		__linux__ */
-#define TP_EV_READ	0 /* EVFILT_READ	EPOLLET | EPOLLIN | EPOLLRDHUP | EPOLLERR */
-#define TP_EV_WRITE	1 /* EVFILT_WRITE	EPOLLET | EPOLLOUT | EPOLLERR */
+#define TP_EV_READ	0 /* EVFILT_READ	EPOLLIN | EPOLLRDHUP | EPOLLERR */
+#define TP_EV_WRITE	1 /* EVFILT_WRITE	EPOLLOUT | EPOLLERR */
 #define TP_EV_TIMER	2 /* EVFILT_TIMER	TP_EV_READ + timerfd_create */
 #define TP_EV_LAST	TP_EV_TIMER
 #define TP_EV_MASK	0x0003u /* For internal use: event set mask. */
@@ -63,9 +63,11 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 /* Only for set.	val			FreeBSD			__linux__ */
 #define TP_F_ONESHOT	(((uint16_t)1) << 0) /* Set: EV_ONESHOT		EPOLLONESHOT */ /* Delete event after recv. */
 #define TP_F_DISPATCH	(((uint16_t)1) << 1) /* Set: EV_DISPATCH	EPOLLONESHOT */ /* DISABLE event after recv. */
-#define TP_F_EDGE	(((uint16_t)1) << 2) /* Set: EV_CLEAR		EPOLLET */ /* Report only if available data changed.*/
- 									/* If not set will report if data/space available untill disable/delete event. */
+#if 0 /* FreeBSD does not have these features. */
+#define TP_F_EDGE	(((uint16_t)1) << 2) /* Set: not yet		EPOLLET */ /* Report only if available data changed.*/
+ 									/* If not set - will report if data/space available untill disable/delete event. */
 #define TP_F_EXCLUSIVE	(((uint16_t)1) << 3) /* Set: not yet		EPOLLEXCLUSIVE */ /* Wakeup only one epoll(). Only on tpt_ev_add. */
+#endif
 #define TP_F_S_MASK	0x000fu /* For internal use: flags set mask. */
 /* Return only. */
 #define TP_F_EOF	(((uint16_t)1) << 8) /* Ret: EV_EOF		EPOLLRDHUP */
@@ -178,11 +180,6 @@ int	tpt_ev_enable(int enable, tp_event_p ev, tp_udata_p tp_udata);
 int	tpt_ev_enable_args(int enable, uint16_t event, uint16_t flags,
 	    uint32_t fflags, uint64_t data, tp_udata_p tp_udata);
 int	tpt_ev_enable_args1(int enable, uint16_t event, tp_udata_p tp_udata);
-
-/* fflags: TP_FF_T_* */
-int	tpt_timer_add(tpt_p tpt, int enable, uintptr_t ident,
-	    uint64_t timeout, uint16_t flags, uint32_t fflags,
-	    tp_cb cb_func, tp_udata_p tp_udata);
 
 
 #ifdef NOT_YET__FreeBSD__ /* Per thread queue functions. Only for kqueue! */

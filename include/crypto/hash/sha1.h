@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2003-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,11 +65,6 @@
 #define __SHA1_H__INCLUDED__
 
 #include <sys/param.h>
-#ifdef __linux__
-#	include <endian.h>
-#else
-#	include <sys/endian.h>
-#endif
 #include <sys/types.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
@@ -82,6 +77,14 @@
 #	include <smmintrin.h> /* SSE4.1 */
 #	include <nmmintrin.h> /* SSE4.2 */
 #	include <immintrin.h> /* AVX */
+#endif
+
+#ifndef bswap64
+#	define bswap64		__builtin_bswap64
+#endif
+
+#ifndef nitems /* SIZEOF() */
+#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
 #endif
 
 #if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
@@ -185,11 +188,11 @@ sha1_init(sha1_ctx_p ctx) {
 	ctx->use_sse = 0;
 #	ifdef __SSE4_1__
 		ctx->use_sse |= (ecx & (((uint32_t)1) << 19));
-#	elifdef __SSSE3__
+#	elif defined(__SSSE3__)
 		ctx->use_sse |= (ecx & (((uint32_t)1) <<  9));
-#	elifdef __SSE3__
+#	elif defined(__SSE3__)
 		ctx->use_sse |= (ecx & (((uint32_t)1) <<  0));
-#	elifdef __SSE2__
+#	elif defined(__SSE2__)
 		ctx->use_sse |= (edx & (((uint32_t)1) << 26));
 #	endif
 #endif

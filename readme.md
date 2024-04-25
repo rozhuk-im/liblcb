@@ -1,9 +1,14 @@
 # liblcb
+
+[![Build-macOS-latest Actions Status](https://github.com/rozhuk-im/liblcb/workflows/build-macos-latest/badge.svg)](https://github.com/rozhuk-im/liblcb/actions)
+[![Build-Ubuntu-latest Actions Status](https://github.com/rozhuk-im/liblcb/workflows/build-ubuntu-latest/badge.svg)](https://github.com/rozhuk-im/liblcb/actions)
+
+
 Light Code Base
 
 Rozhuk Ivan <rozhuk.im@gmail.com> 2011-2024
 
-Linked code library.
+Statically linked code library.
 Compile and include only things that you need.
 
 
@@ -27,3 +32,14 @@ Support the author
 * proto: protocols implementetions
 * threadpool: kqueue/epoll thread pool
 * utils
+
+
+## Run tests
+```
+mkdir -p build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_LIBLCB_TESTS=1 ..
+cmake --build . --config Release -j 16
+ctest -C Release --output-on-failure -j 16
+```
+

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2003-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,13 @@
 #ifndef __BASE64_H__
 #define __BASE64_H__
 
+#include <sys/param.h>
 #include <sys/types.h>
 #include <inttypes.h>
+
+#ifndef nitems /* SIZEOF() */
+#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
+#endif
 
 /*
  *      BASE64 coding:

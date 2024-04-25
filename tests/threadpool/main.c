@@ -30,12 +30,6 @@
 /* Required: devel/cunit */
 
 #include <sys/param.h>
-
-#ifdef __linux__ /* Linux specific code. */
-#	define _GNU_SOURCE /* See feature_test_macros(7) */
-#	define __USE_GNU 1
-#endif /* Linux specific code. */
-
 #include <sys/types.h>
 #include <sys/time.h> /* For getrusage. */
 #include <sys/resource.h>
@@ -53,6 +47,7 @@
 #include <CUnit/Automated.h>
 #include <CUnit/Basic.h>
 
+#include "al/os.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
@@ -67,13 +62,8 @@
 #define THREADS_COUNT_MAX		16
 #define TEST_EV_CNT_MAX			12
 #define TEST_TIMER_ID			36434632 /* Random value. */
-#define TEST_TIMER_INTERVAL		14
-#define TEST_SLEEP_TIME_NS		500000000
-#ifdef DEBUG__
-#	define TEST_SLEEP_TIME_S	5
-#else
-#	define TEST_SLEEP_TIME_S	0
-#endif
+#define TEST_TIMER_INTERVAL		30
+#define TEST_SLEEP_TIME_MS		1000
 
 static tp_p 	tp = NULL;
 static size_t	threads_count;
@@ -106,22 +96,29 @@ static void	test_tpt_msg_cbsend2(void);
 static void	test_tpt_ev_add_ex_rd_0(void);
 static void	test_tpt_ev_add_ex_rd_oneshot(void);
 static void	test_tpt_ev_add_ex_rd_dispatch(void);
+#ifdef TP_F_EDGE
 static void	test_tpt_ev_add_ex_rd_edge(void);
+#endif
 
 static void	test_tpt_ev_add_ex_rw_0(void);
 static void	test_tpt_ev_add_ex_rw_oneshot(void);
 static void	test_tpt_ev_add_ex_rw_dispatch(void);
+#ifdef TP_F_EDGE
 static void	test_tpt_ev_add_ex_rw_edge(void);
+#endif
 
 static void	test_tpt_ev_add_ex_tmr_0(void);
 static void	test_tpt_ev_add_ex_tmr_oneshot(void);
 static void	test_tpt_ev_add_ex_tmr_dispatch(void);
+#ifdef TP_F_EDGE
 static void	test_tpt_ev_add_ex_tmr_edge(void);
+#endif
 
 
 
 int
 main(int argc __unused, char *argv[] __unused) {
+	int error = 0;
 	CU_pSuite psuite = NULL;
 
 	openlog(PACKAGE_NAME, (LOG_CONS | LOG_NDELAY | LOG_PERROR | LOG_PID), LOG_USER);
@@ -165,15 +162,21 @@ main(int argc __unused, char *argv[] __unused) {
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, 0)", test_tpt_ev_add_ex_rd_0) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_ONESHOT)", test_tpt_ev_add_ex_rd_oneshot) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_DISPATCH)", test_tpt_ev_add_ex_rd_dispatch) ||
+#ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_EDGE)", test_tpt_ev_add_ex_rd_edge) ||
+#endif
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, 0)", test_tpt_ev_add_ex_rw_0) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_ONESHOT)", test_tpt_ev_add_ex_rw_oneshot) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_DISPATCH)", test_tpt_ev_add_ex_rw_dispatch) ||
+#ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_EDGE)", test_tpt_ev_add_ex_rw_edge) ||
+#endif
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, 0)", test_tpt_ev_add_ex_tmr_0) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_ONESHOT)", test_tpt_ev_add_ex_tmr_oneshot) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_DISPATCH)", test_tpt_ev_add_ex_tmr_dispatch) ||
+#ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
+#endif
 	    NULL == CU_add_test(psuite, "test of test_tp_destroy()", test_tp_destroy) ||
 	    0 ||
 	    NULL == CU_add_test(psuite, "test of test_tp_init16() - threads count = 16", test_tp_init16) ||
@@ -195,15 +198,21 @@ main(int argc __unused, char *argv[] __unused) {
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, 0)", test_tpt_ev_add_ex_rd_0) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_ONESHOT)", test_tpt_ev_add_ex_rd_oneshot) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_DISPATCH)", test_tpt_ev_add_ex_rd_dispatch) ||
+#ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_READ, TP_F_EDGE)", test_tpt_ev_add_ex_rd_edge) ||
+#endif
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, 0)", test_tpt_ev_add_ex_rw_0) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_ONESHOT)", test_tpt_ev_add_ex_rw_oneshot) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_DISPATCH)", test_tpt_ev_add_ex_rw_dispatch) ||
+#ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_WRITE, TP_F_EDGE)", test_tpt_ev_add_ex_rw_edge) ||
+#endif
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, 0)", test_tpt_ev_add_ex_tmr_0) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_ONESHOT)", test_tpt_ev_add_ex_tmr_oneshot) ||
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_DISPATCH)", test_tpt_ev_add_ex_tmr_dispatch) ||
+#ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
+#endif
 	    NULL == CU_add_test(psuite, "test of test_tp_destroy()", test_tp_destroy) ||
 	    0) {
 		goto err_out;
@@ -215,32 +224,30 @@ main(int argc __unused, char *argv[] __unused) {
 	printf("\n");
 	CU_basic_show_failures(CU_get_failure_list());
 	printf("\n\n");
+	error = CU_get_number_of_tests_failed();
 
 	/* Run all tests using the automated interface. */
-	CU_automated_run_tests();
-	CU_list_tests_to_file();
+	//CU_automated_run_tests();
+	//CU_list_tests_to_file();
+	//error = CU_get_number_of_tests_failed();
 
 err_out:
 	/* Clean up registry and return. */
 	CU_cleanup_registry();
 	closelog();
 
-	return ((int)CU_get_error());
+	return (error);
 }
 
 
 static void
-test_sleep(const time_t sec, const long nsec) { 
+test_sleep(const uint64_t msec) { 
 	struct timespec rqts;
 
 	/* 1 sec = 1000000000 nanoseconds. */
-	if (nsec < 1000000000) {
-		rqts.tv_sec = sec;
-		rqts.tv_nsec = nsec;
-	} else {
-		rqts.tv_nsec = (nsec % 1000000000l);
-		rqts.tv_sec = (sec + (nsec / 1000000000l));
-	}
+	rqts.tv_sec = (msec / 1000ul);
+	rqts.tv_nsec = ((msec % 1000ul) * 1000000ul);
+
 	for (; 0 != nanosleep(&rqts, &rqts);) {
 		if (EINTR != errno)
 			break;
@@ -278,13 +285,13 @@ test_tp_init1(void) {
 	tp_settings_def(&s);
 	threads_count = 1;
 	s.threads_max = 1;
-	s.flags = (TP_S_F_BIND2CPU );
+	s.flags = (TP_S_F_BIND2CPU);
 	error = tp_create(&s, &tp);
 	CU_ASSERT(0 == error)
 	if (0 != error)
 		return;
 	/* Wait for all threads start. */
-	test_sleep(1, 0);
+	test_sleep(1500);
 }
 
 static void
@@ -311,7 +318,7 @@ test_tp_init16(void) {
 	if (0 != error)
 		return;
 	/* Wait for all threads start. */
-	test_sleep(1, 0);
+	test_sleep(1500);
 }
 
 static void
@@ -400,7 +407,7 @@ test_tpt_msg_send(void) {
 		}
 	}
 	/* Wait for all threads process. */
-	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
+	test_sleep(TEST_SLEEP_TIME_MS);
 	for (i = 0; i < threads_count; i ++) {
 		if (i != thr_arr[i]) {
 			CU_FAIL("tpt_msg_send() - not work.")
@@ -434,7 +441,7 @@ test_tpt_msg_bsend_ex1(void) {
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
-	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
+	test_sleep(TEST_SLEEP_TIME_MS);
 
 	if (threads_count != send_msg_cnt ||
 	    0 != error_cnt) {
@@ -541,7 +548,7 @@ test_tpt_msg_cbsend1(void) {
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
-	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
+	test_sleep(TEST_SLEEP_TIME_MS);
 	for (i = 0; i < (threads_count + 1); i ++) {
 		if (i != thr_arr[i]) {
 			CU_FAIL("tpt_msg_cbsend() - not work.")
@@ -563,7 +570,7 @@ test_tpt_msg_cbsend2(void) {
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
-	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
+	test_sleep(TEST_SLEEP_TIME_MS);
 	for (i = 0; i < (threads_count + 1); i ++) {
 		if (i != thr_arr[i]) {
 			CU_FAIL("tpt_msg_cbsend(TP_CBMSG_F_ONE_BY_ONE) - not work.")
@@ -614,7 +621,7 @@ test_tpt_ev_add_ex_rd(uint16_t flags, uint8_t res, int remove_ok) {
 	}
 	CU_ASSERT(1 == write(pipe_fd[1], "1", 1))
 	/* Wait for all threads process. */
-	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
+	test_sleep(TEST_SLEEP_TIME_MS);
 	if (res != thr_arr[0]) {
 		CU_FAIL("tpt_ev_add_args(TP_EV_READ) - not work") /* Fail. */
 		LOG_CONS_INFO_FMT("%i", (int)thr_arr[0]);
@@ -641,11 +648,13 @@ test_tpt_ev_add_ex_rd_dispatch(void) {
 
 	test_tpt_ev_add_ex_rd(TP_F_DISPATCH, 1, 1);
 }
+#ifdef TP_F_EDGE
 static void
 test_tpt_ev_add_ex_rd_edge(void) {
 
 	test_tpt_ev_add_ex_rd(TP_F_EDGE, 1, 1);
 }
+#endif
 
 
 static void
@@ -689,7 +698,7 @@ test_tpt_ev_add_ex_rw(uint16_t flags, uint8_t res, int remove_ok) {
 	}
 	CU_ASSERT(1 == write(pipe_fd[1], "1", 1))
 	/* Wait for all threads process. */
-	test_sleep(TEST_SLEEP_TIME_S, TEST_SLEEP_TIME_NS);
+	test_sleep(TEST_SLEEP_TIME_MS);
 	if (res != thr_arr[0]) {
 		CU_FAIL("tpt_ev_add_args(TP_EV_WRITE) - not work") /* Fail. */
 		LOG_CONS_INFO_FMT("%i", (int)thr_arr[0]);
@@ -716,11 +725,13 @@ test_tpt_ev_add_ex_rw_dispatch(void) {
 
 	test_tpt_ev_add_ex_rw(TP_F_DISPATCH, 1, 1);
 }
+#ifdef TP_F_EDGE
 static void
 test_tpt_ev_add_ex_rw_edge(void) {
 
 	test_tpt_ev_add_ex_rw(TP_F_EDGE, 1, 1);
 }
+#endif
 
 
 static void
@@ -756,7 +767,7 @@ test_tpt_ev_add_ex_tmr(uint16_t flags, uint8_t res, int remove_ok) {
 		return; /* Fail. */
 	}
 	/* Wait for all threads process. */
-	test_sleep(0, 300000000);
+	test_sleep((TEST_SLEEP_TIME_MS + (res * TEST_TIMER_INTERVAL * 2)));
 	if (res != thr_arr[0]) {
 		CU_FAIL("tpt_ev_add_args(TP_EV_TIMER) - not work") /* Fail. */
 		LOG_CONS_INFO_FMT("%i", (int)thr_arr[0]);
@@ -782,8 +793,10 @@ test_tpt_ev_add_ex_tmr_dispatch(void) {
 
 	test_tpt_ev_add_ex_tmr(TP_F_DISPATCH, 1, 1);
 }
+#ifdef TP_F_EDGE
 static void
 test_tpt_ev_add_ex_tmr_edge(void) {
 
 	test_tpt_ev_add_ex_tmr(TP_F_EDGE, TEST_EV_CNT_MAX, 1);
 }
+#endif

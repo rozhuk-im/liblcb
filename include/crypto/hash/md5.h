@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2003-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,10 @@
 #include <sys/types.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
+
+#ifndef nitems /* SIZEOF() */
+#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
+#endif
 
 static void *(*volatile md5_memset_volatile)(void*, int, size_t) = memset;
 #define md5_bzero(__mem, __size)		md5_memset_volatile((__mem), 0x00, (__size))

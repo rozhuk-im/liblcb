@@ -1,10 +1,11 @@
 #
 # Cmake configuration file for liblcb.
 # Just add: include(liblcb/CMakeLists.txt) in CMakeLists.txt to use this lib.
+# To enable tests: -DENABLE_LIBLCB_TESTS=1
 #
 
 ############################# INITIAL SECTION ##########################
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 ############################# OPTIONS SECTION ##########################
 
@@ -13,8 +14,20 @@ cmake_minimum_required(VERSION 3.10)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
+include(CheckCCompilerFlag)
+
+find_library(PTHREAD_LIBRARY pthread)
+list(APPEND CMAKE_REQUIRED_LIBRARIES ${PTHREAD_LIBRARY})
 
 ############################# MACRO SECTION ############################
+macro(try_c_flag prop flag)
+	# Try flag once on the C compiler
+	check_c_compiler_flag("-Werror ${flag}" C_FLAG_${prop})
+	if (C_FLAG_${prop})
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
+	endif()
+endmacro()
+
 macro(chk_include_files incfile prop)
 	string(TOUPPER HAVE_${prop} __tmp)
 	check_include_files(${incfile} ${__tmp})
@@ -49,15 +62,17 @@ message(STATUS "liblcb configuring...")
 # Platform specific configuration.
 if (CMAKE_SYSTEM_NAME MATCHES "^.*BSD$|DragonFly")
 	add_definitions(-D_BSD_SOURCE -DFREEBSD)
-	include_directories("/usr/local/include/")
+	include_directories("/usr/local/include")
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	add_definitions(-D_BSD_SOURCE -DDARWIN)
+	include_directories("/usr/local/include")
 endif()
 if (APPLE)
 	# For IPV6_PKTINFO.
 	add_definitions(-D__APPLE_USE_RFC_3542)
+	include_directories("/usr/local/include")
 endif()
 
 
@@ -93,13 +108,20 @@ chk_symbol_exists(sys/socket.h SOCK_CLOEXEC)
 chk_symbol_exists(sys/socket.h SOCK_NONBLOCK)
 
 # Disable some warnings.
-try_c_flag(W_NO_UNUSED_RESULT		"-Wno-unused-result")
+try_c_flag(WSWITCHDEFAULT	"-Wno-switch-default")
+try_c_flag(WUNUSED_RESULT	"-Wno-unused-result")
+try_c_flag(WUNSAFE_BUFFER_USAGE	"-Wno-unsafe-buffer-usage")
 
 
 message(STATUS "liblcb configuring done!")
 
 ################################ SUBDIRS SECTION #######################
 
+if (ENABLE_LIBLCB_TESTS)
+	# Enable testing functionality.
+	enable_testing()
+	add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/tests")
+endif()
 
 ############################ TARGETS SECTION ###########################
 

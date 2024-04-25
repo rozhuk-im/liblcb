@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,11 +35,6 @@
 #define __SHA2_H__INCLUDED__
 
 #include <sys/param.h>
-#ifdef __linux__
-#	include <endian.h>
-#else
-#	include <sys/endian.h>
-#endif
 #include <sys/types.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
@@ -54,6 +49,14 @@
 #	include <immintrin.h> /* AVX */
 #	include <shaintrin.h>
 #	define SHA2_ENABLE_SIMD	1
+#endif
+
+#ifndef bswap64
+#	define bswap64		__builtin_bswap64
+#endif
+
+#ifndef nitems /* SIZEOF() */
+#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
 #endif
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)

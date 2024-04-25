@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,8 +54,13 @@
 #ifdef _WINDOWS
 #	define EINVAL		ERROR_INVALID_PARAMETER
 #else
+#	include <sys/param.h>
 #	include <sys/types.h>
 #	include <inttypes.h>
+#endif
+
+#ifndef nitems /* SIZEOF() */
+#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
 #endif
 
 #include "math/elliptic_curve.h"

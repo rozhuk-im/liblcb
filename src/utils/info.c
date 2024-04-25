@@ -40,7 +40,7 @@
 #include <time.h>
 #include <errno.h>
 #ifdef BSD /* BSD specific code. */
-#include <sys/sysctl.h>
+#	include <sys/sysctl.h>
 #endif /* BSD specific code. */
 
 #include "utils/macro.h"

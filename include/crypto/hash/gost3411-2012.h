@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2016-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2016-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,11 +38,6 @@
 #define __GOST3411_2012_H__INCLUDED__
 
 #include <sys/param.h>
-#ifdef __linux__
-#	include <endian.h>
-#else
-#	include <sys/endian.h>
-#endif
 #include <sys/types.h>
 #include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
@@ -58,6 +53,14 @@
 #ifdef __AVX__ 
 #	include <cpuid.h>
 #	include <immintrin.h> /* AVX */
+#endif
+
+#ifndef __unused
+#	define __unused	__attribute__((__unused__))
+#endif
+
+#ifndef nitems /* SIZEOF() */
+#	define nitems(__val)	(sizeof(__val) / sizeof(__val[0]))
 #endif
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
@@ -1728,18 +1731,18 @@ gost3411_2012_init(const size_t bits, gost3411_2012_ctx_p ctx) {
 	__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx);
 #	ifdef __SSE4_1__
 		ctx->use_sse |= (ecx & (((uint32_t)1) << 19));
-#	elifdef __SSSE3__
+#	elif defined(__SSSE3__)
 		ctx->use_sse |= (ecx & (((uint32_t)1) <<  9));
-#	elifdef __SSE3__
+#	elif defined(__SSE3__)
 		ctx->use_sse |= (ecx & (((uint32_t)1) <<  0));
-#	elifdef __SSE2__
+#	elif defined(__SSE2__)
 		ctx->use_sse |= (edx & (((uint32_t)1) << 26));
 #	endif
 #endif
 #ifdef __AVX2__
 	__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
 	ctx->use_avx |= (ebx & (((uint32_t)1) <<  5)); /* AVX2. */
-#elifdef __AVX__
+#elif defined(__AVX__)
 	__get_cpuid_count(1, 0, &eax, &ebx, &ecx, &edx);
 	ctx->use_avx |= (ecx & (((uint32_t)1) << 28)); /* AVX. */
 #endif

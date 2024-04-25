@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="lib" Version="11000" InternalType="">
+  <VirtualDirectory Name="tests">
+    <File Name="tests/CMakeLists.txt"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="workflows">
+    <File Name=".github/workflows/build-ubuntu-latest.yml"/>
+    <File Name=".github/workflows/build-macos-latest.yml"/>
+  </VirtualDirectory>
   <Plugins>
     <Plugin Name="CppCheck"/>
   </Plugins>
@@ -132,7 +139,7 @@
   <Dependencies Name="Debug"/>
   <Settings Type="Static Library">
     <GlobalSettings>
-      <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_ACCEPT4;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_MEMSET_S;-DHAVE_EXPLICIT_BZERO;-Wimplicit-fallthrough" Assembler="">
+      <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_ACCEPT4;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_MEMSET_S;-DHAVE_EXPLICIT_BZERO;-DHAVE_KQUEUEX;-Wimplicit-fallthrough" Assembler="">
         <IncludePath Value="./include"/>
       </Compiler>
       <Linker Options="">
@@ -141,7 +148,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="clang system" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="" C_Options="-Weverything;-g -DDEBUG;-pedantic;-W;-Wall;-g -Wall;-Wno-reserved-id-macro;-Wno-variadic-macros;-Wno-gnu-zero-variadic-macro-arguments;-Wno-unused-macros;-Wno-padded;-Wno-packed;-Wno-date-time;-Wno-unsafe-buffer-usage" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Compiler Options="" C_Options="-Weverything;-g -DDEBUG;-pedantic;-W;-Wall;-g -Wall;-Wno-reserved-id-macro;-Wno-variadic-macros;-Wno-gnu-zero-variadic-macro-arguments;-Wno-unused-macros;-Wno-padded;-Wno-packed;-Wno-date-time;-Wno-unsafe-buffer-usage;-Wno-switch-default" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
       <Linker Options="-O0" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="./Debug" PauseExecWhenProcTerminates="no" IsGUIProgram="no" IsEnabled="yes"/>
