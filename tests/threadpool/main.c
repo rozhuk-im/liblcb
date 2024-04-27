@@ -79,6 +79,7 @@ static void	test_tp_destroy(void);
 static void	test_tp_threads_create(void);
 static void	test_tp_thread_count_max_get(void);
 static void	test_tp_thread_count_get(void);
+static void	test_tp_thread_is_tp_thr(void);
 static void	test_tp_thread_get(void);
 static void	test_tp_thread_get_current(void);
 static void	test_tp_thread_get_rr(void);
@@ -147,6 +148,7 @@ main(int argc __unused, char *argv[] __unused) {
 	    NULL == CU_add_test(psuite, "test of tp_threads_create()", test_tp_threads_create) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_count_max_get()", test_tp_thread_count_max_get) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_count_get()", test_tp_thread_count_get) ||
+	    NULL == CU_add_test(psuite, "test of tp_thread_is_tp_thr()", test_tp_thread_is_tp_thr) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_get()", test_tp_thread_get) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_get_current()", test_tp_thread_get_current) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_get_rr()", test_tp_thread_get_rr) ||
@@ -183,6 +185,7 @@ main(int argc __unused, char *argv[] __unused) {
 	    NULL == CU_add_test(psuite, "test of tp_threads_create()", test_tp_threads_create) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_count_max_get()", test_tp_thread_count_max_get) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_count_get()", test_tp_thread_count_get) ||
+	    NULL == CU_add_test(psuite, "test of tp_thread_is_tp_thr()", test_tp_thread_is_tp_thr) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_get()", test_tp_thread_get) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_get_current()", test_tp_thread_get_current) ||
 	    NULL == CU_add_test(psuite, "test of tp_thread_get_rr()", test_tp_thread_get_rr) ||
@@ -298,8 +301,8 @@ static void
 test_tp_destroy(void) {
 
 	tp_shutdown(tp);
-	tp_shutdown_wait(tp);
-	tp_destroy(tp);
+	CU_ASSERT(0 == tp_shutdown_wait(tp))
+	CU_ASSERT(0 == tp_destroy(tp))
 	tp = NULL;
 	CU_PASS("tp_destroy()")
 }
@@ -317,14 +320,14 @@ test_tp_init16(void) {
 	CU_ASSERT(0 == error)
 	if (0 != error)
 		return;
-	/* Wait for all threads start. */
-	test_sleep(1500);
 }
 
 static void
 test_tp_threads_create(void) {
 
 	CU_ASSERT(0 == tp_threads_create(tp, 0))
+	/* Wait for all threads start. */
+	test_sleep(1500);
 }
 
 static void
@@ -337,6 +340,15 @@ static void
 test_tp_thread_count_get(void) {
 
 	CU_ASSERT(threads_count == tp_thread_count_get(tp))
+}
+
+static void
+test_tp_thread_is_tp_thr(void) {
+
+	CU_ASSERT(0 == tp_thread_is_tp_thr(NULL, NULL))
+	CU_ASSERT(0 == tp_thread_is_tp_thr(tp, NULL))
+	CU_ASSERT(0 != tp_thread_is_tp_thr(tp, tp_thread_get(tp, 0)))
+	CU_PASS("tp_thread_is_tp_thr()")
 }
 
 static void

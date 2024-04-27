@@ -24,5 +24,13 @@
       <Project Name="test-base64" ConfigName="Release"/>
       <Project Name="test-hash" ConfigName="Release"/>
     </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Debug-ASAN">
+      <Environment/>
+      <Project Name="lib" ConfigName="Debug"/>
+      <Project Name="test-base64" ConfigName="Debug"/>
+      <Project Name="test-ecdsa" ConfigName="Debug"/>
+      <Project Name="test-hash" ConfigName="Debug"/>
+      <Project Name="test-threadpool" ConfigName="Debug-ASAN"/>
+    </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

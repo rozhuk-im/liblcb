@@ -153,7 +153,7 @@ static const uint32_t tp_event_to_ep_map[] = {
 
 
 typedef struct thread_pool_thread_s { /* thread pool thread info */
-	volatile size_t running;	/* Running. */
+	volatile size_t state;		/* State: TP_THREAD_STATE_*. */
 	volatile size_t tick_cnt;	/* For detecting hangs thread. */
 	uintptr_t	io_fd;		/* IO handle: kqueue (per thread). */
 #ifdef BSD /* BSD specific code. */
@@ -170,10 +170,16 @@ typedef struct thread_pool_thread_s { /* thread pool thread info */
 	tp_p		tp;		/*  */
 } tp_thread_t;
 
+#define TP_THREAD_STATE_STOP		0
+#define TP_THREAD_STATE_STOPING		1
+#define TP_THREAD_STATE_STARTING	2
+#define TP_THREAD_STATE_RUNNING		3
+
 
 typedef struct thread_pool_s { /* thread pool */
 	tpt_p		pvt;		/* Pool virtual thread. */
-	size_t		rr_idx;
+	volatile size_t	rr_idx;
+	volatile size_t	shutdown;
 	uint32_t	flags;
 	char		name[TP_NAME_SIZE];
 	size_t		cpu_count;
@@ -194,8 +200,6 @@ int		tpt_data_init(tp_p tp, int cpu_id, size_t thread_num,
 void		tpt_data_uninit(tpt_p tpt);
 
 static void	*tp_thread_proc(void *data);
-
-void		tpt_msg_shutdown_cb(tpt_p tpt, void *udata);
 
 void		tpt_cached_time_update_cb(tp_event_p ev, tp_udata_p tp_udata);
 
@@ -424,7 +428,7 @@ tpt_loop(tpt_p tpt) {
 	mem_bzero(&ke_timeout, sizeof(ke_timeout));
 
 	/* Main loop. */
-	while (0 != tpt->running) {
+	while (TP_THREAD_STATE_RUNNING == tpt->state) {
 		tpt->tick_cnt ++; /* Tic-toc. */
 		cnt = kevent((int)tpt->io_fd, tpt->ev_changelist, 
 		    tpt->ev_nchanges, &kev, 1, NULL /* Infinite wait. */);
@@ -766,7 +770,7 @@ tpt_loop(tpt_p tpt) {
 	tp = tpt->tp;
 	pvt = tp->pvt;
 	/* Main loop. */
-	while (0 != tpt->running) {
+	while (TP_THREAD_STATE_RUNNING == tpt->state) {
 		tpt->tick_cnt ++; /* Tic-toc. */
 		cnt = epoll_wait((int)tpt->io_fd, &epev, 1, -1 /* infinite wait. */);
 		if (0 == cnt) /* Timeout. */
@@ -1024,82 +1028,113 @@ err_out:
 	return (error);
 }
 
+static void
+tpt_msg_shutdown_cb(tpt_p tpt, void *udata __unused) {
+
+	tpt->state = TP_THREAD_STATE_STOPING;
+}
 void
 tp_shutdown(tp_p tp) {
-	size_t i;
 
 	if (NULL == tp)
 		return;
+	if (0 != tp->shutdown)
+		return;
+	tp->shutdown ++;
 	/* Shutdown threads. */
-	for (i = 0; i < tp->threads_max; i ++) {
-		if (0 == tp->threads[i].running)
+	for (size_t i = 0; i < tp->threads_max; i ++) {
+		if (0 == tpt_is_running(&tp->threads[i]))
 			continue;
 		tpt_msg_send(&tp->threads[i], NULL, 0,
 		    tpt_msg_shutdown_cb, NULL);
 	}
 }
-void
-tpt_msg_shutdown_cb(tpt_p tpt, void *udata __unused) {
 
-	tpt->running = 0;
-}
-
-void
+int
 tp_shutdown_wait(tp_p tp) {
-	size_t cnt;
+	int error;
+	size_t err_cnt = 0;
 	/* 1 sec = 1000000000 nanoseconds. */
 	struct timespec rqts = { .tv_sec = 0, .tv_nsec = 100000000 };
 
 	if (NULL == tp)
-		return;
-	/* Wait all threads before return. */
-	cnt = tp->threads_cnt;
-	while (0 != cnt) {
-		cnt = tp_thread_count_get(tp);
+		return (EINVAL);
+	if (0 == tp->shutdown)
+		return (EBUSY);
+	if (0 != tp_thread_is_tp_thr(tp, NULL))
+		return (EDEADLK);
+
+	for (size_t i = 0; i < tp->threads_max; i ++) {
+		if (TP_THREAD_STATE_STOP == tp->threads[i].state)
+			continue;
+		error = pthread_join(tp->threads[i].pt_id, NULL);
+		switch (error) {
+		case 0: /* No error. */
+			break;
+		case EDEADLK: /* Should not happen, checked by tp_thread_is_tp_thr(). */
+			return (error);
+		case EOPNOTSUPP: /* Probably other thread also call this right now. */
+			/* FreeBSD specific. */
+		default:
+			tp->threads[i].state = TP_THREAD_STATE_STOP;
+			err_cnt ++;
+			break;
+		}
+	}
+	/* Fallback code, normally not used. */
+	while (0 != err_cnt && 0 != tp_thread_count_get(tp)) {
 		nanosleep(&rqts, NULL); /* Ignore early wakeup and errors. */
 	}
+
+	return (0);
 }
 
-void
+int
 tp_destroy(tp_p tp) {
-	size_t i;
+	int error;
 
 	if (NULL == tp)
-		return;
+		return (EINVAL);
+	if (0 != tp_thread_is_tp_thr(tp, NULL))
+		return (EDEADLK);
+	/* Make sure that shutdown called. */
+	tp_shutdown(tp);
 	/* Wait all threads before free mem. */
-	tp_shutdown_wait(tp);
+	error = tp_shutdown_wait(tp);
+	if (0 != error)
+		return (error);
 	/* Free resources. */
 	tpt_data_uninit(tp->pvt);
-	for (i = 0; i < tp->threads_max; i ++) {
+	for (size_t i = 0; i < tp->threads_max; i ++) {
 		tpt_data_uninit(&tp->threads[i]);
 	}
 	free(tp);
+
+	return (0);
 }
 
 
 int
 tp_threads_create(tp_p tp, int skip_first) {
-	size_t i;
 	tpt_p tpt;
 	char thr_name[64];
 
 	if (NULL == tp)
 		return (EINVAL);
-	if (0 != skip_first) {
-		tp->threads_cnt ++;
-	}
-	for (i = ((0 != skip_first) ? 1 : 0); i < tp->threads_max; i ++) {
+	if (0 != tp->shutdown)
+		return (EBUSY);
+
+	for (size_t i = ((0 != skip_first) ? 1 : 0); i < tp->threads_max; i ++) {
 		tpt = &tp->threads[i];
 		if (NULL == tpt->tp)
 			continue;
-		tpt->running = 1;
+		tpt->state = TP_THREAD_STATE_STARTING;
 		if (0 == pthread_create_eagain(&tpt->pt_id, NULL,
 		    tp_thread_proc, tpt)) {
-			tp->threads_cnt ++;
 			snprintf(thr_name, sizeof(thr_name), "%s: %zu", tp->name, i);
 			pthread_set_name(tpt->pt_id, thr_name);
 		} else {
-			tpt->running = 0;
+			tpt->state = TP_THREAD_STATE_STOP;
 		}
 	}
 	return (0);
@@ -1111,12 +1146,18 @@ tp_thread_attach_first(tp_p tp) {
 
 	if (NULL == tp)
 		return (EINVAL);
+	if (0 != tp->shutdown)
+		return (EBUSY);
+
 	tpt = &tp->threads[0];
-	if (0 != tpt->running)
+	if (TP_THREAD_STATE_STOP != tpt->state)
 		return (ESPIPE);
-	tpt->running = 2;
+
+	tpt->state = TP_THREAD_STATE_STARTING;
 	tpt->pt_id = pthread_self();
+
 	tp_thread_proc(tpt);
+
 	return (0);
 }
 
@@ -1125,7 +1166,7 @@ tp_thread_dettach(tpt_p tpt) {
 
 	if (NULL == tpt)
 		return (EINVAL);
-	tpt->running = 0;
+	tpt->state = TP_THREAD_STATE_STOP;
 	return (0);
 }
 
@@ -1138,9 +1179,10 @@ tp_thread_proc(void *data) {
 		SYSLOGD_ERR(LOG_DEBUG, EINVAL, "Invalid data.");
 		return (NULL);
 	}
-	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
 
-	tpt->running ++;
+	tpt->tp->threads_cnt ++;
+	tpt->state = TP_THREAD_STATE_RUNNING;
+	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
 	syslog(LOG_INFO, "%s: thread %zu started...",
 	    tpt->tp->name, tpt->thread_num);
 
@@ -1172,12 +1214,12 @@ tp_thread_proc(void *data) {
 
 	tpt_loop(tpt);
 
-	tpt->pt_id = 0;
-	tpt->running = 0; /* Reset state on exit or on error. */
-	tpt->tp->threads_cnt --;
 	pthread_setspecific(tp_tls_key_tpt, NULL);
 	syslog(LOG_INFO, "%s: thread %zu exited...",
 	    tpt->tp->name, tpt->thread_num);
+	mem_bzero(&tpt->pt_id, sizeof(pthread_t));
+	tpt->state = TP_THREAD_STATE_STOP; /* Reset state on exit. */
+	tpt->tp->threads_cnt --;
 
 	return (NULL);
 }
@@ -1199,9 +1241,9 @@ tp_thread_count_get(tp_p tp) {
 	if (NULL == tp)
 		return (0);
 	for (i = 0, cnt = 0; i < tp->threads_max; i ++) {
-		if (0 != tp->threads[i].pt_id) {
-			cnt ++;
-		}
+		if (0 == tpt_is_running(&tp->threads[i]))
+			continue;
+		cnt ++;
 	}
 	return (cnt);
 }
@@ -1211,6 +1253,17 @@ tpt_p
 tp_thread_get_current(void) {
 	/* TLS magic. */
 	return ((tpt_p)pthread_getspecific(tp_tls_key_tpt));
+}
+
+int
+tp_thread_is_tp_thr(tp_p tp, tpt_p tpt) {
+
+	if (NULL == tp)
+		return (0);
+	if (NULL == tpt) {
+		tpt = tp_thread_get_current();
+	}
+	return ((NULL != tpt && tpt->tp == tp));
 }
 
 tpt_p
@@ -1271,12 +1324,13 @@ tpt_get_tp(tpt_p tpt) {
 	return (tpt->tp);
 }
 
-size_t
+int
 tpt_is_running(tpt_p tpt) {
 
 	if (NULL == tpt)
 		return (0);
-	return (tpt->running);
+	return ((TP_THREAD_STATE_RUNNING == tpt->state ||
+	    TP_THREAD_STATE_STARTING == tpt->state));
 }
 
 void *
@@ -1326,7 +1380,8 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 	    NULL == tp_udata)
 		return (EINVAL);
 	/* flags. */
-	if (0 != (~(TP_F_S_MASK) & ev->flags))
+	if (0 != (~(TP_F_S_MASK) & ev->flags) ||
+	    (TP_F_ONESHOT | TP_F_DISPATCH) == ((TP_F_ONESHOT | TP_F_DISPATCH) & ev->flags))
 		return (EINVAL); /* Invalid flags: some unknown bits is set. */
 	/* tp_udata */
 	if (NULL == tp_udata->cb_func ||
@@ -1343,7 +1398,7 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 			return (EINVAL); /* Invalid fflags: some unknown bits is set. */
 		break;
 	case TP_EV_TIMER:
-#if 0 /* XXX: check this. */
+#if defined(TP_F_EDGE) && 0 /* XXX: check this. */
 		if (0 != (TP_F_EDGE & ev->flags))
 			return (EINVAL); /* Invalid flags. */
 #endif

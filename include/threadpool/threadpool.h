@@ -78,12 +78,14 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_FF_RW_LOWAT	(((uint32_t)1) << 0) /* For sockets: set SO_RCVLOWAT/SO_SNDLOWAT. */
 #define TP_FF_RW_MASK	0x00000001u /* For internal use: fflags set mask. */
 /* TP_EV_TIMER specific: if not set - the default is seconds. */
+/* Data units selection ENUM for timer: select only one. */
 #define TP_FF_T_SEC	0x00000000u /* data is seconds. */
 #define TP_FF_T_MSEC	0x00000001u /* data is milliseconds. */
 #define TP_FF_T_USEC	0x00000002u /* data is microseconds. */
 #define TP_FF_T_NSEC	0x00000003u /* data is nanoseconds. */
+#define TP_FF_T_TM_MASK	0x00000003u /* For internal use: fflags set mask for time units. */
+/* Additional timer specific fflags. */
 #define TP_FF_T_ABSTIME	(((uint32_t)1) << 2) /* timeout is absolute. */
-#define TP_FF_T_TM_MASK	0x00000003u /* For internal use: fflags set mask for time. */
 #define TP_FF_T_MASK	0x00000007u /* For internal use: fflags set mask. */
 
 static const char *tp_ff_time_units[] = { "s", "ms", "us", "ns", NULL };
@@ -144,9 +146,11 @@ int	tp_settings_load_ini(const ini_p ini, const uint8_t *sect_name,
 int	tp_init(void);
 int	tp_create(tp_settings_p s, tp_p *ptp);
 
+/* tp_shutdown() can be called by one of thread pool thread. */
 void	tp_shutdown(tp_p tp);
-void	tp_shutdown_wait(tp_p tp);
-void	tp_destroy(tp_p tp);
+/* Next 2 functions can be called by thread pool thread due to deadlock. */
+int	tp_shutdown_wait(tp_p tp); /* Wait for all threads before return. */
+int	tp_destroy(tp_p tp);
 
 int	tp_threads_create(tp_p tp, int skip_first);
 int	tp_thread_attach_first(tp_p tp);
@@ -154,7 +158,11 @@ int	tp_thread_dettach(tpt_p tpt);
 size_t	tp_thread_count_max_get(tp_p tp);
 size_t	tp_thread_count_get(tp_p tp);
 
+/* Return tpt_p if caller thread is thread pool thread. */
 tpt_p	tp_thread_get_current(void);
+/* Return non zero if tpt is one of tp threads.
+ * If tpt is NULL - tp_thread_get_current() used to get current thread tpt. */
+int	tp_thread_is_tp_thr(tp_p tp, tpt_p tpt);
 tpt_p	tp_thread_get(tp_p tp, size_t thread_num);
 tpt_p	tp_thread_get_rr(tp_p tp);
 tpt_p	tp_thread_get_pvt(tp_p tp); /* Shared virtual thread. */
@@ -162,7 +170,7 @@ int	tp_thread_get_cpu_id(tpt_p tpt);
 size_t	tp_thread_get_num(tpt_p tpt);
 
 tp_p	tpt_get_tp(tpt_p tpt);
-size_t	tpt_is_running(tpt_p tpt);
+int	tpt_is_running(tpt_p tpt);
 void	*tpt_get_msg_queue(tpt_p tpt);
 
 
