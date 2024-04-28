@@ -33,7 +33,7 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <stdio.h>  /* snprintf, fprintf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strnlen, strerror... */
 #include <stdlib.h> /* malloc, exit */
 
 #include "utils/mem_utils.h"
@@ -283,7 +283,7 @@ cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
 		cnt = 0;
 	}
 	if (0 != auto_out_size) {
-		mem_bzero(bin, (size_t)(bin_max - bin));
+		memset(bin, 0x00, (size_t)(bin_max - bin));
 		bin = bin_max;
 	}
 	if (NULL != bin_size_ret) {
@@ -311,7 +311,7 @@ cvt_bin2hex(const uint8_t *bin, size_t bin_size, int auto_out_size,
 		} else {
 			tm = (hex_size & ~((size_t)1));
 		}
-		mem_set(hex, tm, '0');
+		memset(hex, '0', tm);
 		hex += tm;
 		goto ok_exit;
 	}
@@ -330,7 +330,7 @@ cvt_bin2hex(const uint8_t *bin, size_t bin_size, int auto_out_size,
 	}
 	if (0 == auto_out_size) { /* Zeroize end. */
 		tm = ((hex_size - tm) & ~((size_t)1));
-		mem_set(hex, tm, '0');
+		memset(hex, '0', tm);
 		hex += tm;
 	}
 ok_exit:

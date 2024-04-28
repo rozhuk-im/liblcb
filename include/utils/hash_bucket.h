@@ -62,7 +62,7 @@
 #else /* User space */
 #	include <pthread.h>
 #	include <errno.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#	include <string.h> /* memcpy, memmove, memset, strerror... */
 #	include <stdlib.h> /* malloc, exit */
 
 #	define HB_ALLOC(size)		malloc(size)

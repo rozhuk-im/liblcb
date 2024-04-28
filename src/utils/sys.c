@@ -38,7 +38,7 @@
 #include <grp.h>
 #include <fcntl.h> /* open, fcntl */
 #include <stdio.h>  /* snprintf, fprintf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strnlen, strerror... */
 #include <unistd.h> /* close, write, sysconf */
 #include <stdlib.h> /* malloc, exit */
 #include <signal.h>
@@ -46,8 +46,8 @@
 #include <syslog.h>
 
 #include "utils/macro.h"
-#include "utils/mem_utils.h"
 #include "al/os.h"
+#include "utils/mem_utils.h"
 #include "utils/sys.h"
 
 

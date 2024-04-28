@@ -34,7 +34,7 @@
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 #include <sched.h>
 
@@ -242,7 +242,7 @@ tpt_msg_queue_create(tpt_p tpt, const uint32_t flags) { /* Init threads message 
 	int error;
 	tpt_msg_queue_p msg_queue;
 
-	msg_queue = mem_znew(tpt_msg_queue_t);
+	msg_queue = calloc(1, sizeof(tpt_msg_queue_t));
 	if (NULL == msg_queue)
 		return (NULL);
 	if (-1 == pipe2(msg_queue->fd,
@@ -498,7 +498,7 @@ tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
 		}
 		return (0); /* Sended / error on send. */
 	}
-	msg_data = mem_znew(tpt_msg_data_t);
+	msg_data = calloc(1, sizeof(tpt_msg_data_t));
 	if (NULL == msg_data)
 		return (ENOMEM);
 	msg_data->msg_cb = msg_cb;
@@ -545,7 +545,7 @@ tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
 
 	if (NULL == op_cb)
 		return (NULL);
-	aop = mem_znew(tpt_msg_async_op_t);
+	aop = calloc(1, sizeof(tpt_msg_async_op_t));
 	if (NULL == aop)
 		return (NULL);
 	if (NULL == dst) {

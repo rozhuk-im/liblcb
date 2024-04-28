@@ -32,13 +32,12 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <pthread.h>
 #include <errno.h>
 #include <stdio.h> /* snprintf, fprintf */
 #include <time.h>
 
-#include "utils/mem_utils.h"
 #include "math/crc32.h"
 #include "proto/radius.h"
 
@@ -50,7 +49,7 @@
 #include "utils/buf_str.h"
 #include "proto/radius_client.h"
 #ifdef RADIUS_CLIENT_XML_CONFIG
-#include "utils/xml.h"
+#	include "utils/xml.h"
 #endif
 
 
@@ -159,7 +158,7 @@ static int	radius_client_recv_cb(tp_task_p ioquery, int error,
 void
 radius_client_def_settings(radius_cli_settings_p s) {
 
-	mem_bzero(s, sizeof(radius_cli_settings_t));
+	memset(s, 0x00, sizeof(radius_cli_settings_t));
 	s->servers_max = RADIUS_CLIENT_S_DEF_SERVERS_MAX;
 	s->thr_queue_max = RADIUS_CLIENT_S_DEF_THR_QUEUE_MAX;
 	s->thr_sockets_min = RADIUS_CLIENT_S_DEF_THR_SOCKETS_MIN;
@@ -171,7 +170,7 @@ radius_client_def_settings(radius_cli_settings_p s) {
 void
 radius_client_server_def_settings(radius_cli_srv_settings_p s) {
 
-	mem_bzero(s, sizeof(radius_cli_srv_settings_t));
+	memset(s, 0x00, sizeof(radius_cli_srv_settings_t));
 	s->retrans_time_init = RADIUS_CLIENT_SRV_S_DEF_IRT;
 	s->retrans_time_max = RADIUS_CLIENT_SRV_S_DEF_MRT;
 	s->retrans_duration_max = RADIUS_CLIENT_SRV_S_DEF_MRD;
@@ -345,7 +344,7 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 
 	if (NULL == tp || NULL == s || NULL == rad_cli_ret)
 		return (EINVAL);
-	rad_cli = mem_znew(radius_cli_t);
+	rad_cli = calloc(1, sizeof(radius_cli_t));
 	if (NULL == rad_cli)
 		return (ENOMEM);
 	rad_cli->tp = tp;
@@ -361,7 +360,7 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 	rad_cli->s.servers_max &= ~((size_t)(RADIUS_CLIENT_ALLOC_CNT - 1));
 	/* Per threads sockets. */
 	rad_cli->thr_count = tp_thread_count_max_get(tp);
-	rad_cli->thr = zallocarray(rad_cli->thr_count, sizeof(radius_cli_thr_t));
+	rad_cli->thr = calloc(rad_cli->thr_count, sizeof(radius_cli_thr_t));
 	if (NULL == rad_cli->thr) {
 		error = ENOMEM;
 		goto err_out;
@@ -369,9 +368,9 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 	for (i = 0; i < rad_cli->thr_count; i ++) {
 		rad_cli->thr[i].tpt = tp_thread_get(tp, i);
 		rad_cli->thr[i].rad_cli = rad_cli;
-		rad_cli->thr[i].skts4.skt = zallocarray(rad_cli->s.thr_sockets_max,
+		rad_cli->thr[i].skts4.skt = calloc(rad_cli->s.thr_sockets_max,
 		    sizeof(radius_cli_skt_p));
-		rad_cli->thr[i].skts6.skt = zallocarray(rad_cli->s.thr_sockets_max,
+		rad_cli->thr[i].skts6.skt = calloc(rad_cli->s.thr_sockets_max,
 		    sizeof(radius_cli_skt_p));
 		if (NULL == rad_cli->thr[i].skts4.skt ||
 		    NULL == rad_cli->thr[i].skts6.skt) {
@@ -382,7 +381,7 @@ radius_client_create(tp_p tp, radius_cli_settings_p s,
 	MTX_INIT(&rad_cli->cli_srv_mtx);
 	//rad_cli->cli_srv_count = 0;
 	//rad_cli->cli_srv_allocated = 0;
-	rad_cli->srv = zallocarray(rad_cli->s.servers_max, sizeof(radius_cli_srv_t));
+	rad_cli->srv = calloc(rad_cli->s.servers_max, sizeof(radius_cli_srv_t));
 	if (NULL == rad_cli->srv) {
 		error = ENOMEM;
 		goto err_out;
@@ -486,7 +485,7 @@ radius_client_server_remove(radius_cli_p rad_cli, radius_cli_srv_p srv) {
 		memmove(&rad_cli->srv[i], &rad_cli->srv[(i + 1)],
 		    (sizeof(radius_cli_srv_p) * (rad_cli->cli_srv_count - (i + 1))));
 		rad_cli->cli_srv_count --;
-		mem_bzero(&rad_cli->srv[(rad_cli->cli_srv_count - 1)],
+		memset(&rad_cli->srv[(rad_cli->cli_srv_count - 1)], 0x00,
 		    sizeof(radius_cli_srv_t));
 		break;
 	}
@@ -507,7 +506,7 @@ radius_client_server_remove_by_addr(radius_cli_p rad_cli,
 		memmove(&rad_cli->srv[i], &rad_cli->srv[(i + 1)],
 		    (sizeof(radius_cli_srv_p) * (rad_cli->cli_srv_count - (i + 1))));
 		rad_cli->cli_srv_count --;
-		mem_bzero(&rad_cli->srv[(rad_cli->cli_srv_count - 1)],
+		memset(&rad_cli->srv[(rad_cli->cli_srv_count - 1)], 0x00,
 		    sizeof(radius_cli_srv_t));
 		break;
 	}
@@ -531,7 +530,7 @@ radius_client_socket_alloc(uint16_t family, radius_cli_thr_p thr) {
 	skts = ((AF_INET == family) ? &thr->skts4 : &thr->skts6);
 	if (skts->skt_count >= thr->rad_cli->s.thr_sockets_max)
 		return (E2BIG);
-	skt = mem_znew(radius_cli_skt_t);
+	skt = calloc(1, sizeof(radius_cli_skt_t));
 	if (NULL == skt)
 		return (ENOMEM);
 	error = skt_create(family, SOCK_DGRAM, IPPROTO_UDP,
@@ -623,7 +622,7 @@ radius_client_query_alloc(radius_cli_p rad_cli, tpt_p tpt, size_t query_id,
 	if (RADIUS_PKT_HDR_ID_MAX_COUNT <= query_id &&
 	    RADIUS_CLIENT_QUERY_ID_AUTO != query_id)
 		return (EINVAL);
-	query = mem_znew(radius_cli_query_t);
+	query = calloc(1, sizeof(radius_cli_query_t));
 	if (NULL == query)
 		return (ENOMEM);
 	query->rad_cli = rad_cli;

@@ -30,8 +30,6 @@
       <File Name="src/utils/buf_str.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="proto">
-      <File Name="src/proto/http_server_auth.c"/>
-      <File Name="src/proto/http_client.c"/>
       <File Name="src/proto/http.c"/>
       <File Name="src/proto/bt_tracker.c"/>
       <File Name="src/proto/dns_resolv.c"/>

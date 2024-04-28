@@ -32,7 +32,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <errno.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdlib.h> /* malloc, exit */
 
 #include "utils/mem_utils.h"
@@ -76,7 +76,7 @@ ini_line_alloc__int(const size_t size) {
 
 	/* Alloc and store data from line. */
 	tm = (sizeof(ini_line_t) + size + INI_LINE_ALLOC_PADDING);
-	line = zalloc(tm);
+	line = calloc(1, tm);
 	if (NULL == line)
 		return (NULL);
 	line->data = (uint8_t*)(line + 1);
@@ -93,7 +93,7 @@ ini_create(ini_p *ini_ret) {
 	if (NULL == ini_ret)
 		return (EINVAL);
 
-	ini = mem_znew(ini_t);
+	ini = calloc(1, sizeof(ini_t));
 	if (NULL == ini) {
 		(*ini_ret) = NULL;
 		return (errno);

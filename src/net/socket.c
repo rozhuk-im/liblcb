@@ -54,12 +54,11 @@
 
 #include <inttypes.h>
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdio.h>  /* snprintf, fprintf */
 #include <errno.h>
 
 #include "utils/macro.h"
-#include "utils/mem_utils.h"
 #include "utils/num2str.h"
 
 #include "al/os.h"
@@ -188,7 +187,7 @@ skt_get_addr_family(uintptr_t skt, sa_family_t *family) {
 	if (NULL == family)
 		return (EINVAL);
 
-	mem_bzero(&ssaddr, sizeof(ssaddr));
+	memset(&ssaddr, 0x00, sizeof(ssaddr));
 	addrlen = sizeof(ssaddr);
 	if (0 != getsockname((int)skt, (sockaddr_p)&ssaddr, &addrlen))
 		return (errno);
@@ -260,7 +259,7 @@ skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
 		return (EAFNOSUPPORT);
 
 	/* Join/leave to multicast group. */
-	mem_bzero(&mc_group, sizeof(mc_group));
+	memset(&mc_group, 0x00, sizeof(mc_group));
 	mc_group.gr_interface = if_index;
 	sa_copy(mc_addr, &mc_group.gr_group);
 	if (0 != setsockopt((int)skt,
@@ -288,7 +287,7 @@ skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 	}
 
 #ifdef SIOCGIFINDEX
-	mem_bzero(&ifr, sizeof(ifr));
+	memset(&ifr, 0x00, sizeof(ifr));
 	memcpy(ifr.ifr_name, ifname, ifname_size);
 	ifr.ifr_name[ifname_size] = 0;
 	if (-1 == ioctl((int)skt, SIOCGIFINDEX, &ifr))
@@ -544,7 +543,7 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 	];
 
 	/* Initialize msghdr for receiving packets. */
-	//mem_bzero(&rcvcmsgbuf, sizeof(struct cmsghdr));
+	//memset(&rcvcmsgbuf, 0x00, sizeof(struct cmsghdr));
 	rcviov[0].iov_base = buf;
 	rcviov[0].iov_len = buf_size;
 	mhdr.msg_name = from; /* dst addr. */
@@ -721,7 +720,7 @@ skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
 	if (NULL == hname)
 		return (EINVAL);
 
-	mem_bzero(&hints, sizeof(hints));
+	memset(&hints, 0x00, sizeof(hints));
 	hints.ai_family = ai_family;
 	hints.ai_flags = AI_NUMERICSERV;
 	u162str(port, servname, sizeof(servname), NULL); /* Should not fail. */
@@ -753,7 +752,7 @@ skt_sync_resolv_connect(const char *hname, uint16_t port,
 	if (NULL == hname || NULL == skt_ret)
 		return (EINVAL);
 
-	mem_bzero(&hints, sizeof(hints));
+	memset(&hints, 0x00, sizeof(hints));
 	hints.ai_family = domain;
 	hints.ai_flags = AI_NUMERICSERV;
 	hints.ai_socktype = type;
@@ -846,7 +845,7 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 		return (EINVAL);
 
 	optlen = sizeof(info);
-	mem_bzero(&info, sizeof(info));
+	memset(&info, 0x00, sizeof(info));
 	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_INFO, &info, &optlen))
 		return (errno);
 	if (10 < info.tcpi_state) {

@@ -34,7 +34,7 @@
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h> /* snprintf, fprintf */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
 

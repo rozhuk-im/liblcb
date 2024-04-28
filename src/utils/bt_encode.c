@@ -38,7 +38,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <stdlib.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
 #include "utils/mem_utils.h"
@@ -55,7 +55,7 @@ bt_en_node_p
 bt_en_alloc(uint8_t type, uint8_t *raw, size_t raw_size) {
 	bt_en_node_p ret;
 	
-	ret = mem_znew(bt_en_node_t);
+	ret = calloc(1, sizeof(bt_en_node_t));
 	if (NULL == ret)
 		return (NULL);
 	ret->type = type;

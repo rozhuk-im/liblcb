@@ -44,7 +44,7 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strnlen, strerror... */
 #include <sys/socket.h>
 #include <netinet/in.h> /* ntohs(), htons() */
 #include <netinet/tcp.h>

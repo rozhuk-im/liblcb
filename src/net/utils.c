@@ -38,7 +38,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h> /* snprintf, fprintf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"

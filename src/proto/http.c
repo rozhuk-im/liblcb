@@ -35,7 +35,7 @@
 #include <inttypes.h>
 //#include <stdlib.h>
 //#include <stdio.h> /* snprintf, fprintf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
 #include "utils/macro.h"
@@ -462,7 +462,7 @@ http_parse_req_line(const uint8_t *http_hdr, size_t hdr_size,
 	if ('A' > (*http_hdr) ||
 	    'Z' < (*http_hdr))
 		return (EBADMSG);
-	mem_bzero(req_data, sizeof(http_req_line_data_t));
+	memset(req_data, 0x00, sizeof(http_req_line_data_t));
 	/* Look for end of req line. */
 	pspace = mem_find_cstr(http_hdr, hdr_size, CRLF);
 	if (NULL == pspace) {

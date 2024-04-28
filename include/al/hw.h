@@ -38,7 +38,7 @@
 
 #include <inttypes.h>
 #include <errno.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <unistd.h> /* close, write, sysconf */
 #include <fcntl.h> /* open, fcntl */
 #include <cpuid.h>

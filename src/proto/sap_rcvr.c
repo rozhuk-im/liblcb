@@ -31,7 +31,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <inttypes.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 #include <time.h>
 
@@ -139,7 +139,7 @@ sdp_lite_alloc(const uint8_t *id, uint16_t id_size, uint16_t name_size) {
 	if (NULL == id || 0 == id_size)
 		return (NULL);
 
-	sdpl = zalloc((sizeof(sdp_lite_t) + id_size + sizeof(void*) + name_size + sizeof(void*)));
+	sdpl = calloc(1, (sizeof(sdp_lite_t) + id_size + sizeof(void*) + name_size + sizeof(void*)));
 	if (NULL == sdpl)
 		return (sdpl);
 	sdpl->id = (uint8_t*)(sdpl + 1);
@@ -171,7 +171,7 @@ sap_receiver_create(tp_p thp, uint32_t skt_recv_buf_size,
 	if (NULL == thp || NULL == sap_rcvr_ret)
 		return (EINVAL);
 		
-	srcvr = mem_znew(sap_rcvr_t);
+	srcvr = calloc(1, sizeof(sap_rcvr_t));
 	if (NULL == srcvr)
 		return (errno);
 	error = skt_bind_ap(AF_INET, NULL, SAP_PORT,

@@ -35,7 +35,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <stdio.h>  /* snprintf, fprintf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strnlen, strerror... */
 #include <stdlib.h> /* malloc, exit */
 #include <syslog.h>
 

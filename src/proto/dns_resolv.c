@@ -40,7 +40,8 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
+#include <strings.h> /* explicit_bzero */
 #include <errno.h>
 #include <stdio.h> /* snprintf, fprintf */
 #include <time.h>
@@ -271,7 +272,7 @@ dns_rslvr_cache_entry_alloc(uint8_t *name, size_t name_size,
 		SYSLOG_EX(LOG_ERR, "name = %s, name_size = %zu", name, name_size);
 		return (EINVAL);
 	}
-	cache_entry = zalloc((sizeof(dns_rslvr_cache_entry_t) + name_size + sizeof(void*)));
+	cache_entry = calloc(1, (sizeof(dns_rslvr_cache_entry_t) + name_size + sizeof(void*)));
 	if (NULL == cache_entry)
 		return (ENOMEM);
 	cache_entry->entry.data = cache_entry;
@@ -371,7 +372,7 @@ dns_rslvr_cache_entry_data_add(dns_rslvr_cache_entry_p cache_entry, void *data,
 			cache_entry->data_allocated = data_count;
 		}
 		memcpy(cache_entry->pdata, data, data_count);
-		mem_bzero((cache_entry->pdata + data_count), 2);
+		explicit_bzero((cache_entry->pdata + data_count), 2);
 		goto data_upd_done;
 	}
 	/* IP addrs set. */
@@ -484,7 +485,7 @@ dns_rslvr_task_alloc(dns_rslvr_p rslvr, dns_resolv_cb cb_func, void *arg,
 	}
 	if (0 != rslvr->tasks_tmr[task_id].ident)
 		return (EAGAIN); /* No free task slot. */
-	task = mem_znew(dns_rslvr_task_t);
+	task = calloc(1, sizeof(dns_rslvr_task_t));
 	if (NULL == task)
 		return (ENOMEM);
 	rslvr->tasks_index = task_id;
@@ -561,10 +562,10 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	    NULL == dns_rslvr_ret)
 		return (EINVAL);
 		
-	rslvr = mem_znew(dns_rslvr_t);
+	rslvr = calloc(1, sizeof(dns_rslvr_t));
 	if (NULL == rslvr)
 		return (ENOMEM);
-	rslvr->dns_addrs = zallocarray(dns_addrs_count, sizeof(sockaddr_storage_t));
+	rslvr->dns_addrs = calloc(dns_addrs_count, sizeof(sockaddr_storage_t));
 	if (NULL == rslvr->dns_addrs) {
 		error = ENOMEM;
 		goto err_out;
@@ -584,7 +585,7 @@ dns_resolver_create(tp_p tp, const sockaddr_storage_t *dns_addrs,
 	if (0 != error)
 		goto err_out;
 
-	mem_bzero(rslvr->dns_addrs,
+	memset(rslvr->dns_addrs, 0x00,
 	    (sizeof(sockaddr_storage_t) * dns_addrs_count));
 	rslvr->dns_addrs_count = dns_addrs_count;
 	for (i = 0; i < dns_addrs_count; i ++) {

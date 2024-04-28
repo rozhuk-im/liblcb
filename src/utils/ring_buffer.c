@@ -39,7 +39,7 @@
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
 #include "utils/macro.h"
@@ -358,7 +358,7 @@ r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
 	if (0 == size || 0 == min_block_size) /* Prevent division by zero. */
 		return (NULL);
 
-	r_buf = mem_znew(r_buf_t);
+	r_buf = calloc(1, sizeof(r_buf_t));
 	if (NULL == r_buf)
 		return (NULL);
 	page_size = (size_t)sysconf(_SC_PAGE_SIZE);

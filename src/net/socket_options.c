@@ -41,15 +41,13 @@
 
 #include <inttypes.h>
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdio.h>  /* snprintf, fprintf */
 #include <errno.h>
 
 #include "utils/macro.h"
-#include "utils/mem_utils.h"
-
-#include "utils/sys.h"
 #include "al/os.h"
+#include "utils/sys.h"
 #include "net/socket_address.h"
 #include "net/socket.h"
 #include "net/socket_options.h"
@@ -226,7 +224,7 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 		    (const uint8_t*)"AcceptFilterName", NULL)) {
 			if (0 != data_size &&
 			    sizeof(opts->tcp_acc_filter.af_name) > data_size) {
-				mem_bzero(&opts->tcp_acc_filter,
+				memset(&opts->tcp_acc_filter, 0x00,
 				    sizeof(struct accept_filter_arg));
 				memcpy(opts->tcp_acc_filter.af_name, data, data_size);
 				opts->mask |= SO_F_ACC_FILTER;
@@ -321,7 +319,7 @@ skt_opts_init(const uint32_t mask, const uint32_t bit_vals,
 
 	if (NULL == opts)
 		return;
-	mem_bzero(opts, sizeof(skt_opts_t));
+	memset(opts, 0x00, sizeof(skt_opts_t));
 	opts->mask = (SO_F_BIT_VALS_MASK & mask);
 	opts->bit_vals = bit_vals;
 	opts->backlog = INT_MAX;

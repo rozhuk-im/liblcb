@@ -38,7 +38,7 @@
 #include <sys/types.h>
 
 #include <stdlib.h> /* malloc, exit */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdio.h> /* snprintf, fprintf */
 #include <errno.h>
 
@@ -325,7 +325,7 @@ http_srv_auth_start(http_srv_cli_p cli, auth_pl_p plugin,
 		return (500);
 	if (http_srv_auth_on_req_rcv_cb == http_srv_cli_get_on_req_rcv(cli))
 		return (508);
-	auth_ctx = mem_znew(http_srv_cli_auth_ctx_t);
+	auth_ctx = calloc(1, sizeof(http_srv_cli_auth_ctx_t));
 	if (NULL == auth_ctx)
 		return (500);
 	auth_ctx->plugin = plugin;

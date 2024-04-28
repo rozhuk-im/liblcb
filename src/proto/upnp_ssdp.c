@@ -36,7 +36,7 @@
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdio.h> /* snprintf, fprintf */
 #include <time.h>
 #include <errno.h>
@@ -237,7 +237,7 @@ upnp_ssdp_def_settings(upnp_ssdp_settings_p s_ret) {
 
 	if (NULL == s_ret)
 		return;
-	mem_bzero(s_ret, sizeof(upnp_ssdp_settings_t));
+	memset(s_ret, 0x00, sizeof(upnp_ssdp_settings_t));
 	/* Default settings. */
 	s_ret->skt_opts.mask |= UPNP_SSDP_S_DEF_SKT_OPTS_MASK;
 	s_ret->skt_opts.bit_vals |= UPNP_SSDP_S_DEF_SKT_OPTS_VALS;
@@ -285,7 +285,7 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 		memcpy(&s_def, s, sizeof(s_def));
 	}
 
-	ssdp = mem_znew(upnp_ssdp_t);
+	ssdp = calloc(1, sizeof(upnp_ssdp_t));
 	if (NULL == ssdp)
 		return (ENOMEM);
 	s = &s_def;
@@ -419,7 +419,7 @@ upnp_ssdp_dev_add(upnp_ssdp_p ssdp, const char *uuid,
 	}
 	nt_size = (4 + domain_name_size + 8 + type_size + 16);
 	tot_size = (sizeof(upnp_ssdp_dev_t) + UPNP_NT_UUID_SIZE + domain_name_size + type_size + nt_size + 8);
-	dev = zalloc(tot_size);
+	dev = calloc(1, tot_size);
 	if (NULL == dev)
 		return (ENOMEM);
 	/* Defaults. */
@@ -561,7 +561,7 @@ upnp_ssdp_svc_add(upnp_ssdp_dev_p dev,
 	}
 	nt_size = (4 + domain_name_size + 9 + type_size + 16);
 	tot_size = (sizeof(upnp_ssdp_svc_t) + domain_name_size + type_size + nt_size + 8);
-	svc = zalloc(tot_size);
+	svc = calloc(1, tot_size);
 	if (NULL == svc)
 		return (ENOMEM);
 	svc->domain_name = (uint8_t*)(svc + 1);
@@ -628,7 +628,7 @@ upnp_ssdp_dev_if_add(upnp_ssdp_p ssdp, upnp_ssdp_dev_p dev,
 		if (0 != error)
 			return (error);
 	}
-	dev_if = zalloc((sizeof(upnp_ssdp_dev_t) + url4_size + url6_size + 8));
+	dev_if = calloc(1, (sizeof(upnp_ssdp_dev_t) + url4_size + url6_size + 8));
 	if (NULL == dev_if)
 		return (ENOMEM);
 	dev_if->s_if = s_if;
@@ -733,7 +733,7 @@ upnp_ssdp_if_add(upnp_ssdp_p ssdp, const char *if_name, size_t if_name_size,
 	if_index = if_nametoindex(ifname);
 	if (0 == if_index)
 		return (ESPIPE);
-	s_if = mem_znew(upnp_ssdp_if_t);
+	s_if = calloc(1, sizeof(upnp_ssdp_if_t));
 	if (NULL == s_if)
 		return (ENOMEM);
 	s_if->if_index = if_index;
@@ -1261,7 +1261,7 @@ upnp_ssdp_send(upnp_ssdp_p ssdp, upnp_ssdp_if_p s_if, sockaddr_storage_p addr, i
 			return (0); /* IPv4 disabled. */
 		skt = tp_task_ident_get(ssdp->mc_rcvr_v4);
 		if (NULL != s_if) {
-			mem_bzero(&ipmrn, sizeof(ipmrn));
+			memset(&ipmrn, 0x00, sizeof(ipmrn));
 			ipmrn.imr_ifindex = (int)s_if->if_index;
 			if (0 != setsockopt((int)skt, IPPROTO_IP, IP_MULTICAST_IF,
 			    &ipmrn, sizeof(ipmrn))) {

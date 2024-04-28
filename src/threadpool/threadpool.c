@@ -52,7 +52,8 @@
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h>  /* snprintf, fprintf */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
+#include <strings.h> /* explicit_bzero */
 #include <errno.h>
 #include <signal.h>
 #include <pthread.h>
@@ -61,7 +62,6 @@
 
 #include "utils/macro.h"
 #include "al/os.h"
-#include "utils/mem_utils.h"
 #include "threadpool/threadpool.h"
 #include "threadpool/threadpool_msg_sys.h"
 
@@ -378,7 +378,7 @@ tpt_ev_q_del(uint16_t event, tp_udata_p tp_udata) {
 			    &tpt->ev_changelist[(i + 1)], 
 			    (sizeof(struct kevent) * (ev_nchanges - i))); // move items, except last
 		}
-		mem_bzero(&tpt->ev_changelist[(ev_nchanges + 1)],
+		memset(&tpt->ev_changelist[(ev_nchanges + 1)], 0x00,
 		    sizeof(struct kevent));// zeroize last
 	}
 	tpt->ev_nchanges = ev_nchanges;
@@ -425,7 +425,7 @@ tpt_loop(tpt_p tpt) {
 
 	pvt = tpt->tp->pvt;
 	tpt->ev_nchanges = 0;
-	mem_bzero(&ke_timeout, sizeof(ke_timeout));
+	memset(&ke_timeout, 0x00, sizeof(ke_timeout));
 
 	/* Main loop. */
 	while (TP_THREAD_STATE_RUNNING == tpt->state) {
@@ -433,7 +433,7 @@ tpt_loop(tpt_p tpt) {
 		cnt = kevent((int)tpt->io_fd, tpt->ev_changelist, 
 		    tpt->ev_nchanges, &kev, 1, NULL /* Infinite wait. */);
 		if (0 != tpt->ev_nchanges) {
-			mem_bzero(tpt->ev_changelist,
+			memset(tpt->ev_changelist, 0x00,
 			    (sizeof(struct kevent) * (size_t)tpt->ev_nchanges));
 			tpt->ev_nchanges = 0;
 		}
@@ -561,7 +561,7 @@ tpt_data_event_init(tpt_p tpt) {
 	if (NULL != tpt->tp->pvt &&
 	    tpt != tpt->tp->pvt) {
 		/* Add pool virtual thread to normal thread. */
-		mem_bzero(&ev, sizeof(tp_event_t));
+		memset(&ev, 0x00, sizeof(tp_event_t));
 		ev.event = TP_EV_READ;
 		/* ev.flags = TP_F_EXCLUSIVE; Should be here, but it is not
 		 * implemented on BSD and does not work with epoll() fd on linux. */
@@ -644,7 +644,7 @@ err_out_timer:
 			if (0 == tfd)
 				return (ENOENT);
 			tp_udata->tpdata |= TPDATA_F_DISABLED;
-			mem_bzero(&new_tmr, sizeof(new_tmr));
+			memset(&new_tmr, 0x00, sizeof(new_tmr));
 			if (-1 == timerfd_settime(tfd, 0, &new_tmr, NULL)) {
 				error = errno;
 				goto err_out_timer;
@@ -695,7 +695,7 @@ err_out_timer:
 			break;
 		}
 		if (0 != ((TP_F_ONESHOT | TP_F_DISPATCH) & ev->flags)) { /* Onetime. */
-			mem_bzero(&new_tmr.it_interval, sizeof(struct timespec));
+			memset(&new_tmr.it_interval, 0x00, sizeof(struct timespec));
 		} else { /* Periodic. */
 			new_tmr.it_interval = new_tmr.it_value; /* memcpy(). */
 		}
@@ -895,7 +895,7 @@ tp_settings_def(tp_settings_p s_ret) {
 	if (NULL == s_ret)
 		return;
 	/* Init. */
-	mem_bzero(s_ret, sizeof(tp_settings_t));
+	memset(s_ret, 0x00, sizeof(tp_settings_t));
 
 	/* Default settings. */
 	s_ret->flags = TP_S_DEF_FLAGS;
@@ -990,7 +990,7 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 	if (0 == s->threads_max) {
 		s->threads_max = cpu_count;
 	}
-	tp = (tp_p)zalloc((sizeof(tp_t) + ((s->threads_max + 1) * sizeof(tp_thread_t))));
+	tp = (tp_p)calloc(1, (sizeof(tp_t) + ((s->threads_max + 1) * sizeof(tp_thread_t))));
 	if (NULL == tp)
 		return (ENOMEM);
 	fd_max_count = (uintptr_t)getdtablesize();
@@ -1218,7 +1218,7 @@ tp_thread_proc(void *data) {
 	syslog(LOG_INFO, "%s thread exited...", thr_name);
 	pthread_setspecific(tp_tls_key_tpt, NULL);
 	pthread_self_name_set(NULL);
-	mem_bzero(&tpt->pt_id, sizeof(pthread_t));
+	memset(&tpt->pt_id, 0x00, sizeof(pthread_t));
 	tpt->state = TP_THREAD_STATE_STOP; /* Reset state on exit. */
 	tpt->tp->threads_cnt --;
 
@@ -1349,7 +1349,7 @@ tpt_data_init(tp_p tp, int cpu_id, size_t thread_num, tpt_p tpt) {
 
 	if (NULL == tp || NULL == tpt)
 		return (EINVAL);
-	mem_bzero(tpt, sizeof(tp_thread_t));
+	memset(tpt, 0x00, sizeof(tp_thread_t));
 	tpt->tp = tp;
 	tpt->cpu_id = cpu_id;
 	tpt->thread_num = thread_num;
@@ -1368,7 +1368,7 @@ tpt_data_uninit(tpt_p tpt) {
 		return;
 	tpt_data_event_destroy(tpt);
 	close((int)tpt->io_fd);
-	mem_bzero(tpt, sizeof(tp_thread_t));
+	explicit_bzero(tpt, sizeof(tp_thread_t));
 }
 
 

@@ -37,7 +37,8 @@
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
+#include <strings.h> /* explicit_bzero */
 #include <stdio.h> /* snprintf, fprintf */
 #include <time.h>
 #include <errno.h>
@@ -141,7 +142,7 @@ http_srv_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
 	if (NULL == s_ret)
 		return;
 	/* Init. */
-	mem_bzero(s_ret, sizeof(http_srv_settings_t));
+	memset(s_ret, 0x00, sizeof(http_srv_settings_t));
 	skt_opts_init(HTTP_SRV_S_SKT_OPTS_INT_MASK,
 	    HTTP_SRV_S_SKT_OPTS_INT_VALS, &s_ret->skt_opts);
 	s_ret->skt_opts.mask |= SO_F_NONBLOCK;
@@ -201,7 +202,7 @@ http_srv_bind_def_settings(skt_opts_p skt_opts, http_srv_bind_settings_p s_ret) 
 
 	if (NULL == s_ret)
 		return;
-	mem_bzero(s_ret, sizeof(http_srv_bind_settings_t));
+	memset(s_ret, 0x00, sizeof(http_srv_bind_settings_t));
 	/* default settings */
 	memcpy(&s_ret->skt_opts, skt_opts, sizeof(skt_opts_t));
 }
@@ -401,7 +402,7 @@ http_srv_create(tp_p tp, http_srv_on_conn_cb on_conn,
 		}
 	}
 	/* Create. */
-	srv = mem_znew(http_srv_t);
+	srv = calloc(1, sizeof(http_srv_t));
 	if (NULL == srv) {
 		error = ENOMEM;
 		goto err_out;
@@ -593,7 +594,7 @@ http_srv_bind_add(http_srv_p srv, http_srv_bind_settings_p s,
 	if (NULL == srv || NULL == s)
 		return (EINVAL);
 
-	bnd = mem_znew(http_srv_bind_t);
+	bnd = calloc(1, sizeof(http_srv_bind_t));
 	if (NULL == bnd)
 		return (ENOMEM);
 	bnd->srv = srv;
@@ -720,7 +721,7 @@ http_srv_cli_alloc(http_srv_bind_p bnd, tpt_p tpt, uintptr_t skt,
 
 	SYSLOGD_EX(LOG_DEBUG, "...");
 
-	cli = mem_znew(http_srv_cli_t);
+	cli = calloc(1, sizeof(http_srv_cli_t));
 	if (NULL == cli)
 		return (cli);
 	bnd->srv->stat.connections ++;
@@ -785,8 +786,8 @@ http_srv_cli_next_req(http_srv_cli_p cli) {
 	/* Update used buf size. */
 	IO_BUF_BUSY_SIZE_SET(cli->rcv_buf, tm);
 	/* Re init client. */
-	mem_bzero(&cli->req, sizeof(http_srv_req_t));
-	mem_bzero(&cli->resp, sizeof(http_srv_resp_t));
+	explicit_bzero(&cli->req, sizeof(http_srv_req_t));
+	explicit_bzero(&cli->resp, sizeof(http_srv_resp_t));
 }
 
 tp_task_p
@@ -1748,7 +1749,7 @@ http_srv_snd(http_srv_cli_p cli) {
 
 	/* Send data... */
 	/* Try "zero copy" send first. */
-	mem_bzero(&mhdr, sizeof(mhdr));
+	memset(&mhdr, 0x00, sizeof(mhdr));
 	mhdr.msg_iov = iov;
 	mhdr.msg_iovlen ++;
 	iov[0].iov_base = hdrs;

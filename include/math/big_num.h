@@ -50,7 +50,7 @@
 #else
 #	include <sys/types.h>
 #	include <inttypes.h>
-#	include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#	include <string.h> /* memcpy, memmove, memset, strnlen, strerror... */
 #	include <stdio.h> /* snprintf, fprintf */
 #	ifndef __unused
 #		define __unused	__attribute__((__unused__))

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -478,18 +478,6 @@ mem_cmpin(const void *buf1, const size_t buf1_size,
 ////////////////////////////////////////////////////////////////////////
 /////////////////// Memory management wrappers. ////////////////////////
 ////////////////////////////////////////////////////////////////////////
-/* Secure version of memset(). */
-static inline void *
-mem_set(void *buf, const size_t size, const uint8_t c) {
-
-	if (NULL == buf || 0 == size)
-		return (buf);
-	return (memset_volatile(buf, c, size));
-}
-
-#define mem_bzero(__buf, __size)	mem_set((__buf), (size_t)(__size), 0x00)
-
-
 static inline void *
 mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
 	void *ret;
@@ -499,22 +487,13 @@ mem_dup2(const void *buf, const size_t size, const size_t pad_size) {
 	if (NULL == ret)
 		return (ret);
 	memcpy(ret, buf, size);
-	mem_bzero((((uint8_t*)ret) + size), (alloc_sz - size));
+	memset((((uint8_t*)ret) + size), 0x00, (alloc_sz - size));
 
 	return (ret);
 }
 
 #define mem_dup(__buf, __size)		mem_dup2((__buf), (__size), 0)
 
-
-/* Allocate and zero memory. */
-#define zalloc(__size)			calloc(1, (size_t)(__size))
-#define zallocarray(__nmemb, __size)	calloc((__nmemb), (size_t)(__size))
-
-#define mem_new(__type)			(__type*)malloc(sizeof(__type))
-#define mem_znew(__type)		(__type*)zalloc(sizeof(__type))
-
-#define mallocarray(__nmemb, __size)	reallocarray(NULL, (__nmemb), (size_t)(__size))
 
 static inline int
 realloc_items(void **items, const size_t item_size,
@@ -534,7 +513,7 @@ realloc_items(void **items, const size_t item_size,
 	if (NULL == items_new) /* Realloc fail! */
 		return (ENOMEM);
 	if (allocated_new > allocated_prev) { /* Init new mem. */
-		mem_bzero((items_new + (allocated_prev * item_size)),
+		memset((items_new + (allocated_prev * item_size)), 0x00,
 		    ((allocated_new - allocated_prev) * item_size));
 	}
 	(*items) = items_new;
@@ -591,7 +570,7 @@ mapalloc_fd(uintptr_t fd, const size_t size) {
 		//munmap(mem, size);
 		//return (NULL);
 	}
-	mem_bzero(buf, size);
+	memset(buf, 0x00, size);
 
 	return (buf);
 }

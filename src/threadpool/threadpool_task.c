@@ -36,11 +36,11 @@
 #include <sys/uio.h> /* readv, preadv, writev, pwritev */
 #include <inttypes.h>
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
 #include "utils/macro.h"
-#include "utils/mem_utils.h"
+#include "al/os.h"
 #include "net/socket.h"
 #include "threadpool/threadpool_task.h"
 
@@ -77,7 +77,7 @@ tp_task_create(tpt_p tpt, uintptr_t ident, tp_cb tp_cb_func,
 
 	if (NULL == tpt || NULL == tp_cb_func || NULL == tptask_ret)
 		return (EINVAL);
-	tptask = mem_znew(tp_task_t);
+	tptask = calloc(1, sizeof(tp_task_t));
 	if (NULL == tptask)
 		return (ENOMEM);
 	tptask->tp_data.cb_func = tp_cb_func;
@@ -923,7 +923,7 @@ tp_task_bind_accept_multi_create(tp_p tp,
 	}
 #endif
 
-	tptasks = zallocarray(max_threads, sizeof(tp_task_p));
+	tptasks = calloc(max_threads, sizeof(tp_task_p));
 	if (NULL == tptasks)
 		return (ENOMEM);
 

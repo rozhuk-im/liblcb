@@ -32,7 +32,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 //#include <stdlib.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdarg.h> /* va_start, va_arg */
 #include <errno.h>
 
@@ -532,7 +532,7 @@ xml_get_val_ns_arr(const uint8_t *xml_data, size_t xml_data_size,
 	    NULL == tag_arr || NULL == tag_arr_cnt || NULL == ret_ns_size)
 		return (EINVAL);
 
-	mem_bzero(ret_ns_size, (sizeof(size_t) * tag_arr_count));
+	memset(ret_ns_size, 0x00, (sizeof(size_t) * tag_arr_count));
 	if (NULL != next_pos && xml_data <= (*next_pos) &&
 	    (xml_data + xml_data_size) > (*next_pos)) {
 		TagEnd = (*next_pos);

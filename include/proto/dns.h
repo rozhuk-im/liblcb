@@ -34,7 +34,7 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strnlen, strerror... */
 #include <netinet/in.h> /* ntohs(), htons(), ntohl(), htonl() */
 #include "utils/mem_utils.h"
 

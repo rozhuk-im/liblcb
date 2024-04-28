@@ -33,6 +33,8 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
+#include <string.h> /* memcpy, memmove, memset, strerror... */
+#include <strings.h> /* explicit_bzero */
 #include "utils/mem_utils.h"
 
 #define HOSTNAME_PREALLOC	8
@@ -56,7 +58,7 @@ hostname_list_init(hostname_list_p hn_lst) {
 
 	if (NULL == hn_lst)
 		return (EINVAL);
-	mem_bzero(hn_lst, sizeof(hostname_list_t));
+	explicit_bzero(hn_lst, sizeof(hostname_list_t));
 
 	return (0);
 }
@@ -84,7 +86,7 @@ static inline hostname_list_p
 hostname_list_alloc(void) {
 	hostname_list_p hn_lst;
 
-	hn_lst = mem_znew(hostname_list_t);
+	hn_lst = calloc(1, sizeof(hostname_list_t));
 	if (NULL == hn_lst)
 		return (hn_lst);
 	if (0 != hostname_list_init(hn_lst)) {
@@ -103,7 +105,7 @@ hostname_list_clone(hostname_list_p hn_lst) {
 	hn_new = mem_dup(hn_lst, sizeof(hostname_list_t));
 	if (NULL == hn_new)
 		return (hn_new);
-	hn_new->names = zallocarray(hn_new->allocated, sizeof(hostname_p));
+	hn_new->names = calloc(hn_new->allocated, sizeof(hostname_p));
 	if (NULL == hn_new->names) {
 		free(hn_new);
 		return (NULL);

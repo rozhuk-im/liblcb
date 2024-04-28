@@ -32,7 +32,7 @@
      
 #include <inttypes.h>
 #include <stdio.h> /* snprintf, fprintf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 
 

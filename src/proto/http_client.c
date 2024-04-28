@@ -42,7 +42,7 @@
 
 #include <stdlib.h> /* malloc, exit */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdio.h> /* snprintf, fprintf */
 #include <time.h>
 #include <errno.h>
@@ -117,7 +117,7 @@ http_cli_def_settings(int add_os_ver, const char *app_ver, int add_lib_ver,
 	if (NULL == s_ret)
 		return;
 	/* Init. */
-	mem_bzero(s_ret, sizeof(http_cli_settings_t));
+	memset(s_ret, 0x00, sizeof(http_cli_settings_t));
 	io_net_skt_opts_init(HTTP_CLI_S_SKT_OPTS_INT_MASK,
 	    HTTP_CLI_S_SKT_OPTS_INT_VALS, &s_ret->skt_opts);
 	s_ret->skt_opts.mask |= SO_F_NONBLOCK;
@@ -189,7 +189,7 @@ http_cli_create(http_cli_cb ccb, http_cli_settings_p s, void *udata,
 		}
 	}
 	/* Create. */
-	cli = mem_znew(http_cli_t);
+	cli = calloc(1, sizeof(http_cli_t));
 	if (NULL == cli) {
 		error = ENOMEM;
 		goto err_out;
@@ -271,7 +271,7 @@ http_cli_conn_create(http_cli_p cli, thrpt_p thrpt, http_cli_cb ccb,
 	
 	if (NULL == cli || NULL == cli_conn_ret)
 		return (EINVAL);
-	cli_conn = mem_znew(http_cli_conn_t);
+	cli_conn = calloc(1, sizeof(http_cli_conn_t));
 	if (NULL == cli_conn)
 		return (errno);
 
@@ -1324,7 +1324,7 @@ http_srv_snd(http_cli_p cli, uint32_t status_code,
 
 	/* Send data... */
 	/* Try "zero copy" send first. */
-	mem_bzero(&mhdr, sizeof(mhdr));
+	memset(&mhdr, 0x00, sizeof(mhdr));
 	mhdr.msg_iov = iov;
 	mhdr.msg_iovlen ++;
 	iov[0].iov_base = hdrs;
@@ -1473,7 +1473,7 @@ http_cli_snd_done_cb(io_task_p iotask __unused, int error, io_buf_p buf __unused
 	tm = (cli->rcv_buf->used - (cli->req.data - cli->rcv_buf->data));
 	memmove(cli->rcv_buf->data, cli->req.data, tm);
 	/* Re init client. */
-	mem_bzero(&cli->req, sizeof(http_srv_req_t));
+	memset(&cli->req, 0x00, sizeof(http_srv_req_t));
 	cli->resp_p_flags = 0;
 	/* Receive next http request. */
 	IO_BUF_BUSY_SIZE_SET(cli->rcv_buf, tm);

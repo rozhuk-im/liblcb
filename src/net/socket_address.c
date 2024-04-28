@@ -37,7 +37,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 
 #include "utils/macro.h"
 #include "utils/mem_utils.h"
@@ -69,7 +69,7 @@ sa_init(sockaddr_storage_p addr, const sa_family_t family,
 
 	switch (family) {
 	case AF_UNIX:
-		mem_bzero(addr, sizeof(sockaddr_un_t));
+		memset(addr, 0x00, sizeof(sockaddr_un_t));
 #ifdef BSD /* BSD specific code. */
 		((sockaddr_un_p)addr)->sun_len = sizeof(sockaddr_un_t);
 #endif
@@ -77,7 +77,7 @@ sa_init(sockaddr_storage_p addr, const sa_family_t family,
 		//addr->sun_path[] = 0;
 		break;
 	case AF_INET:
-		mem_bzero(addr, sizeof(sockaddr_in_t));
+		memset(addr, 0x00, sizeof(sockaddr_in_t));
 #ifdef BSD /* BSD specific code. */
 		((sockaddr_in_p)addr)->sin_len = sizeof(sockaddr_in_t);
 #endif
@@ -86,7 +86,7 @@ sa_init(sockaddr_storage_p addr, const sa_family_t family,
 		//addr->sin_addr.s_addr = 0;
 		break;
 	case AF_INET6:
-		mem_bzero(addr, sizeof(sockaddr_in6_t));
+		memset(addr, 0x00, sizeof(sockaddr_in6_t));
 #ifdef BSD /* BSD specific code. */
 		((sockaddr_in6_p)addr)->sin6_len = sizeof(sockaddr_in6_t);
 #endif

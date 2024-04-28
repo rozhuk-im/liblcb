@@ -36,7 +36,7 @@
 
 #include <sys/param.h>
 #include <sys/types.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <inttypes.h>
 #if defined(__SHA__) && defined(__SSSE3__) && defined(__SSE4_1__)
 #	include <cpuid.h>

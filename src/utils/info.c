@@ -36,7 +36,7 @@
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h> /* snprintf, fprintf */
 #include <unistd.h> /* close, write, sysconf */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <time.h>
 #include <errno.h>
 #ifdef BSD /* BSD specific code. */
@@ -44,6 +44,7 @@
 #endif /* BSD specific code. */
 
 #include "utils/macro.h"
+#include "al/os.h"
 #include "utils/mem_utils.h"
 #include "utils/info.h"
 #include "utils/sys.h"

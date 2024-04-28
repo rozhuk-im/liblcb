@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <time.h>
 #include <fcntl.h> /* open, fcntl */
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strnlen, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strnlen, strerror... */
 #include <strings.h> /* explicit_bzero */
 #include <unistd.h> /* close, write, sysconf */
 #include <stdlib.h> /* malloc, realloc */

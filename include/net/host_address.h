@@ -36,7 +36,7 @@
 #include <inttypes.h>
 #include <netdb.h>
 #include <errno.h>
-#include <string.h> /* bcopy, bzero, memcpy, memmove, memset, strerror... */
+#include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <stdlib.h> /* malloc, exit */
 
 #include "utils/macro.h"
@@ -75,7 +75,7 @@ host_addr_alloc(const uint8_t *name, size_t name_size, uint16_t def_port) {
 		name_size = (size_t)(ptm_end - name - 1);
 	}
 
-	haddr = zalloc((sizeof(host_addr_t) + name_size + sizeof(void*)));
+	haddr = calloc(1, (sizeof(host_addr_t) + name_size + sizeof(void*)));
 	if (NULL == haddr)
 		return (haddr);
 	haddr->name = (uint8_t*)(haddr + 1);
@@ -94,10 +94,10 @@ host_addr_clone(host_addr_p src) {
 	if (NULL == src)
 		return (NULL);
 
-	haddr = zallocarray(src->allocated, sizeof(sockaddr_storage_t));
+	haddr = calloc(src->allocated, sizeof(sockaddr_storage_t));
 	if (NULL == haddr)
 		return (haddr);
-	haddr->addrs = zalloc((sizeof(host_addr_t) + src->name_size + sizeof(void*)));
+	haddr->addrs = calloc(1, (sizeof(host_addr_t) + src->name_size + sizeof(void*)));
 	if (NULL == haddr->addrs) {
 		free(haddr);
 		return (NULL);
@@ -200,7 +200,7 @@ host_addr_resolv(host_addr_p haddr) {
 	if (NULL == haddr)
 		return (EINVAL);
 
-	mem_bzero(&hints, sizeof(hints));
+	memset(&hints, 0x00, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_flags = AI_NUMERICSERV;
 	u162str(haddr->port, servname, sizeof(servname), NULL); /* Should not fail. */
