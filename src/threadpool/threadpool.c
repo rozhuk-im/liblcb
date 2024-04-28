@@ -1117,7 +1117,6 @@ tp_destroy(tp_p tp) {
 int
 tp_threads_create(tp_p tp, int skip_first) {
 	tpt_p tpt;
-	char thr_name[64];
 
 	if (NULL == tp)
 		return (EINVAL);
@@ -1131,8 +1130,6 @@ tp_threads_create(tp_p tp, int skip_first) {
 		tpt->state = TP_THREAD_STATE_STARTING;
 		if (0 == pthread_create_eagain(&tpt->pt_id, NULL,
 		    tp_thread_proc, tpt)) {
-			snprintf(thr_name, sizeof(thr_name), "%s: %zu", tp->name, i);
-			pthread_set_name(tpt->pt_id, thr_name);
 		} else {
 			tpt->state = TP_THREAD_STATE_STOP;
 		}
@@ -1174,6 +1171,7 @@ static void *
 tp_thread_proc(void *data) {
 	tpt_p tpt = data;
 	sigset_t sig_set;
+	char thr_name[(TP_NAME_SIZE + 16)];
 
 	if (NULL == tpt) {
 		SYSLOGD_ERR(LOG_DEBUG, EINVAL, "Invalid data.");
@@ -1182,9 +1180,12 @@ tp_thread_proc(void *data) {
 
 	tpt->tp->threads_cnt ++;
 	tpt->state = TP_THREAD_STATE_RUNNING;
-	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
-	syslog(LOG_INFO, "%s: thread %zu started...",
+
+	snprintf(thr_name, sizeof(thr_name), "%s: %zu",
 	    tpt->tp->name, tpt->thread_num);
+	pthread_self_name_set(thr_name);
+	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
+	syslog(LOG_INFO, "%s thread started...", thr_name);
 
 	sigemptyset(&sig_set);
 	sigaddset(&sig_set, SIGPIPE);
@@ -1214,9 +1215,9 @@ tp_thread_proc(void *data) {
 
 	tpt_loop(tpt);
 
+	syslog(LOG_INFO, "%s thread exited...", thr_name);
 	pthread_setspecific(tp_tls_key_tpt, NULL);
-	syslog(LOG_INFO, "%s: thread %zu exited...",
-	    tpt->tp->name, tpt->thread_num);
+	pthread_self_name_set(NULL);
 	mem_bzero(&tpt->pt_id, sizeof(pthread_t));
 	tpt->state = TP_THREAD_STATE_STOP; /* Reset state on exit. */
 	tpt->tp->threads_cnt --;

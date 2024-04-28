@@ -130,7 +130,7 @@ std_syslog_redirector_proc(void *data) {
 	syslog(LOG_DEBUG, "STD syslog redirector starting...");
 
 	/* Set thread name for better debugging. */
-	pthread_set_name(NULL, "STD syslog redirector");
+	pthread_self_name_set("STD syslog redirector");
 	/* Block PIPE signal. */
 	sigemptyset(&sig_set);
 	sigaddset(&sig_set, SIGPIPE);

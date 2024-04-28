@@ -341,26 +341,21 @@ pthread_create_eagain(pthread_t *thread, const pthread_attr_t *attr,
 }
 
 static inline void
-pthread_set_name(pthread_t thread, const char *name) {
+pthread_self_name_set(const char *name) {
 
-	if (NULL == thread) {
-		thread = pthread_self();
-	}
 	if (NULL == name) {
 		name = "";
 	}
 #ifdef HAVE_PTHREAD_SETNAME_NP
-#ifdef __APPLE__ /* Ugly apple can not set names for other threads. */
-	if (pthread_self() == thread) {
-		pthread_setname_np(name);
-	}
+#ifdef __APPLE__ /* Ugly apple can not set name for other threads. */
+	pthread_setname_np(name);
 #elif defined(__NetBSD__)
-	pthread_setname_np(thread, "%s", name)
+	pthread_setname_np(pthread_self(), "%s", name)
 #else
-	pthread_setname_np(thread, name);
+	pthread_setname_np(pthread_self(), name);
 #endif
 #elif defined(HAVE_PTHREAD_SET_NAME_NP)
-	pthread_set_name_np(thread, name);
+	pthread_set_name_np(pthread_self(), name);
 #endif
 }
 
