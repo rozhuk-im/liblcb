@@ -137,7 +137,7 @@
   <Dependencies Name="Debug"/>
   <Settings Type="Static Library">
     <GlobalSettings>
-      <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_ACCEPT4;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_MEMSET_S;-DHAVE_EXPLICIT_BZERO;-DHAVE_KQUEUEX;-Wimplicit-fallthrough" Assembler="">
+      <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_ACCEPT4;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_MEMSET_S;-DHAVE_EXPLICIT_BZERO;-DHAVE_KQUEUEX;-DHAVE_TIMINGSAFE_BCMP;-Wimplicit-fallthrough" Assembler="">
         <IncludePath Value="./include"/>
       </Compiler>
       <Linker Options="">

@@ -212,6 +212,24 @@ explicit_bzero(void *b, size_t len) {
 }
 #endif
 
+#ifndef HAVE_TIMINGSAFE_BCMP
+static inline int
+timingsafe_bcmp(const void *b1, const void *b2, size_t len) {
+	int ret = 0;
+	const uint8_t *p1 = b1, *p2 = b2;
+
+	if (0 == len || b1 == b2)
+		return (0);
+	if (NULL == b1 ||
+	    NULL == b2)
+		return (1);
+	for (size_t i = 0; i < len; i ++) {
+		ret |= (p1[i] ^ p2[i]);
+	}
+	return ((0 != ret));
+}
+#endif
+
 #ifndef HAVE_MEMRCHR
 static inline void *
 memrchr(const void *buf, const int what_find, const size_t buf_size) {
@@ -292,7 +310,7 @@ freezero(void *ptr, const size_t size) {
 
 	if (NULL == ptr)
 		return;
-	memset_volatile(ptr, 0x00, size);
+	explicit_bzero(ptr, size);
 	free(ptr);
 }
 #endif
@@ -315,8 +333,6 @@ strlcpy(char * restrict dst, const char * restrict src, size_t size) {
 }
 #endif
 
-
-/* Syscalls. */
 
 /* pthread_create(2) can spuriously fail on Linux. This is a function
  * to wrap pthread_create(2) to retry if it fails with EAGAIN. */
@@ -359,6 +375,9 @@ pthread_self_name_set(const char *name) {
 #endif
 }
 
+
+
+/* Syscalls. */
 
 #ifndef HAVE_PIPE2
 static inline int

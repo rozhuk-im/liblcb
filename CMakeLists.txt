@@ -90,6 +90,7 @@ endif()
 
 # Check platform API.
 chk_function_exists(explicit_bzero)
+chk_function_exists(timingsafe_bcmp)
 chk_function_exists(memrchr)
 chk_function_exists(memmem)
 chk_function_exists(strlcpy)

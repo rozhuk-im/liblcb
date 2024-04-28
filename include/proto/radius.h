@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2014 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2014-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,7 @@
 #include <netinet/in.h> /* ntohs(), htons() */
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include "al/os.h"
 #include "crypto/hash/md5.h"
 
 #ifndef ENOATTR
@@ -585,21 +586,6 @@ typedef struct radius_pkt_hdr_s { /* Radius packet header. */
 
 
 
-/* Constatnt time memory comparation, prevent timing attacks
- * http://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf */
-static inline int
-radius_sec_memcmp(uint8_t const *a, uint8_t const *b, const size_t size) {
-	register int res = 0;
-	register size_t i;
-
-	for (i = 0; i < size; i ++) {
-		res |= a[i] ^ b[i];
-	}
-
-	return (res);
-}
-
-
 //////////////////////////////////////////////////////////////////////////
 ////////////////////////Radius packet attribute///////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -959,7 +945,7 @@ radius_pkt_attr_msg_authenticator_chk(rad_pkt_hdr_p pkt, size_t offset,
 	    pkt_authenticator_inside, pkt_req, (uint8_t*)calc_msg_authr);
 	if (0 != error)
 		return (error);
-	if (0 != radius_sec_memcmp(RADIUS_PKT_ATTR_DATA(attr), calc_msg_authr,
+	if (0 != timingsafe_bcmp(RADIUS_PKT_ATTR_DATA(attr), calc_msg_authr,
 	    MD5_HASH_SIZE))
 		return (EBADMSG);
 
@@ -1408,7 +1394,7 @@ radius_pkt_authenticator_chk(rad_pkt_hdr_p pkt, uint8_t *key, size_t key_len,
 	if (0 != radius_pkt_authenticator_calc(pkt, key, key_len,
 	    pkt_authenticator_inside, pkt_req, (uint8_t*)calc_authr))
 		return (EINVAL);
-	if (0 != radius_sec_memcmp(pkt->authenticator, calc_authr, MD5_HASH_SIZE))
+	if (0 != timingsafe_bcmp(pkt->authenticator, calc_authr, MD5_HASH_SIZE))
 		return (EBADMSG);
 
 	return (0);

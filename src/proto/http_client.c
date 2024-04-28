@@ -1144,7 +1144,7 @@ conn_from_net_to_loopback:
 				host_port = UStr8ToUNum32(ptm, (cli->req.host_size - tm));
 			tm --;
 		}
-		action = (0 == mem_cmpin_cstr(c"localhost", li->req.host, tm));
+		action = (0 == mem_cmpin_cstr("localhost", li->req.host, tm));
 		/* Is connection to loopback from ext host? */
 		if (0 != action && 0 == sa_addr_is_loopback(&cli->addr)) /* from ext host? */
 			goto conn_from_net_to_loopback;

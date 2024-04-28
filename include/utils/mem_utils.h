@@ -393,27 +393,6 @@ mem_cmpn(const void *buf1, const size_t buf1_size,
 	return (mem_cmp(buf1, buf2, buf1_size));
 }
 
-/* Secure version of memcmp(). */
-static inline int
-mem_scmp(const void *buf1, const void *buf2, const size_t size) {
-	register int res = 0;
-	register size_t i;
-	register const uint8_t *a = (const uint8_t*)buf1;
-	register const uint8_t *b = (const uint8_t*)buf2;
-
-	if (0 == size || buf1 == buf2)
-		return (0);
-	if (NULL == buf1)
-		return (-127);
-	if (NULL == buf2)
-		return (127);
-	for (i = 0; i < size; i ++) {
-		res |= (a[i] ^ b[i]);
-	}
-
-	return (res);
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ////////////// Compare, ignory case, like strncasecmp() ////////////////
