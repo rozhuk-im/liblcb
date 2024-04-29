@@ -846,8 +846,10 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 
 	optlen = sizeof(info);
 	memset(&info, 0x00, sizeof(info));
-	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_INFO, &info, &optlen))
+	if (0 != getsockopt((int)skt, IPPROTO_TCP, TCP_INFO, &info, &optlen)) {
+		(*buf_size_ret) = 0;
 		return (errno);
+	}
 	if (10 < info.tcpi_state) {
 		info.tcpi_state = 11; /* UNKNOWN */
 	}
@@ -858,8 +860,10 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 			continue;
 		topts_used += strlcpy((topts + topts_used),
 		    tcpi_options_flags_str[i], (sizeof(topts) - topts_used));
-		if ((sizeof(topts) - 2) < topts_used)
+		if ((sizeof(topts) - 2) < topts_used) {
+			(*buf_size_ret) = topts_used;
 			return (ENOSPC);
+		}
 		topts[topts_used ++] = ' ';
 	}
 	/* Remove trailing space and make sure that 0x00 at the end of string. */
@@ -956,8 +960,10 @@ skt_tcp_stat_text(uintptr_t skt, const char *tabs,
 	    );
 #endif /* Linux specific code. */
 
-	if (0 > rc) /* Error. */
+	if (0 > rc) { /* Error. */
+		(*buf_size_ret) = 0;
 		return (EFAULT);
+	}
 	(*buf_size_ret) = (size_t)rc;
 	if (buf_size <= (size_t)rc) /* Truncated. */
 		return (ENOSPC);
