@@ -10,7 +10,7 @@
   <Dependencies Name="Debug"/>
   <Settings Type="Executable">
     <GlobalSettings>
-      <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_EXPLICIT_BZERO;-DHAVE_MEMSET_S;-DHAVE_KQUEUEX;-DHAVE_TIMINGSAFE_BCMP;-Wimplicit-fallthrough" Assembler="">
+      <Compiler Options="" C_Options="-DHAVE_STRLCPY;-DHAVE_PIPE2;-DHAVE_REALLOCARRAY;-DHAVE_ACCEPT4;-DHAVE_MEMRCHR;-DHAVE_MEMMEM;-DHAVE_REALLOCARRAY;-DHAVE_EXPLICIT_BZERO;-DHAVE_MEMSET_S;-DHAVE_KQUEUEX;-DHAVE_TIMINGSAFE_BCMP;-Wno-implicit-fallthrough;-Wno-strict-prototypes" Assembler="">
         <IncludePath Value="../../include"/>
       </Compiler>
       <Linker Options="">

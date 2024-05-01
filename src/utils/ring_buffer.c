@@ -688,7 +688,7 @@ r_buf_rpos_inc(r_buf_p r_buf, r_buf_rpos_p rpos, size_t data_size) {
 		data_size -= r_buf->iov[rpos->iov_index].iov_len;
 		if (0 == r_buf_rpos_index_inc(r_buf, rpos)) {
 			debug_break();
-			return; /* XXX this situation is BUG and must newer happen. */
+			return; /* XXX this situation is BUG and must never happen. */
 		}
 	}
 }

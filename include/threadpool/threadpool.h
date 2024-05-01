@@ -91,6 +91,7 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 static const char *tp_ff_time_units[] = { "s", "ms", "us", "ns", NULL };
 
 
+typedef void (*tpt_hook_cb)(tpt_p tpt);
 typedef void (*tp_cb)(tp_event_p ev, tp_udata_p tp_udata);
 
 typedef struct thread_pool_udata_s { /* Thread pool ident and opaque user data. */
@@ -119,6 +120,9 @@ typedef struct thread_pool_settings_s { /* Settings. */
 	uint32_t	flags;	/* TP_S_F_* */
 	size_t		threads_max;
 	char		name[TP_NAME_SIZE]; /* Thread pool name. Used as prefix for threads names. */
+	tpt_hook_cb	tpt_on_start; /* Called by every thread before enter event loop. Can be used with tpt_tls_*() */
+	tpt_hook_cb	tpt_on_stop; /* Called by every thread after exit from event loop, before destroy. */
+	void		*udata; /* Thread pool assosiated user data. See tp_udata_get(). Useful with tpt hooks. */
 } tp_settings_t, *tp_settings_p;
 
 #define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs. */
@@ -152,27 +156,37 @@ void	tp_shutdown(tp_p tp);
 int	tp_shutdown_wait(tp_p tp); /* Wait for all threads before return. */
 int	tp_destroy(tp_p tp);
 
-int	tp_threads_create(tp_p tp, int skip_first);
+/* Set/get thread pool assosiated user data. On create - set from settings */
+int	tp_udata_set(tp_p tp, void *udata);
+void 	*tp_udata_get(tp_p tp);
+
+int	tp_threads_create(tp_p tp, const int skip_first);
 int	tp_thread_attach_first(tp_p tp);
 int	tp_thread_dettach(tpt_p tpt);
 size_t	tp_thread_count_max_get(tp_p tp);
 size_t	tp_thread_count_get(tp_p tp);
 
-/* Return tpt_p if caller thread is thread pool thread. */
-tpt_p	tp_thread_get_current(void);
 /* Return non zero if tpt is one of tp threads.
- * If tpt is NULL - tp_thread_get_current() used to get current thread tpt. */
+ * If tpt is NULL - tpt_get_current() used to get current thread tpt. */
 int	tp_thread_is_tp_thr(tp_p tp, tpt_p tpt);
-tpt_p	tp_thread_get(tp_p tp, size_t thread_num);
+tpt_p	tp_thread_get(tp_p tp, const size_t thread_num);
 tpt_p	tp_thread_get_rr(tp_p tp);
 tpt_p	tp_thread_get_pvt(tp_p tp); /* Shared virtual thread. */
-int	tp_thread_get_cpu_id(tpt_p tpt);
-size_t	tp_thread_get_num(tpt_p tpt);
 
+/* Return tpt_p if caller thread is thread pool thread. */
+tpt_p	tpt_get_current(void);
+int	tpt_get_cpu_id(tpt_p tpt);
+size_t	tpt_get_num(tpt_p tpt);
 tp_p	tpt_get_tp(tpt_p tpt);
 int	tpt_is_running(tpt_p tpt);
 void	*tpt_get_msg_queue(tpt_p tpt);
-
+/* Thread pool thread local storage (TLS). */
+#ifndef TP_TPT_TLS_COUNT
+#	define TP_TPT_TLS_COUNT 2
+#endif
+int	tpt_tls_set(tpt_p tpt, const size_t index, void *val);
+void 	*tpt_tls_get(tpt_p tpt, const size_t index);
+size_t	tpt_tls_get_sz(tpt_p tpt, const size_t index); /* Same as tpt_tls_get(). */
 
 
 int	tpt_ev_add(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata);

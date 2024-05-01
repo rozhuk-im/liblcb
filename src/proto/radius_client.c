@@ -436,7 +436,7 @@ radius_client_destroy_tpt_msg_cb(tpt_p tpt, void *udata) {
 	radius_cli_thr_p thr;
 	size_t i;
 
-	thr = &rad_cli->thr[tp_thread_get_num(tpt)];
+	thr = &rad_cli->thr[tpt_get_num(tpt)];
 
 	if (NULL != thr->skts4.skt) {
 		for (i = 0; i < thr->skts4.skt_count; i ++) {
@@ -523,7 +523,7 @@ radius_client_socket_alloc(uint16_t family, radius_cli_thr_p thr) {
 
 	if (NULL == thr)
 		return (EINVAL);
-	if (tp_thread_get_current() != thr->tpt) {
+	if (tpt_get_current() != thr->tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return (0);
 	}
@@ -578,7 +578,7 @@ radius_client_socket_free(radius_cli_skt_p skt) {
 	if (NULL == skt)
 		return;
 	tpt = skt->thr->tpt;
-	if (tp_thread_get_current() != tpt) {
+	if (tpt_get_current() != tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
@@ -708,7 +708,7 @@ radius_client_query_done_tpt_msg_cb(tpt_p tpt, void *udata) {
 	radius_cli_query_p query = (radius_cli_query_p)udata;
 
 	SYSLOGD_EX(LOG_DEBUG, "...");
-	if (tp_thread_get_current() != tpt) {
+	if (tpt_get_current() != tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
@@ -739,7 +739,7 @@ radius_client_query(radius_cli_p rad_cli, tpt_p tpt, size_t query_id,
 	if (0 != error)
 		return (error);
 	/* Switch thread. */
-	//if (tp_thread_get_current() == tpt) {  /* No need to shedule, direct call cb. */
+	//if (tpt_get_current() == tpt) {  /* No need to shedule, direct call cb. */
 	//	radius_client_query_tpt_msg_cb(tpt, query);
 	//} else {
 		/* Try send to thread message for server "connections" terminate. */
@@ -761,7 +761,7 @@ radius_client_query_tpt_msg_cb(tpt_p tpt, void *udata) {
 	int error;
 	radius_cli_query_p query = (radius_cli_query_p)udata;
 
-	if (tp_thread_get_current() != tpt) {
+	if (tpt_get_current() != tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
@@ -795,7 +795,7 @@ radius_client_send_new(tpt_p tpt, radius_cli_query_p query) {
 	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == query)
 		return (EINVAL);
-	if (tp_thread_get_current() != tpt) {
+	if (tpt_get_current() != tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return (0);
 	}
@@ -817,7 +817,7 @@ radius_client_send_new(tpt_p tpt, radius_cli_query_p query) {
 	MTX_UNLOCK(&rad_cli->cli_srv_mtx);
 	if (NULL == srv)
 		return (ECONNREFUSED);
-	thr = &rad_cli->thr[tp_thread_get_num(tpt)];
+	thr = &rad_cli->thr[tpt_get_num(tpt)];
 	skts = ((AF_INET == srv->s.addr.ss_family) ? &thr->skts4 : &thr->skts6);
 
 	if (NULL != query->skt && skts == query->skt->skts)
@@ -912,7 +912,7 @@ radius_client_send(radius_cli_query_p query) {
 	SYSLOGD_EX(LOG_DEBUG, "...");
 	if (NULL == query)
 		return (EINVAL);
-	if (tp_thread_get_current() != query->skt->thr->tpt) {
+	if (tpt_get_current() != query->skt->thr->tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return (0);
 	}
@@ -943,7 +943,7 @@ radius_client_query_timeout_cb(tp_event_p ev __unused, tp_udata_p tp_udata) {
 	tpt_ev_enable_args1(0, TP_EV_TIMER, tp_udata);
 	if (NULL == query) /* Task already done/removed. */
 		return;
-	if (tp_thread_get_current() != query->skt->thr->tpt) {
+	if (tpt_get_current() != query->skt->thr->tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		return;
 	}
@@ -1002,7 +1002,7 @@ radius_client_recv_cb(tp_task_p tptask __unused, int error,
 	rad_pkt_hdr_p pkt;
 
 	SYSLOGD_EX(LOG_DEBUG, "...");
-	if (tp_thread_get_current() != skt->thr->tpt) {
+	if (tpt_get_current() != skt->thr->tpt) {
 		syslog(LOG_DEBUG, "tpt MISSMATCH!!!!!!!!!");
 		goto rcv_next;
 	}

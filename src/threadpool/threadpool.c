@@ -91,7 +91,9 @@ static tp_p g_tp = NULL;
 
 #ifdef BSD /* BSD specific code. */
 
-#define TPT_ITEM_EV_COUNT	64
+#ifndef TPT_ITEM_EV_COUNT
+#	define TPT_ITEM_EV_COUNT 4
+#endif
 
 static const u_short tp_op_to_flags_kq_map[] = {
 	(EV_ADD | EV_ENABLE),	/* 0: TP_CTL_ADD */
@@ -168,6 +170,7 @@ typedef struct thread_pool_thread_s { /* thread pool thread info */
 	tp_udata_t	pvt_udata;	/* Pool virtual thread support. */
 #endif	/* Linux specific code. */
 	tp_p		tp;		/*  */
+	void		*tls[TP_TPT_TLS_COUNT]; /* Thread local storage. */
 } tp_thread_t;
 
 #define TP_THREAD_STATE_STOP		0
@@ -180,11 +183,9 @@ typedef struct thread_pool_s { /* thread pool */
 	tpt_p		pvt;		/* Pool virtual thread. */
 	volatile size_t	rr_idx;
 	volatile size_t	shutdown;
-	uint32_t	flags;
-	char		name[TP_NAME_SIZE];
 	size_t		cpu_count;
 	uintptr_t	fd_count;
-	size_t		threads_max;
+	tp_settings_t	s;
 	volatile size_t	threads_cnt;	/* Worker threads count. */
 	tp_thread_t	threads[];	/* Worker threads. */
 } tp_t;
@@ -270,12 +271,12 @@ tpt_data_event_init(tpt_p tpt) {
 	struct kevent kev;
 
 	tpt->io_fd = (uintptr_t)kqueuex(
-	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? KQUEUE_CLOEXEC : 0));
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->s.flags) ? KQUEUE_CLOEXEC : 0));
 	if ((uintptr_t)-1 == tpt->io_fd)
 		return (errno);
 	/* Init threads message exchange. */
 	tpt->msg_queue = tpt_msg_queue_create(tpt,
-	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? TP_MSG_Q_F_CLOEXEC : 0));
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->s.flags) ? TP_MSG_Q_F_CLOEXEC : 0));
 	if (NULL == tpt->msg_queue)
 		return (errno);
 	if (NULL != tpt->tp->pvt &&
@@ -550,12 +551,12 @@ tpt_data_event_init(tpt_p tpt) {
 	tp_event_t ev;
 
 	tpt->io_fd = epoll_create1(
-	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? EPOLL_CLOEXEC : 0));
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->s.flags) ? EPOLL_CLOEXEC : 0));
 	if ((uintptr_t)-1 == tpt->io_fd)
 		return (errno);
 	/* Init threads message exchange. */
 	tpt->msg_queue = tpt_msg_queue_create(tpt,
-	    (0 != (TP_S_F_CLOEXEC & tpt->tp->flags) ? TP_MSG_Q_F_CLOEXEC : 0));
+	    (0 != (TP_S_F_CLOEXEC & tpt->tp->s.flags) ? TP_MSG_Q_F_CLOEXEC : 0));
 	if (NULL == tpt->msg_queue)
 		return (errno);
 	if (NULL != tpt->tp->pvt &&
@@ -994,17 +995,21 @@ tp_create(tp_settings_p s, tp_p *ptp) {
 	if (NULL == tp)
 		return (ENOMEM);
 	fd_max_count = (uintptr_t)getdtablesize();
-	tp->flags = s->flags;
-	memcpy(tp->name, s->name, TP_NAME_SIZE);
+	memcpy(&tp->s, s, sizeof(tp_settings_t));
 	tp->cpu_count = cpu_count;
-	tp->threads_max = s->threads_max;
 	tp->fd_count = fd_max_count;
+	/* Private virtual thread. */
 	tp->pvt = &tp->threads[s->threads_max];
-	error = tpt_data_init(tp, -1, (size_t)~0, &tp->threads[s->threads_max]);
+	error = tpt_data_init(tp, -1, s->threads_max, &tp->threads[s->threads_max]);
 	if (0 != error) {
 		SYSLOG_ERR(LOG_CRIT, error, "tpt_data_init() - pvt.");
 		goto err_out;
 	}
+	tp->pvt->state = TP_THREAD_STATE_RUNNING;
+	if (NULL != s->tpt_on_start) {
+		s->tpt_on_start(tp->pvt);
+	}
+
 	for (i = 0, cur_cpu = 0; i < s->threads_max; i ++, cur_cpu ++) {
 		if (0 != (TP_S_F_BIND2CPU & s->flags)) {
 			if ((size_t)cur_cpu >= cpu_count) {
@@ -1041,8 +1046,13 @@ tp_shutdown(tp_p tp) {
 	if (0 != tp->shutdown)
 		return;
 	tp->shutdown ++;
+	/* Private virtual thread. */
+	tp->pvt->state = TP_THREAD_STATE_STOP;
+	if (NULL != tp->s.tpt_on_stop) {
+		tp->s.tpt_on_stop(tp->pvt);
+	}
 	/* Shutdown threads. */
-	for (size_t i = 0; i < tp->threads_max; i ++) {
+	for (size_t i = 0; i < tp->s.threads_max; i ++) {
 		if (0 == tpt_is_running(&tp->threads[i]))
 			continue;
 		tpt_msg_send(&tp->threads[i], NULL, 0,
@@ -1064,7 +1074,7 @@ tp_shutdown_wait(tp_p tp) {
 	if (0 != tp_thread_is_tp_thr(tp, NULL))
 		return (EDEADLK);
 
-	for (size_t i = 0; i < tp->threads_max; i ++) {
+	for (size_t i = 0; i < tp->s.threads_max; i ++) {
 		if (TP_THREAD_STATE_STOP == tp->threads[i].state)
 			continue;
 		error = pthread_join(tp->threads[i].pt_id, NULL);
@@ -1105,7 +1115,7 @@ tp_destroy(tp_p tp) {
 		return (error);
 	/* Free resources. */
 	tpt_data_uninit(tp->pvt);
-	for (size_t i = 0; i < tp->threads_max; i ++) {
+	for (size_t i = 0; i < tp->s.threads_max; i ++) {
 		tpt_data_uninit(&tp->threads[i]);
 	}
 	free(tp);
@@ -1115,7 +1125,27 @@ tp_destroy(tp_p tp) {
 
 
 int
-tp_threads_create(tp_p tp, int skip_first) {
+tp_udata_set(tp_p tp, void *udata) {
+
+	if (NULL == tp)
+		return (EINVAL);
+	tp->s.udata = udata;
+	
+	return (0);
+}
+
+void *
+tp_udata_get(tp_p tp) {
+
+	if (NULL == tp)
+		return (NULL);
+	return (tp->s.udata);
+}
+
+
+
+int
+tp_threads_create(tp_p tp, const int skip_first) {
 	tpt_p tpt;
 
 	if (NULL == tp)
@@ -1123,7 +1153,7 @@ tp_threads_create(tp_p tp, int skip_first) {
 	if (0 != tp->shutdown)
 		return (EBUSY);
 
-	for (size_t i = ((0 != skip_first) ? 1 : 0); i < tp->threads_max; i ++) {
+	for (size_t i = ((0 != skip_first) ? 1 : 0); i < tp->s.threads_max; i ++) {
 		tpt = &tp->threads[i];
 		if (NULL == tpt->tp)
 			continue;
@@ -1182,7 +1212,7 @@ tp_thread_proc(void *data) {
 	tpt->state = TP_THREAD_STATE_RUNNING;
 
 	snprintf(thr_name, sizeof(thr_name), "%s: %zu",
-	    tpt->tp->name, tpt->thread_num);
+	    tpt->tp->s.name, tpt->thread_num);
 	pthread_self_name_set(thr_name);
 	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
 	syslog(LOG_INFO, "%s thread started...", thr_name);
@@ -1192,7 +1222,7 @@ tp_thread_proc(void *data) {
 	if (0 != pthread_sigmask(SIG_BLOCK, &sig_set, NULL)) {
 		SYSLOG_ERR(LOG_WARNING, errno,
 		    "%s: Can't block the SIGPIPE signal for thread %zu.",
-		    tpt->tp->name, tpt->thread_num);
+		    tpt->tp->s.name, tpt->thread_num);
 	}
 
 #ifndef DARWIN
@@ -1204,16 +1234,24 @@ tp_thread_proc(void *data) {
 		if (0 == pthread_setaffinity_np(pthread_self(),
 		    sizeof(cpu_set_t), &cs)) {
 			syslog(LOG_INFO, "%s: bind thread %zu to CPU %i.",
-			    tpt->tp->name, tpt->thread_num, tpt->cpu_id);
+			    tpt->tp->s.name, tpt->thread_num, tpt->cpu_id);
 		} else {
 			SYSLOG_ERR(LOG_WARNING, errno,
 			    "%s: can't Bind thread %zu to CPU %i.",
-			    tpt->tp->name, tpt->thread_num, tpt->cpu_id);
+			    tpt->tp->s.name, tpt->thread_num, tpt->cpu_id);
 		}
 	}
 #endif
 
+	if (NULL != tpt->tp->s.tpt_on_start) {
+		tpt->tp->s.tpt_on_start(tpt);
+	}
+
 	tpt_loop(tpt);
+
+	if (NULL != tpt->tp->s.tpt_on_stop) {
+		tpt->tp->s.tpt_on_stop(tpt);
+	}
 
 	syslog(LOG_INFO, "%s thread exited...", thr_name);
 	pthread_setspecific(tp_tls_key_tpt, NULL);
@@ -1232,7 +1270,7 @@ tp_thread_count_max_get(tp_p tp) {
 
 	if (NULL == tp)
 		return (0);
-	return (tp->threads_max);
+	return (tp->s.threads_max);
 }
 
 size_t
@@ -1241,7 +1279,7 @@ tp_thread_count_get(tp_p tp) {
 
 	if (NULL == tp)
 		return (0);
-	for (i = 0, cnt = 0; i < tp->threads_max; i ++) {
+	for (i = 0, cnt = 0; i < tp->s.threads_max; i ++) {
 		if (0 == tpt_is_running(&tp->threads[i]))
 			continue;
 		cnt ++;
@@ -1250,31 +1288,24 @@ tp_thread_count_get(tp_p tp) {
 }
 
 
-tpt_p
-tp_thread_get_current(void) {
-	/* TLS magic. */
-	return ((tpt_p)pthread_getspecific(tp_tls_key_tpt));
-}
-
 int
 tp_thread_is_tp_thr(tp_p tp, tpt_p tpt) {
 
 	if (NULL == tp)
 		return (0);
 	if (NULL == tpt) {
-		tpt = tp_thread_get_current();
+		tpt = tpt_get_current();
 	}
 	return ((NULL != tpt && tpt->tp == tp));
 }
 
 tpt_p
-tp_thread_get(tp_p tp, size_t thread_num) {
+tp_thread_get(tp_p tp, const size_t thread_num) {
 
 	if (NULL == tp)
 		return (NULL);
-	if (tp->threads_max <= thread_num) {
-		thread_num = (tp->threads_max - 1);
-	}
+	if (tp->s.threads_max <= thread_num)
+		return (NULL);
 	return (&tp->threads[thread_num]);
 }
 
@@ -1284,7 +1315,7 @@ tp_thread_get_rr(tp_p tp) {
 	if (NULL == tp)
 		return (NULL);
 	tp->rr_idx ++;
-	if (tp->threads_max <= tp->rr_idx) {
+	if (tp->s.threads_max <= tp->rr_idx) {
 		tp->rr_idx = 0;
 	}
 	return (&tp->threads[tp->rr_idx]);
@@ -1296,11 +1327,19 @@ tp_thread_get_pvt(tp_p tp) {
 
 	if (NULL == tp)
 		return (NULL);
-	return (tp->pvt /* tp->threads[0] */);
+	return (tp->pvt);
+}
+
+
+
+tpt_p
+tpt_get_current(void) {
+	/* TLS magic. */
+	return ((tpt_p)pthread_getspecific(tp_tls_key_tpt));
 }
 
 int
-tp_thread_get_cpu_id(tpt_p tpt) {
+tpt_get_cpu_id(tpt_p tpt) {
 
 	if (NULL == tpt)
 		return (-1);
@@ -1308,14 +1347,12 @@ tp_thread_get_cpu_id(tpt_p tpt) {
 }
 
 size_t
-tp_thread_get_num(tpt_p tpt) {
+tpt_get_num(tpt_p tpt) {
 
 	if (NULL == tpt)
 		return ((size_t)-1);
 	return (tpt->thread_num);
 }
-
-
 
 tp_p
 tpt_get_tp(tpt_p tpt) {
@@ -1340,6 +1377,37 @@ tpt_get_msg_queue(tpt_p tpt) {
 	if (NULL == tpt)
 		return (NULL);
 	return (tpt->msg_queue);
+}
+
+int
+tpt_tls_set(tpt_p tpt, const size_t index, void *val) {
+
+	if (NULL == tpt ||
+	    TP_TPT_TLS_COUNT <= index)
+		return (EINVAL);
+
+	tpt->tls[index] = val;
+
+	return (0);
+}
+
+void *
+tpt_tls_get(tpt_p tpt, const size_t index) {
+
+	if (NULL == tpt ||
+	    TP_TPT_TLS_COUNT <= index)
+		return (NULL);
+
+	return (tpt->tls[index]);
+}
+size_t
+tpt_tls_get_sz(tpt_p tpt, const size_t index) {
+
+	if (NULL == tpt ||
+	    TP_TPT_TLS_COUNT <= index)
+		return (0);
+
+	return ((size_t)tpt->tls[index]);
 }
 
 

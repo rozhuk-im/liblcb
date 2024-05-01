@@ -37,6 +37,11 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <syslog.h>
+#ifdef _MSC_VER
+#	include <intrin.h>
+#else
+#	include <signal.h>
+#endif
 
 #ifndef IOV_MAX
 #	include <limits.h>
@@ -151,15 +156,13 @@
 
 
 __attribute__((gnu_inline, always_inline))
-static inline int
+static inline void
 debug_break(void) {
 #ifdef _MSC_VER
-#	include <intrin.h>
 	__debugbreak();
-#elif 1
+#elif 0
 	__builtin_trap();
 #else
-#	include <signal.h>
 	raise(SIGTRAP);
 #endif
 }

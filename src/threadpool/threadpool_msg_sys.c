@@ -286,7 +286,7 @@ tpt_msg_send(tpt_p dst, tpt_p src, uint32_t flags,
 		return (EINVAL);
 	if (0 != (TP_MSG_F_SELF_DIRECT & flags)) {
 		if (NULL == src) {
-			src = tp_thread_get_current();
+			src = tpt_get_current();
 		}
 		if (src == dst) { /* Self. */
 			msg_cb(dst, udata);
@@ -307,7 +307,6 @@ tpt_msg_send(tpt_p dst, tpt_p src, uint32_t flags,
 	if (sizeof(msg) == write(msg_queue->fd[1], &msg, sizeof(msg)))
 		return (0);
 	/* Error. */
-	debugd_break();
 	if (0 != (TP_MSG_F_FAIL_DIRECT & flags)) {
 		msg_cb(dst, udata);
 		return (0);
@@ -378,7 +377,7 @@ tpt_msg_bsend_ex(tp_p tp, tpt_p src, uint32_t flags,
 		goto err_out;
 	}
 	if (NULL == src) {
-		src = tp_thread_get_current();
+		src = tpt_get_current();
 	}
 	/* 1 thread specific. */
 	if (1 == threads_max &&
@@ -482,7 +481,7 @@ tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
 	    0 != ((TP_BMSG_F_SYNC | TP_BMSG_F_SYNC_USLEEP) & flags))
 		return (EINVAL);
 	if (NULL == src) {
-		src = tp_thread_get_current();
+		src = tpt_get_current();
 	}
 	if (NULL == src) /* Cant do final callback. */
 		return (EINVAL);
@@ -549,7 +548,7 @@ tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
 	if (NULL == aop)
 		return (NULL);
 	if (NULL == dst) {
-		dst = tp_thread_get_current();
+		dst = tpt_get_current();
 	}
 	aop->tpt = dst;
 	aop->op_cb = op_cb;
