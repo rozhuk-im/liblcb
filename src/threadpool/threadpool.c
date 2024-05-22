@@ -660,7 +660,9 @@ err_out_timer:
 		}
 
 		if (0 == tfd) { /* Create timer, if needed. */
-			tfd = timerfd_create(clockid, TFD_NONBLOCK);
+			tfd = timerfd_create(clockid,
+			    (TFD_NONBLOCK |
+			     (0 != (TP_S_F_CLOEXEC & tp_udata->tpt->tp->s.flags) ? TFD_CLOEXEC : 0)));
 			if (-1 == tfd) {
 				tp_udata->tpdata = 0;
 				return (errno);
