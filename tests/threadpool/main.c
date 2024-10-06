@@ -43,6 +43,8 @@
 #include <errno.h>
 #include <err.h>
 #include <syslog.h>
+#include <spawn.h>
+#include <fcntl.h>
 
 #include <CUnit/Automated.h>
 #include <CUnit/Basic.h>
@@ -63,11 +65,15 @@
 #define TEST_EV_CNT_MAX			12
 #define TEST_TIMER_ID			36434632 /* Random value. */
 #define TEST_TIMER_INTERVAL		30
+#define TEST_PROC_INTERVAL		1 /* sec */
+#define TEST_PROC_INTERVAL_STR		"1"
 #define TEST_SLEEP_TIME_MS		1000
 
+extern char **	environ;
 static tp_p 	tp = NULL;
 static size_t	threads_count;
 static int 	pipe_fd[2] = {-1, -1};
+static pid_t	pid;
 static uint8_t	thr_arr[(THREADS_COUNT_MAX + 4)];
 static uint8_t	thr_tls_arr[(THREADS_COUNT_MAX + 4)];
 static size_t	thr_flood_arr[(THREADS_COUNT_MAX + 4)];
@@ -120,6 +126,7 @@ static void	test_tpt_ev_add_ex_tmr_dispatch(void);
 #ifdef TP_F_EDGE
 static void	test_tpt_ev_add_ex_tmr_edge(void);
 #endif
+static void	test_tpt_ev_add_ex_proc_0(void);
 static void	test_tp_pvt_msg_flood(void);
 
 
@@ -189,6 +196,8 @@ main(int argc __unused, char *argv[] __unused) {
 #ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
 #endif
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_PROC, 0)", test_tpt_ev_add_ex_proc_0) ||
+	    0 ||
 	    NULL == CU_add_test(psuite, "test of test_tp_pvt_msg_flood()", test_tp_pvt_msg_flood) ||
 	    NULL == CU_add_test(psuite, "test of test_tp_destroy()", test_tp_destroy) ||
 	    NULL == CU_add_test(psuite, "test of test_tp_tpt_hooks()", test_tp_tpt_hooks) ||
@@ -231,6 +240,8 @@ main(int argc __unused, char *argv[] __unused) {
 #ifdef TP_F_EDGE
 	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_TIMER, TP_F_EDGE)", test_tpt_ev_add_ex_tmr_edge) ||
 #endif
+	    NULL == CU_add_test(psuite, "test of tpt_ev_add_args(TP_EV_PROC, 0)", test_tpt_ev_add_ex_proc_0) ||
+	    0 ||
 	    NULL == CU_add_test(psuite, "test of test_tp_pvt_msg_flood()", test_tp_pvt_msg_flood) ||
 	    NULL == CU_add_test(psuite, "test of test_tp_destroy()", test_tp_destroy) ||
 	    NULL == CU_add_test(psuite, "test of test_tp_tpt_hooks()", test_tp_tpt_hooks) ||
@@ -874,6 +885,68 @@ test_tpt_ev_add_ex_tmr_edge(void) {
 	test_tpt_ev_add_ex_tmr(TP_F_EDGE, TEST_EV_CNT_MAX, 1);
 }
 #endif
+
+
+static void
+tpt_ev_add_proc_cb(tp_event_p ev, tp_udata_p tp_udata) {
+
+	CU_ASSERT(TP_EV_PROC == ev->event)
+	CU_ASSERT(tpt_ev_add_proc_cb == tp_udata->cb_func)
+	CU_ASSERT((uintptr_t)pid == tp_udata->ident)
+
+	if (TP_EV_PROC == ev->event &&
+	    tpt_ev_add_proc_cb == tp_udata->cb_func &&
+	    (uintptr_t)pid == tp_udata->ident) {
+		thr_arr[0] ++;
+		if (TEST_EV_CNT_MAX <= thr_arr[0]) {
+			tpt_ev_enable_args1(0, TP_EV_PROC, tp_udata);
+		}
+	}
+}
+static void
+test_tpt_ev_add_ex_proc_0(void) {
+	tp_udata_t tp_udata;
+	posix_spawn_file_actions_t actions;
+	char *const argv[] = { "sleep", TEST_PROC_INTERVAL_STR, NULL, NULL };
+
+	/* Init. */
+	thr_arr[0] = 0;
+	memset(&tp_udata, 0x00, sizeof(tp_udata));
+
+	/* Start process to track... */
+	CU_ASSERT(0 == posix_spawn_file_actions_init(&actions))
+	/* Do not pass all fd~s to child. */
+#ifdef HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSEFROM_NP
+	CU_ASSERT(0 == posix_spawn_file_actions_addclosefrom_np(&actions, (STDERR_FILENO + 1)))
+#elif defined(CLOSE_RANGE_CLOEXEC)
+	CU_ASSERT(-1 != close_range((STDERR_FILENO + 1), ~0U, CLOSE_RANGE_CLOEXEC))
+#else
+	for (int tfd = (STDERR_FILENO + 1); tfd < 1024; tfd ++) {
+		fcntl(tfd, F_SETFD, FD_CLOEXEC);
+	}
+#endif
+	CU_ASSERT(0 == posix_spawnp(&pid, argv[0], &actions, NULL, argv, environ))
+	posix_spawn_file_actions_destroy(&actions);
+
+
+	tp_udata.cb_func = tpt_ev_add_proc_cb;
+	tp_udata.ident = (uintptr_t)pid;
+	if (0 != tpt_ev_add_args(tp_thread_get(tp, 0), TP_EV_PROC, 0,
+	    TP_FF_P_EXIT, 0, &tp_udata)) {
+		CU_FAIL("tpt_ev_add_args(TP_EV_PROC)") /* Fail. */
+		tpt_ev_del_args1(TP_EV_PROC, &tp_udata);
+		return; /* Fail. */
+	}
+	/* Wait for all threads process. */
+	test_sleep((TEST_SLEEP_TIME_MS + ((TEST_PROC_INTERVAL * 1000) * 2)));
+	if (1 != thr_arr[0]) {
+		CU_FAIL("tpt_ev_add_args(TP_EV_PROC) - not work") /* Fail. */
+		LOG_CONS_INFO_FMT("%i", (int)thr_arr[0]);
+	}
+	/* Clean. */
+	CU_ASSERT(0 != tpt_ev_del_args1(TP_EV_PROC, &tp_udata))
+}
+
 
 static void
 msg_send_pvt_msg_flood_cb(tpt_p tpt __unused, void *udata) {

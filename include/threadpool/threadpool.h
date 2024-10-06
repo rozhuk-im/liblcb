@@ -56,7 +56,8 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_EV_READ	0 /* EVFILT_READ	EPOLLIN | EPOLLRDHUP | EPOLLERR */
 #define TP_EV_WRITE	1 /* EVFILT_WRITE	EPOLLOUT | EPOLLERR */
 #define TP_EV_TIMER	2 /* EVFILT_TIMER	TP_EV_READ + timerfd_create */
-#define TP_EV_LAST	TP_EV_TIMER
+#define TP_EV_PROC	3 /* EVFILT_PROC	TP_EV_READ + pidfd_open */
+#define TP_EV_LAST	TP_EV_PROC
 #define TP_EV_MASK	0x0003u /* For internal use: event set mask. */
 
 /* Event flags. */
@@ -73,10 +74,12 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_F_EOF	(((uint16_t)1) << 8) /* Ret: EV_EOF		EPOLLRDHUP */
 #define TP_F_ERROR	(((uint16_t)1) << 9) /* Ret: EV_EOF+fflags	EPOLLERR +  getsockopt(SO_ERROR) */ /* fflags contain error code. */
 
+
 /* Event fflags. */
 /* TP_EV_READ/TP_EV_WRITE specific. */
 #define TP_FF_RW_LOWAT	(((uint32_t)1) << 0) /* For sockets: set SO_RCVLOWAT/SO_SNDLOWAT. */
 #define TP_FF_RW_MASK	0x00000001u /* For internal use: fflags set mask. */
+
 /* TP_EV_TIMER specific: if not set - the default is seconds. */
 /* Data units selection ENUM for timer: select only one. */
 #define TP_FF_T_SEC	0x00000000u /* data is seconds. */
@@ -89,6 +92,11 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_FF_T_MASK	0x00000007u /* For internal use: fflags set mask. */
 
 static const char *tp_ff_time_units[] = { "s", "ms", "us", "ns", NULL };
+
+/* TP_EV_PROC specific: if not set - the default is seconds. */
+#define TP_FF_P_EXIT	(((uint32_t)1) << 0) /* The process has exited. The exit status will be stored in data. */
+#define TP_FF_P_MASK	0x00000001u /* For internal use: fflags set mask. */
+
 
 
 typedef void (*tpt_hook_cb)(tpt_p tpt);

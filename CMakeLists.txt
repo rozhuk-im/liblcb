@@ -103,6 +103,7 @@ chk_function_exists(kqueuex)
 chk_function_exists(rtprio)
 chk_function_exists(pthread_setname_np)
 chk_function_exists(pthread_set_name_np)
+chk_function_exists(posix_spawn_file_actions_addclosefrom_np)
 
 # Check macros.
 chk_symbol_exists(sys/socket.h SOCK_CLOEXEC)
