@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -141,6 +141,7 @@ typedef struct http_srv_settings_s { /* Settings */
 /* Request processing flags. */
 #define HTTP_SRV_REQ_P_F_CONNECTION	(((uint32_t)1) <<  0) /* process 'connection' header value. */
 #define HTTP_SRV_REQ_P_F_HOST		(((uint32_t)1) <<  1) /* process 'host' header value. */
+#define HTTP_SRV_REQ_P_F_HOST_ANY_PORT	(((uint32_t)1) <<  2) /* process 'host' header value, ignore port match. */
 /* Responce processing flags. */
 #define HTTP_SRV_RESP_P_F_CONN_CLOSE	(((uint32_t)1) <<  0) /* force 'Connection: close', use single IO_BUF for send and recv. */
 #define HTTP_SRV_RESP_P_F_SERVER	(((uint32_t)1) <<  1) /* add 'Server' in answer. */

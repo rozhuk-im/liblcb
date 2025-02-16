@@ -6,7 +6,7 @@
 
 Light Code Base
 
-Rozhuk Ivan <rozhuk.im@gmail.com> 2011-2024
+Rozhuk Ivan <rozhuk.im@gmail.com> 2011-2025
 
 Statically linked code library.
 Compile and include only things that you need.

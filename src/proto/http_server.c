@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1324,7 +1324,8 @@ conn_from_net_to_loopback:
 		if (0 == host_port) { /* Def http port. */
 			host_port = HTTP_PORT;
 		}
-		if (sa_port_get(&bnd->s.addr) == host_port &&
+		if ((0 != (HTTP_SRV_REQ_P_F_HOST_ANY_PORT & srv->s.req_p_flags) ||
+		     sa_port_get(&bnd->s.addr) == host_port) &&
 		    (0 == hostname_list_check_any(&bnd->hst_name_lst) ||
 		     0 == hostname_list_check_any(&srv->hst_name_lst))) {
 			cli->req.flags |= HTTP_SRV_RD_F_HOST_IS_LOCAL;
@@ -1333,7 +1334,8 @@ conn_from_net_to_loopback:
 		arg = NULL; /* Addr info cache. */
 		for (i = 0; i < srv->bind_count; i ++) {
 			if (srv->bnd[i]->s.addr.ss_family != addr.ss_family ||
-			    sa_port_get(&srv->bnd[i]->s.addr) != host_port) /* not equal port! */
+			    (0 == (HTTP_SRV_REQ_P_F_HOST_ANY_PORT & srv->s.req_p_flags) &&
+			     sa_port_get(&srv->bnd[i]->s.addr) != host_port)) /* not equal port! */
 				continue;
 			if (0 == sa_addr_is_specified(&srv->bnd[i]->s.addr)) {
 				/* Binded to: 0.0.0.0 or [::]. */
@@ -1368,7 +1370,8 @@ conn_from_net_to_loopback:
 		    0 == sa_addr_is_loopback(&cli->addr)) /* from ext host? */
 			goto conn_from_net_to_loopback;
 		/* Is hostname point to this host? */
-		if (sa_port_get(&bnd->s.addr) == host_port &&
+		if ((0 != (HTTP_SRV_REQ_P_F_HOST_ANY_PORT & srv->s.req_p_flags) ||
+		     sa_port_get(&bnd->s.addr) == host_port) &&
 		    (0 != action ||
 		     0 == hostname_list_check(&bnd->hst_name_lst, cli->req.host, tm) ||
 		     0 == hostname_list_check(&srv->hst_name_lst, cli->req.host, tm))) {
