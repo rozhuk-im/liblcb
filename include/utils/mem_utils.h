@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -516,11 +516,7 @@ mapalloc_fd(uintptr_t fd, const size_t size) {
 		return (NULL);
 	/* Set flags. */
 	if (((uintptr_t)-1) == fd) { /* From virt mem. */
-		fd = ((uintptr_t)-1);
-		flags |= MAP_ANONYMOUS;
-#ifdef __linux__ /* Linux specific code. */
-		flags |= MAP_PRIVATE;
-#endif /* Linux specific code. */
+		flags |= (MAP_PRIVATE | MAP_ANON);
 	} else { /* From file. */
 		flags |= MAP_SHARED;
 	}
@@ -537,7 +533,7 @@ mapalloc_fd(uintptr_t fd, const size_t size) {
 	     | MAP_HUGETLB
 #endif /* Linux specific code. */
 	    ), (int)fd, 0);
-	if (MAP_FAILED == buf) { /* Retry without super/huge pages */
+	if (MAP_FAILED == buf) { /* Retry without super/huge pages. */
 		buf = mmap(NULL, size, (PROT_READ | PROT_WRITE), flags,
 		    (int)fd, 0);
 		if (MAP_FAILED == buf)
