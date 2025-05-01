@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2012-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2012-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -290,7 +290,7 @@ r_buf_rpos_check(r_buf_p r_buf, r_buf_rpos_p rpos, size_t *drop_size_ret) {
 	size_t drop_size;
 
 	/* Paranoid check. */
-	if (r_buf->iov[rpos->iov_index].iov_len <= rpos->iov_off) {
+	if (r_buf->iov[rpos->iov_index].iov_len < rpos->iov_off) {
 		rpos->iov_off = 0;
 	}
 	/* Reader at current round, ckecks. */
@@ -351,7 +351,8 @@ r_buf_rpos_check(r_buf_p r_buf, r_buf_rpos_p rpos, size_t *drop_size_ret) {
 
 
 r_buf_p
-r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
+r_buf_alloc(uintptr_t fd, size_t size, const size_t min_block_size,
+    const uint32_t flags) {
 	r_buf_p r_buf;
 	size_t page_size;
 
@@ -383,6 +384,7 @@ r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size) {
 	//r_buf->iov_index = ~0; /* r_buf_wbuf_get() increment this, set to: -1. */
 	r_buf->buf_max = (r_buf->buf + r_buf->size);
 	r_buf->min_block_size = min_block_size;
+	r_buf->flags = (RBUF_F_U__MASK__ & flags);
 
 	return (r_buf);
 
@@ -457,6 +459,9 @@ r_buf_wbuf_get(r_buf_p r_buf, size_t min_buf_size, uint8_t **buf) {
 	if (buf_size < min_buf_size || /* Not enough space at buf end. */
 	    buf_size < r_buf->min_block_size /*||
 	    r_buf->iov_count == r_buf->iov_index*/) { /* Paranoid check. */
+		if (0 != (RBUF_F_U_KEEP_TAIL & r_buf->flags)) { /* Keep possible tailed data. */
+			memmove(r_buf->buf, (r_buf->buf + r_buf->wpos), buf_size);
+		}
 		buf_size = r_buf->size;
 		r_buf->wpos = 0;
 		r_buf->iov_index_max = (r_buf->iov_index - 1);
@@ -466,7 +471,9 @@ r_buf_wbuf_get(r_buf_p r_buf, size_t min_buf_size, uint8_t **buf) {
 		r_buf->iov[r_buf->iov_index].iov_len = 0;
 	}
 	r_buf->iov[r_buf->iov_index].iov_base = (r_buf->buf + r_buf->wpos);
-	(*buf) = r_buf->iov[r_buf->iov_index].iov_base;
+	if (NULL != buf) {
+		(*buf) = r_buf->iov[r_buf->iov_index].iov_base;
+	}
 
 	return (buf_size);
 }

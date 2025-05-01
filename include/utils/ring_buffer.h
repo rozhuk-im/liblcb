@@ -59,8 +59,12 @@ typedef struct r_buf_s { /* Ring buf. */
 	uint32_t	flags;		/* Flags. */
 } r_buf_t, *r_buf_p;
 
-#define RBUF_F_FRAG	(((uint32_t)1) << 0) /* Fragmented. */
-#define RBUF_F_FULL	(((uint32_t)1) << 1) /* Buffer is full: to detect round_num == 0 but data available. */
+/* Int set flags */
+#define RBUF_F_FRAG		(((uint32_t)1) << 0) /* Fragmented. */
+#define RBUF_F_FULL		(((uint32_t)1) << 1) /* Buffer is full: to detect round_num == 0 but data available. */
+/* User set flags. */
+#define RBUF_F_U__MASK__	0xffff0000
+#define RBUF_F_U_KEEP_TAIL	(((uint32_t)1) << 16) /* Move tail data to head on buffer full. */
 
 
 typedef struct r_buf_rpos_s { /* Ring buf read pos. */
@@ -82,7 +86,8 @@ int	r_buf_rpos_init_near(r_buf_p r_buf, r_buf_rpos_p rpos,
 	    size_t data_size, r_buf_rpos_p rposs, size_t rposs_cnt);
 int	r_buf_rpos_check_fast(r_buf_p r_buf, r_buf_rpos_p rpos);
 
-r_buf_p	r_buf_alloc(uintptr_t fd, size_t size, size_t min_block_size);
+r_buf_p	r_buf_alloc(uintptr_t fd, size_t size, const size_t min_block_size,
+    const uint32_t flags);
 void	r_buf_free(r_buf_p r_buf);
 
 size_t	r_buf_wbuf_get(r_buf_p r_buf, size_t min_buf_size, uint8_t **buf);
