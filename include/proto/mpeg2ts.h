@@ -781,21 +781,25 @@ mpeg2_ts_pkt_size_detect(const uint8_t *buf, const size_t buf_size,
 static inline int
 mpeg2_ts_pkt_get_next(const uint8_t *buf, const size_t buf_size,
     const size_t off, const size_t mpeg2_ts_pkt_size, uint8_t **pkt) {
-	const uint8_t *ptm/*, *buf_end*/;
+	const uint8_t *ptm, *buf_end;
 	const size_t _buf_size = (buf_size - (mpeg2_ts_pkt_size - 1));
 
-	if (mpeg2_ts_pkt_size > (buf_size - off))
+	if (mpeg2_ts_pkt_size > (buf_size - off)) {
+		(*pkt) = NULL;
 		return (0);
+	}
 	ptm = (buf + off);
 	if (0 != MPEG2_TS_HDR_IS_VALID((const mpeg2_ts_hdr_t*)ptm)) {
 		(*pkt) = (uint8_t*)ptm;
 		return (1);
 	}
-	/*buf_end = (buf + buf_size);*/
+	buf_end = (buf + buf_size);
 	for (;;) {
 		ptm = mem_chr_ptr(ptm, buf, _buf_size, MPEG2_TS_SB);
-		if (NULL == ptm)
+		if (NULL == ptm) {
+			(*pkt) = NULL;
 			return (0);
+		}
 		if (0 == MPEG2_TS_HDR_IS_VALID((const mpeg2_ts_hdr_t*)ptm)) {
 			ptm ++;
 			continue;
@@ -806,12 +810,12 @@ mpeg2_ts_pkt_get_next(const uint8_t *buf, const size_t buf_size,
 			ptm ++;
 			continue;
 		}
+#endif
 		if (mpeg2_ts_pkt_size < (buf_end - ptm) && /* Next packet check. */
 		    0 == MPEG2_TS_HDR_IS_VALID(MPEG2_TS_HDR_GET_NEXT(ptm, mpeg2_ts_pkt_size))) {
 			ptm ++;
 			continue;
 		}
-#endif
 		(*pkt) = (uint8_t*)ptm;
 		break;
 	}
