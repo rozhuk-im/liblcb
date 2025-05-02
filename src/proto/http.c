@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2010 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2010-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -349,7 +349,10 @@ http_get_method_fast(const uint8_t *m, size_t m_size) {
 }
 
 int
-http_get_transfer_encoding_fast(uint8_t *c, size_t c_size) {
+http_get_transfer_encoding_fast(const uint8_t *c, const size_t c_size) {
+
+	if (NULL == c || 0 == c_size)
+		return (HTTP_REQ_TE_NONE);
 
 	switch (c_size) {
 	case 4:
@@ -948,6 +951,30 @@ http_query_val_del(uint8_t *query, size_t query_size, const uint8_t *val_name,
  * dataCRLF
  * HexNum
  */
+int
+http_data_chunked_size(const uint8_t *buf, const size_t buf_size,
+    size_t *chunk_size, size_t *chunk_marker_size) {
+	uint8_t *ptr_end;
+
+	if (NULL == buf || 5 > buf_size) /* 5 - min size: CRLF + num + CRLF */
+		return (EINVAL);
+	if ('\r' != buf[0] || '\n' != buf[1])
+		return (EINVAL);
+	ptr_end = mem_find_off(2, buf, buf_size, CRLF, 2);
+	if (NULL == ptr_end ||
+	    3 > (ptr_end - buf))
+		return (EINVAL);
+
+	if (NULL != chunk_size) {
+		(*chunk_size) = ustrh2usize((buf + 2), (size_t)((ptr_end - (buf + 2))));
+	}
+	if (NULL != chunk_marker_size) {
+		(*chunk_marker_size) = (size_t)((ptr_end - buf) + 2);
+	}
+
+	return (0);
+}
+
 int
 http_data_decode_chunked(uint8_t *data, size_t data_size,
     uint8_t **data_ret, size_t *data_ret_size) {

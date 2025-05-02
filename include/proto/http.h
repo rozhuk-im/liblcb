@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2010 - 2017 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2010-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,39 +57,39 @@
 #define HTTPS_PORT	443
 
 
-static const uint8_t *HTTPReqMethod[] = {
-	NULL,				// UNKNOWN
-	(const uint8_t*)"OPTIONS",	// 9.2
-	(const uint8_t*)"GET",		// 9.3
-	(const uint8_t*)"HEAD",		// 9.4
-	(const uint8_t*)"POST",		// 9.5
-	(const uint8_t*)"PUT",		// 9.6
-	(const uint8_t*)"DELETE",	// 9.7
-	(const uint8_t*)"TRACE",	// 9.8
-	(const uint8_t*)"CONNECT",	// 9.9
-	(const uint8_t*)"NOTIFY",	// UPnP
-	(const uint8_t*)"M-SEARCH",	// UPnP
-	(const uint8_t*)"M-POST",	// UPnP
-	(const uint8_t*)"SUBSCRIBE",	// UPnP
-	(const uint8_t*)"UNSUBSCRIBE",	// UPnP
+static const char *HTTPReqMethod[] = {
+	NULL,		// UNKNOWN
+	"OPTIONS",	// 9.2
+	"GET",		// 9.3
+	"HEAD",		// 9.4
+	"POST",		// 9.5
+	"PUT",		// 9.6
+	"DELETE",	// 9.7
+	"TRACE",	// 9.8
+	"CONNECT",	// 9.9
+	"NOTIFY",	// UPnP
+	"M-SEARCH",	// UPnP
+	"M-POST",	// UPnP
+	"SUBSCRIBE",	// UPnP
+	"UNSUBSCRIBE",	// UPnP
 	NULL
 };
 
 static const size_t HTTPReqMethodSize[] = {
 	0,	// UNKNOWN
-	7,	//"OPTIONS",	// 9.2
-	3,	//"GET",	// 9.3
-	4,	//"HEAD",	// 9.4
-	4,	//"POST",	// 9.5
-	3,	//"PUT",	// 9.6
-	6,	//"DELETE",	// 9.7
-	5,	//"TRACE",	// 9.8
-	7,	//"CONNECT"	// 9.9
-	6,	//"NOTIFY"	// UPnP
-	8,	//"M-SEARCH"	// UPnP
-	6,	//"M-POST"	// UPnP
-	9,	//"SUBSCRIBE"	// UPnP
-	11,	//"UNSUBSCRIBE"	// UPnP
+	7,	// "OPTIONS",	// 9.2
+	3,	// "GET",	// 9.3
+	4,	// "HEAD",	// 9.4
+	4,	// "POST",	// 9.5
+	3,	// "PUT",	// 9.6
+	6,	// "DELETE",	// 9.7
+	5,	// "TRACE",	// 9.8
+	7,	// "CONNECT"	// 9.9
+	6,	// "NOTIFY"	// UPnP
+	8,	// "M-SEARCH"	// UPnP
+	6,	// "M-POST"	// UPnP
+	9,	// "SUBSCRIBE"	// UPnP
+	11,	// "UNSUBSCRIBE"// UPnP
 	0
 };
 
@@ -110,16 +110,18 @@ static const size_t HTTPReqMethodSize[] = {
 #define HTTP_REQ_METHOD__COUNT__	14
 
 
-static const uint8_t *HTTPTransferEncoding[] = {
-	NULL,				// UNKNOWN
-	(const uint8_t*)"chunked",	// Section 4.1
-	(const uint8_t*)"compress",	// Section 4.2.1
-	(const uint8_t*)"deflate",	// Section 4.2.2
-	(const uint8_t*)"gzip",		// Section 4.2.3
+static const char *HTTPTransferEncoding[] = {
+	NULL,			// NONE
+	NULL,			// UNKNOWN
+	"chunked",		// Section 4.1
+	"compress",		// Section 4.2.1
+	"deflate",		// Section 4.2.2
+	"gzip",			// Section 4.2.3
 	NULL
 };
 
 static const size_t HTTPTransferEncodingSize[] = {
+	0,			// NONE
 	0,			// UNKNOWN
 	7,			// Section 4.1
 	8,			// Section 4.2.1
@@ -128,18 +130,18 @@ static const size_t HTTPTransferEncodingSize[] = {
 	0
 };
 
-#define HTTP_REQ_TE_UNKNOWN		0
-#define HTTP_REQ_TE_CHUNKED		1
-#define HTTP_REQ_TE_COMPRESS		2
-#define HTTP_REQ_TE_DEFLATE		3
-#define HTTP_REQ_TE_GZIP		4
-#define HTTP_REQ_TE__COUNT__		5
+#define HTTP_REQ_TE_NONE		0
+#define HTTP_REQ_TE_UNKNOWN		1
+#define HTTP_REQ_TE_CHUNKED		2
+#define HTTP_REQ_TE_COMPRESS		3
+#define HTTP_REQ_TE_DEFLATE		4
+#define HTTP_REQ_TE_GZIP		5
 
 
 const char *http_get_err_descr(uint32_t status_code, size_t *descr_size_ret);
 
 uint32_t http_get_method_fast(const uint8_t *m, size_t m_size);
-int	http_get_transfer_encoding_fast(uint8_t *c, size_t c_size);
+int	http_get_transfer_encoding_fast(const uint8_t *c, const size_t c_size);
 
 int	http_req_sec_chk(const uint8_t *http_hdr, size_t hdr_size, uint32_t method_code);
 
@@ -210,6 +212,8 @@ int	http_query_val_get(const uint8_t *query, size_t query_size,
 size_t	http_query_val_del(uint8_t *query, size_t query_size,
 	    const uint8_t *val_name, size_t val_name_size, size_t *query_size_ret);
 
+int	http_data_chunked_size(const uint8_t *buf, const size_t buf_size,
+	    size_t *chunk_size, size_t *chunk_marker_size);
 int	http_data_decode_chunked(uint8_t *data, size_t data_size,
 	    uint8_t **data_ret, size_t *data_ret_size);
 
