@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2003-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -107,7 +107,7 @@ static void *(*volatile sha1_memset_volatile)(void*, int, size_t) = memset;
 #define SHA1_HASH_STR_SIZE	(SHA1_HASH_SIZE * 2)
 #define SHA1_MSG_BLK_SIZE	((size_t)64) /* 512 bit */
 #define SHA1_MSG_BLK_SIZE_MASK	(SHA1_MSG_BLK_SIZE - 1)
-#define SHA1_MSG_BLK_64CNT	(SHA1_MSG_BLK_SIZE / sizeof(uint64_t)) /* 16 */
+#define SHA1_MSG_BLK_64CNT	(SHA1_MSG_BLK_SIZE / sizeof(uint64_t)) /* 8 */
 
 
 /* Define the SHA1 circular left shift macro. */

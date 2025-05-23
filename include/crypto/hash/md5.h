@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2003-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2003-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ static void *(*volatile md5_memset_volatile)(void*, int, size_t) = memset;
 #define MD5_HASH_STR_SIZE	(MD5_HASH_SIZE * 2)
 #define MD5_MSG_BLK_SIZE	64 /* 512 bit. */
 #define MD5_MSG_BLK_SIZE_MASK	(MD5_MSG_BLK_SIZE - 1)
-#define MD5_MSG_BLK_64CNT	(MD5_MSG_BLK_SIZE / sizeof(uint64_t)) /* 16 */
+#define MD5_MSG_BLK_64CNT	(MD5_MSG_BLK_SIZE / sizeof(uint64_t)) /* 8 */
 
 
 /* Constants. */
