@@ -104,13 +104,9 @@ int	skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size,
 #ifndef SF_MNOWAIT
 #define SF_MNOWAIT 0
 #endif
-#ifndef SF_SYNC
-#define SF_SYNC 0
-#endif
 
 #define SKT_SF_F_NODISKIO	SF_NODISKIO
 #define SKT_SF_F_MNOWAIT	SF_MNOWAIT
-#define SKT_SF_F_SYNC		SF_SYNC
 
 int	skt_listen(uintptr_t skt, int backlog);
 
