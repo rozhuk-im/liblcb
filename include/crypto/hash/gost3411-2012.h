@@ -1966,7 +1966,7 @@ gost3411_2012_get_digest(const size_t bits,
 	gost3411_2012_ctx_t ctx;
 
 	gost3411_2012_init(bits, &ctx);
-	gost3411_2012_update(&ctx, data, data_size);
+	gost3411_2012_update(&ctx, (const uint8_t*)data, data_size);
 	if (NULL != digest_size) {
 		(*digest_size) = ctx.hash_size;
 	}
