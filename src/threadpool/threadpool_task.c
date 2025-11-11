@@ -530,8 +530,8 @@ tp_task_handler(int type, tp_event_p ev, tp_udata_p tp_udata,
 				    IO_BUF_TR_SIZE_GET(tptask->buf),
 				    MSG_DONTWAIT);
 			}
-			SYSLOGD_EX(LOG_DEBUG, "ev->data = %zu, ios = %zu, "
-			    "transfered_size = %zu, data2transfer_size = %zu, eof = %i, err = %i",
+			SYSLOGD_EX(LOG_DEBUG, "ev->data = %zu, ios = %zd, "
+			    "transfered_size = %zu, data2transfer_size = %zu, eof = %u, err = %i",
 			    ev->data, ios, transfered_size, data2transfer_size, eof, errno);
 			if (-1 == ios) /* Error. */
 				goto err_out;
