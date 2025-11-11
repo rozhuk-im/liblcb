@@ -329,17 +329,22 @@ static void
 test_tp_init(const size_t thr_cnt) {
 	int error;
 	tp_settings_t s;
+	tp_params_t p;
 
 	memset(&thr_tls_arr, 0x00, sizeof(thr_tls_arr));
+	threads_count = thr_cnt;
 
 	tp_settings_def(&s);
-	threads_count = thr_cnt;
 	s.threads_max = thr_cnt;
 	s.flags = (TP_S_F_BIND2CPU);
-	s.tpt_on_start = tpt_hook_start_cb;
-	s.tpt_on_stop = tpt_hook_stop_cb;
-	s.udata = &thr_arr;
-	error = tp_create(&s, &tp);
+	
+	memset(&p, 0x00, sizeof(p));
+	strlcpy(p.name, "TP", sizeof(p.name));
+	p.tpt_on_start = tpt_hook_start_cb;
+	p.tpt_on_stop = tpt_hook_stop_cb;
+	p.udata = &thr_arr;
+
+	error = tp_create(&s, &p, &tp);
 	CU_ASSERT(0 == error)
 	if (0 != error)
 		return;
@@ -907,7 +912,7 @@ static void
 test_tpt_ev_add_ex_proc_0(void) {
 	tp_udata_t tp_udata;
 	posix_spawn_file_actions_t actions;
-	char *const argv[] = { "sleep", TEST_PROC_INTERVAL_STR, NULL, NULL };
+	char *const argv[] = { (char*)"sleep", (char*)TEST_PROC_INTERVAL_STR, NULL, NULL };
 
 	/* Init. */
 	thr_arr[0] = 0;

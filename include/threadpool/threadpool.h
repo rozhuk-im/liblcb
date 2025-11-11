@@ -124,19 +124,22 @@ void	tp_signal_handler(int sig);
 
 
 #define TP_NAME_SIZE		16
-typedef struct thread_pool_settings_s { /* Settings. */
-	uint32_t	flags;	/* TP_S_F_* */
-	size_t		threads_max;
+typedef struct thread_pool_params_s { /* Params. */
 	char		name[TP_NAME_SIZE]; /* Thread pool name. Used as prefix for threads names. */
 	tpt_hook_cb	tpt_on_start; /* Called by every thread before enter event loop. Can be used with tpt_tls_*() */
 	tpt_hook_cb	tpt_on_stop; /* Called by every thread after exit from event loop, before destroy. */
 	void		*udata; /* Thread pool assosiated user data. See tp_udata_get(). Useful with tpt hooks. */
-} tp_settings_t, *tp_settings_p;
-
-#define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs. */
-//--#define TP_S_F_SHARE_EVENTS	(((uint32_t)1) << 1)	/* Not affected if threads_max = 1. */
-#define TP_S_F_CLOEXEC		(((uint32_t)1) << 31)	/* Set CLOEXEC flag on kqueue()/epoll() and tpt_msg_queue (pipe()). 
+	uint32_t	flags;	/* TP_P_F_* */
+} tp_params_t, *tp_params_p;
+//--#define TP_P_F_SHARE_EVENTS	(((uint32_t)1) << 0)	/* Not affected if threads_max = 1. */
+#define TP_P_F_CLOEXEC		(((uint32_t)1) << 31)	/* Set CLOEXEC flag on kqueue()/epoll() and tpt_msg_queue (pipe()). 
 							 * Not loaded from setting - internal app use only. */
+
+typedef struct thread_pool_settings_s { /* Settings. */
+	uint32_t	flags;	/* TP_S_F_* */
+	size_t		threads_max;
+} tp_settings_t, *tp_settings_p;
+#define TP_S_F_BIND2CPU		(((uint32_t)1) << 0)	/* Bind threads to CPUs. */
 
 /* Default values. */
 #define TP_S_DEF_FLAGS		(TP_S_F_BIND2CPU)
@@ -156,7 +159,7 @@ int	tp_settings_load_ini(const ini_p ini, const uint8_t *sect_name,
 
 
 int	tp_init(void);
-int	tp_create(tp_settings_p s, tp_p *ptp);
+int	tp_create(tp_settings_p s, tp_params_p p, tp_p *ptp);
 
 /* tp_shutdown() can be called by one of thread pool thread. */
 void	tp_shutdown(tp_p tp);
@@ -164,7 +167,7 @@ void	tp_shutdown(tp_p tp);
 int	tp_shutdown_wait(tp_p tp); /* Wait for all threads before return. */
 int	tp_destroy(tp_p tp);
 
-/* Set/get thread pool assosiated user data. On create - set from settings */
+/* Set/get thread pool assosiated user data. On create - set from params. */
 int	tp_udata_set(tp_p tp, void *udata);
 void 	*tp_udata_get(tp_p tp);
 
