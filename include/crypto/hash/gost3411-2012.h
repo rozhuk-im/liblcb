@@ -1966,7 +1966,7 @@ gost3411_2012_get_digest(const size_t bits,
 	gost3411_2012_ctx_t ctx;
 
 	gost3411_2012_init(bits, &ctx);
-	gost3411_2012_update(&ctx, data, data_size);
+	gost3411_2012_update(&ctx, (const uint8_t*)data, data_size);
 	if (NULL != digest_size) {
 		(*digest_size) = ctx.hash_size;
 	}
@@ -2030,7 +2030,7 @@ typedef struct gost3411_2012_hash_test_vectors_s {
 	const char 	*hash512;
 } gost3411_2012_htv_t, *gost3411_2012_htv_p;
 
-/* M2: "РЎРµ РІРµС‚СЂРё, РЎС‚СЂРёР±РѕР¶Рё РІРЅСѓС†Рё, РІРµСЋС‚СЉ СЃ РјРѕСЂСЏ СЃС‚СЂРµР»Р°РјРё РЅР° С…СЂР°Р±СЂС‹СЏ РїР»СЉРєС‹ РРіРѕСЂРµРІС‹" */
+/* M2: "Се ветри, Стрибожи внуци, веютъ с моря стрелами на храбрыя плъкы Игоревы" */
 static const uint8_t gost3411_2012_hash_m2[] = {
 	0xd1, 0xe5, 0x20, 0xe2, 0xe5, 0xf2, 0xf0, 0xe8,
 	0x2c, 0x20, 0xd1, 0xf2, 0xf0, 0xe8, 0xe1, 0xee,
