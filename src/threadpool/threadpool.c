@@ -1232,6 +1232,11 @@ tp_threads_create(tp_p tp, const int skip_first) {
 	if (0 != tp->shutdown)
 		return (EBUSY);
 
+	/* Mark as strating to allow thread to receive messages before tp_thread_attach_first(). */
+	if (0 != skip_first) {
+		tp->threads[0].state = TP_THREAD_STATE_STARTING;
+	}
+
 	for (size_t i = ((0 != skip_first) ? 1 : 0); i < tp->threads_max; i ++) {
 		tpt = &tp->threads[i];
 		if (NULL == tpt->tp)
@@ -1256,10 +1261,9 @@ tp_thread_attach_first(tp_p tp) {
 		return (EBUSY);
 
 	tpt = &tp->threads[0];
-	if (TP_THREAD_STATE_STOP != tpt->state)
-		return (ESPIPE);
+	if (TP_THREAD_STATE_STARTING != tpt->state)
+		return (ESPIPE); /* skip_first was 0 on tp_threads_create(). */
 
-	tpt->state = TP_THREAD_STATE_STARTING;
 	tpt->pt_id = pthread_self();
 
 	tp_thread_proc(tpt);
