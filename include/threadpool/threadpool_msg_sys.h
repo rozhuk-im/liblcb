@@ -99,34 +99,32 @@ int	tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags, tpt_msg_cb msg_cb,
 
 
 /* Functions set for async callback with some additional params. */
-/* It designed to be used in tpt_msg_done_cb or any other one time call back
- * function, like tp_task_connect_cb, tp_task_connect_ex_cb, etc...
+/* It designed to be used in case where you need to get some responce from
+ * other thread after it finish udata process.
+ * For example after tpt_msg_send() it can do call back to return result.
  * On init (call tpt_msg_async_op_alloc()) set destination thread and
  * call back function that will be called by destination thread after
  * tpt_msg_async_op_cb_free() called. */
-#define TP_MSG_AOP_UDATA_CNT	((size_t)6)
+#define TP_MSG_AOP_UDATA_CNT	((size_t)5)
 /* Typical names */
 #define TP_MSG_AOP_ARG0		((size_t)0)
 #define TP_MSG_AOP_ARG1		((size_t)1)
 #define TP_MSG_AOP_ARG2		((size_t)2)
 #define TP_MSG_AOP_ARG3		((size_t)3)
-#define TP_MSG_AOP_ARG4		((size_t)4)
 #define TP_MSG_AOP_ARG_ERR	(TP_MSG_AOP_UDATA_CNT - 1)
 
-tpt_msg_async_op_p tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb);
-void	tpt_msg_async_op_cb_free(tpt_msg_async_op_p aop, tpt_p src);
+tpt_msg_async_op_p tpt_msg_async_op_alloc(tpt_p dst, const uint32_t flags,
+    const uint32_t fallback_flags, tpt_msg_async_op_cb op_cb);
+int	tpt_msg_async_op_cb_free(tpt_msg_async_op_p aop, tpt_p src);
+/* If non 0 is returned - free() is required to prevent mem leak. */
 
-void **	tpt_msg_async_op_udata(tpt_msg_async_op_p aop);
-void *	tpt_msg_async_op_udata_get(tpt_msg_async_op_p aop, size_t index);
-void	tpt_msg_async_op_udata_set(tpt_msg_async_op_p aop, size_t index, void *udata);
+void *	tpt_msg_async_op_get(tpt_msg_async_op_p aop, size_t index);
+#define TPT_MSG_ASYNC_OP_GET(__aop, __idx, __type) \
+	(__type)(__type*)tpt_msg_async_op_get((__aop), (__idx))
 
-size_t *tpt_msg_async_op_udata_sz(tpt_msg_async_op_p aop);
-size_t	tpt_msg_async_op_udata_sz_get(tpt_msg_async_op_p aop, size_t index);
-void	tpt_msg_async_op_udata_sz_set(tpt_msg_async_op_p aop, size_t index, size_t udata);
-
-ssize_t *tpt_msg_async_op_udata_ssz(tpt_msg_async_op_p aop);
-ssize_t	tpt_msg_async_op_udata_ssz_get(tpt_msg_async_op_p aop, size_t index);
-void	tpt_msg_async_op_udata_ssz_set(tpt_msg_async_op_p aop, size_t index, ssize_t udata);
+void	tpt_msg_async_op_set(tpt_msg_async_op_p aop, size_t index, void *udata);
+#define TPT_MSG_ASYNC_OP_SET(__aop, __idx, __udata) \
+	tpt_msg_async_op_set((__aop), (__idx), (void*)(size_t)(__udata))
 
 
 #endif /* __THREAD_POOL_MESSAGE_SYSTEM_H__ */

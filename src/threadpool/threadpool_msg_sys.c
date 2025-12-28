@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,6 +86,8 @@ typedef struct tpt_msg_data_s { /* thread message sync data. */
 typedef struct thread_pool_thread_msg_async_operation_s {
 	tpt_p		tpt;	/* Caller context, for op_cb. */
 	tpt_msg_async_op_cb op_cb;
+	uint32_t	flags;
+	uint32_t	fallback_flags;
 	void		*udata[TP_MSG_AOP_UDATA_CNT];
 } tpt_msg_async_op_t;
 
@@ -539,7 +541,8 @@ tpt_msg_cbsend(tp_p tp, tpt_p src, uint32_t flags,
 
 
 tpt_msg_async_op_p
-tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
+tpt_msg_async_op_alloc(tpt_p dst, const uint32_t flags, const uint32_t fallback_flags,
+    tpt_msg_async_op_cb op_cb) {
 	tpt_msg_async_op_p aop;
 
 	if (NULL == op_cb)
@@ -552,94 +555,50 @@ tpt_msg_async_op_alloc(tpt_p dst, tpt_msg_async_op_cb op_cb) {
 	}
 	aop->tpt = dst;
 	aop->op_cb = op_cb;
+	aop->flags = flags;
+	aop->fallback_flags = fallback_flags;
 
 	return (aop);
 }
 
 static void
-tpt_msg_async_op_cb_free_cb(tpt_p tpt, void *udata) {
+tpt_msg_async_op_cb_free_cb(tpt_p tpt __unused, void *udata) {
 	tpt_msg_async_op_p aop = udata;
-
-	debugd_break_if(tpt != aop->tpt);
 
 	aop->op_cb(aop->tpt, aop->udata);
 	free(aop);
 }
-void
+int
 tpt_msg_async_op_cb_free(tpt_msg_async_op_p aop, tpt_p src) {
+	int error;
 
 	if (NULL == aop)
-		return;
-	tpt_msg_send(aop->tpt, src,
-	    (TP_MSG_F_SELF_DIRECT | TP_MSG_F_FORCE | TP_MSG_F_FAIL_DIRECT),
+		return (EINVAL);
+
+	error = tpt_msg_send(aop->tpt, src, aop->flags,
 	    tpt_msg_async_op_cb_free_cb, aop);
+	if (0 == error)
+		return (error);
+	if (0 == aop->fallback_flags || aop->flags == aop->fallback_flags)
+		return (error);
+	error = tpt_msg_send(aop->tpt, src, aop->fallback_flags,
+	    tpt_msg_async_op_cb_free_cb, aop);
+
+	return (error);
 }
 
-
-void **
-tpt_msg_async_op_udata(tpt_msg_async_op_p aop) {
-
-	if (NULL == aop)
-		return (NULL);
-	return (aop->udata);
-}
 void *
-tpt_msg_async_op_udata_get(tpt_msg_async_op_p aop, size_t index) {
+tpt_msg_async_op_get(tpt_msg_async_op_p aop, size_t index) {
 
 	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return (NULL);
 	return (aop->udata[index]);
 }
+
 void
-tpt_msg_async_op_udata_set(tpt_msg_async_op_p aop, size_t index, void *udata) {
+tpt_msg_async_op_set(tpt_msg_async_op_p aop, size_t index, void *udata) {
 
 	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
 		return;
 	aop->udata[index] = udata;
-}
-
-
-size_t *
-tpt_msg_async_op_udata_sz(tpt_msg_async_op_p aop) {
-
-	if (NULL == aop)
-		return (NULL);
-	return ((size_t*)aop->udata);
-}
-size_t
-tpt_msg_async_op_udata_sz_get(tpt_msg_async_op_p aop, size_t index) {
-
-	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
-		return (0);
-	return ((size_t)aop->udata[index]);
-}
-void
-tpt_msg_async_op_udata_sz_set(tpt_msg_async_op_p aop, size_t index, size_t udata) {
-
-	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
-		return;
-	aop->udata[index] = (void*)udata;
-}
-
-
-ssize_t *
-tpt_msg_async_op_udata_ssz(tpt_msg_async_op_p aop) {
-
-	if (NULL == aop)
-		return (NULL);
-	return ((ssize_t*)aop->udata);
-}
-ssize_t
-tpt_msg_async_op_udata_ssz_get(tpt_msg_async_op_p aop, size_t index) {
-
-	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
-		return (0);
-	return ((ssize_t)aop->udata[index]);
-}
-void
-tpt_msg_async_op_udata_ssz_set(tpt_msg_async_op_p aop, size_t index, ssize_t udata) {
-
-	if (NULL == aop || TP_MSG_AOP_UDATA_CNT <= index)
-		return;
-	aop->udata[index] = (void*)udata;
 }
