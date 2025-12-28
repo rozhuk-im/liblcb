@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2020 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -415,6 +415,17 @@ io_buf_prepend(io_buf_p io_buf, const size_t size, const int allow_data_lost) {
 	IO_BUF_OFFSET_INC(io_buf, size);		
 
 	return (0);
+}
+
+/* Increase io_buf size. */
+static inline int
+io_buf_add_space(io_buf_p io_buf, const size_t size) {
+
+	if (0 == size)
+		return (0);
+	if (NULL == io_buf)
+		return (EINVAL);
+	return (io_buf_realloc(&io_buf, 0, (io_buf->size + size)));
 }
 
 
