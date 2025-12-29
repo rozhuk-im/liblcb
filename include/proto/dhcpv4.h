@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 - 2022 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1134,8 +1134,6 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 			.len = 1,
 			.type = DHCP4_OPTP_T_SUBOPTS,
 			.flags = DHCP4_OPTP_F_MINLEN,
-			.data_vals = (const void*)dhcp4_opt43_MSFT,
-			.data_vals_cnt = nitems(dhcp4_opt43_MSFT),
 		},
 /*  44 */	{
 			.disp_name = "NetBIOS name servers",
