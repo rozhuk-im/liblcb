@@ -44,7 +44,7 @@
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-// http://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xml#bootp-dhcp-parameters-1
+// http://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xml
 //
 // RFC 1542	Clarifications and Extensions for BOOTP
 // RFC 2131	Dynamic Host Configuration Protocol
@@ -89,7 +89,11 @@
 // RFC 5223	DHCP-Based LoST Discovery
 // RFC 5678	Mobility Services for DCHP Options
 // RFC 5859	TFTP Server Address
+// RFC 6607	Virtual Subnet Selection Options.
+// RFC 6925	The Relay Agent ID Sub-Option.
 // RFC 7710	Captive-Portal Identification Using DHCP or Router Advertisements (RAs)
+// RFC 7839	ANI Options for DHCPv4 and DHCPv6.
+// RFC 8357	DHCP Relay Source Port.
 // http://www.iana.org/numbers.htm
 // http://msdn.microsoft.com/en-us/library/cc227274(v=PROT.10).aspx
 //////////////////////////////////////////////////////////////
@@ -869,6 +873,197 @@ static const dhcp4_opt_params_t dhcp4_opt82[] = {
 			.type = DHCP4_OPTP_T_IPADDR,
 			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
+/*  12 */	{ /* RFC 6925 The Relay Agent ID Sub-Option. */
+			.disp_name = "Relay Agent Identifier",
+			.len = 1,
+			.type = DHCP4_OPTP_T_STR,
+			.flags = DHCP4_OPTP_F_MINLEN,
+		},
+/*  13 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
+			.disp_name = "Access-Technology-Type",
+			.len = 2,
+			.type = DHCP4_OPTP_T_2BYTE,
+			.flags = DHCP4_OPTP_F_FIXEDLEN,
+		},
+/*  14 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
+			.disp_name = "Access-Network-Name",
+			.len = 1,
+			.type = DHCP4_OPTP_T_STRUTF8,
+			.flags = DHCP4_OPTP_F_MINLEN,
+		},
+/*  15 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
+			.disp_name = "Access-Point-Name",
+			.len = 1,
+			.type = DHCP4_OPTP_T_STRUTF8,
+			.flags = DHCP4_OPTP_F_MINLEN,
+		},
+/*  16 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
+			.disp_name = "Access-Point-BSSID",
+			.len = 6,
+			.type = DHCP4_OPTP_T_BYTES,
+			.flags = DHCP4_OPTP_F_FIXEDLEN,
+		},
+/*  17 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
+			.disp_name = "Operator-Identifier",
+			.len = 4,
+			.type = DHCP4_OPTP_T_BYTES,
+			.flags = DHCP4_OPTP_F_MINLEN,
+		},
+/*  18 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
+			.disp_name = "Operator-Realm",
+			.len = 1,
+			.type = DHCP4_OPTP_T_STR,
+			.flags = DHCP4_OPTP_F_MINLEN,
+		},
+/*  19 */	{ /* RFC 8357 DHCP Relay Source Port. */
+			.disp_name = "DHCPv4 Relay Source Port",
+			.len = 1,
+			.type = DHCP4_OPTP_T_1BYTE,
+			.flags = DHCP4_OPTP_F_FIXEDLEN,
+		},
+/*  20 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  21 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  22 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  23 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  24 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  25 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  26 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  27 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  28 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  29 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  30 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  31 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  32 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  33 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  34 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  35 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  36 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  37 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  38 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  39 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  40 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  41 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  42 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  43 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  44 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  45 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  46 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  47 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  48 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  49 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  50 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  51 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  52 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  53 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  54 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  55 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  56 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  57 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  58 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  59 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  60 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  61 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  62 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  63 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  64 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  65 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  66 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  67 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  68 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  69 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  70 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  71 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  72 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  73 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  74 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  75 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  76 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  77 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  78 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  79 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  80 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  81 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  82 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  83 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  84 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  85 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  86 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  87 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  88 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  89 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  90 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  91 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  92 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  93 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  94 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  95 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  96 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  97 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  98 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/*  99 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 100 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 101 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 102 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 103 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 104 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 105 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 106 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 107 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 108 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 109 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 110 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 111 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 112 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 113 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 114 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 115 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 116 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 117 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 118 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 119 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 120 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 121 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 122 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 123 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 124 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 125 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 126 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 127 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 128 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 129 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 130 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 131 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 132 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 133 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 134 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 135 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 136 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 137 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 138 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 139 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 140 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 141 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 142 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 143 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 144 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 145 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 146 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 147 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 148 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 149 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 150 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 151 */	{ /* RFC 6607 Virtual Subnet Selection Options. */
+			.disp_name = "DHCPv4 Virtual Subnet Selection",
+			.len = 1,
+			.type = DHCP4_OPTP_T_BYTES,
+			.flags = DHCP4_OPTP_F_MINLEN,
+		},
+/* 152 */	{ /* RFC 6607 Virtual Subnet Selection Options. */
+			.disp_name = "DHCPv4 Virtual Subnet Selection Control",
+			.len = 0,
+			.type = DHCP4_OPTP_T_NONE,
+			.flags = DHCP4_OPTP_F_FIXEDLEN,
+		},
 };
 
 
@@ -1131,7 +1326,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  43 */	{ /* http://msdn.microsoft.com/en-us/library/cc227275%28v=PROT.10%29.aspx */
 			.disp_name = "Vendor specific info",
-			.len = 1,
+			.len = 2,
 			.type = DHCP4_OPTP_T_SUBOPTS,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
@@ -1211,7 +1406,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 			.disp_name = "Parameter Request List",
 			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = (DHCP4_OPTP_F_MINLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
 			.data_vals = dhcp4_opt55,
 			.data_vals_cnt = nitems(dhcp4_opt55),
 		},
@@ -1561,18 +1756,8 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 			.type = DHCP4_OPTP_T_ADV,
 			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
-/* 124 */	{// UNDONE!!!!
-			.disp_name = "V-I-Vendor Class",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 125 */	{// UNDONE!!!!
-			.disp_name = "V-I-Vendor Specific",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
+/* 124 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 125 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 126 */	{
 			.disp_name = "Extension 126",
 			.len = 4,
@@ -1585,54 +1770,14 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 			.type = DHCP4_OPTP_T_IPADDR,
 			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
 		},
-/* 128 */	{// UNDONE!!!!
-			.disp_name = "TFTP Srv IP Addr (Etherboot)",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 129 */	{// UNDONE!!!!
-			.disp_name = "Call Server IP address",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 130 */	{// UNDONE!!!!
-			.disp_name = "Ethernet Interface",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 131 */	{// UNDONE!!!!
-			.disp_name = "Remote Stats Svr IP Address",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 132 */	{// UNDONE!!!!
-			.disp_name = "IEEE 802.1Q L2 Priority",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 133 */	{// UNDONE!!!!
-			.disp_name = "IEEE 802.1P VLAN ID",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 134 */	{// UNDONE!!!!
-			.disp_name = "Diffserv Code Point",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
-/* 135 */	{// UNDONE!!!!
-			.disp_name = "HTTP Proxy",
-			.len = 0,
-			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_NONE,
-		},
+/* 128 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 129 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 130 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 131 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 132 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 133 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 134 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 135 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 136 */	{ /* RFC 5192 PAA DHCP Options. */
 			.disp_name = "PANA Authentication Agent",
 			.len = 4,
@@ -1773,7 +1918,12 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 218 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 219 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 220 */	DHCP4_OPT_PARAMS_UNKNOWN,
-/* 221 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 221 */	{ /* RFC 6607 Virtual Subnet Selection Options. */
+			.disp_name = "DHCPv4 Virtual Subnet Selection",
+			.len = 1,
+			.type = DHCP4_OPTP_T_BYTES,
+			.flags = DHCP4_OPTP_F_MINLEN,
+		},
 /* 222 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 223 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* Site-specific options. */
@@ -1825,6 +1975,64 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+/* Runtime options validator. */
+static int
+dhcp4_validate_opt_params(dhcp4_opt_params_p opts, const size_t opts_count) {
+	int error;
+	dhcp4_opt_params_p opt;
+
+	if (0 == opts_count)
+		return (0);
+	if (NULL == opts)
+		return (EINVAL);
+
+	/* Runtime validation of main options. */
+	for (size_t i = 0; i < opts_count; i ++) {
+		opt = &opts[i];
+		/* Check that NOLEN exclusive flag. */
+		if (0 != (DHCP4_OPTP_F_NOLEN & opt->flags) &&
+		    0 != (~DHCP4_OPTP_F_NOLEN & opt->flags))
+			     return (EINVAL);
+		/* Check that MINLEN exclusive flag. */
+		if (0 != (DHCP4_OPTP_F_MINLEN & opt->flags) &&
+		    0 != (~DHCP4_OPTP_F_MINLEN & opt->flags))
+			     return (EINVAL);
+		/* FIXEDLEN and ARRAY can be used together. */
+		/* Check NONE type. */
+		if (DHCP4_OPTP_T_NONE == opt->type &&
+		    (0 != opt->len ||
+		     0 == (DHCP4_OPTP_F_FIXEDLEN & opt->flags) ||
+		     0 != (~DHCP4_OPTP_F_FIXEDLEN & opt->flags)))
+			     return (EINVAL);
+		/* Check that ARRAY properly used with types. */
+		if (0 != (DHCP4_OPTP_F_ARRAY & opt->flags)) {
+			switch (opt->type) {
+			case DHCP4_OPTP_T_NONE:
+			case DHCP4_OPTP_T_SUBOPTS:
+			case DHCP4_OPTP_T_STR:
+			case DHCP4_OPTP_T_STRUTF8:
+			case DHCP4_OPTP_T_BYTES:
+			case DHCP4_OPTP_T_ADV:
+				return (EINVAL);
+			default:
+				break;
+			}
+		}
+		/* Check SUBOPTS. */
+		if (DHCP4_OPTP_T_SUBOPTS == opt->type) {
+			if (DHCP4_OPTP_F_MINLEN != opt->flags ||
+			    2 != opt->len)
+				    return (EINVAL);
+			error = dhcp4_validate_opt_params(
+			    (dhcp4_opt_params_p)opt->data_vals, opt->data_vals_cnt);
+			if (0 != error)
+				return (error);
+		}
+	}
+
+	return (0); /* OK. */
+}
 
 
 /* Call this before first other code use. */
