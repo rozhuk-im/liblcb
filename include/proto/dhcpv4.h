@@ -365,11 +365,11 @@ typedef struct dhcp4_opt_client_fqdn_flags_s {
 #define DHCP4_OPT_END			255
 
 
-typedef struct dhcp4_option_data_s {
+typedef struct dhcp4_option_header_s {
 	uint8_t		code;	/* DHCP4_OPT_* (Assigned by IANA.). */
 	uint8_t		len;	/* Size (in octets) of OPTION-DATA. */
 	/* data: varies per OPTION-CODE. */
-} __attribute__((__packed__)) dhcp4_opt_data_t, *dhcp4_opt_data_p;
+} __attribute__((__packed__)) dhcp4_opt_hdr_t, *dhcp4_opt_hdr_p;
 
 
 /* Struct describes options for app internal use. */
