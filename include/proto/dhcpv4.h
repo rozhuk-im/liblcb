@@ -786,47 +786,19 @@ static const dhcp4_opt_params_t dhcp4_opt43_MSFT[] = {
 };
 
 
-static const dhcp4_opt_params_t dhcp4_opt82_1[] = {
-/*   0 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
-			.disp_name = "VLAN(xx)/Module(x)/Port(x)",
-			.len = 4,
-			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
-		},
-};
-
-static const dhcp4_opt_params_t dhcp4_opt82_2[] = {
-/*   0 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
-			.disp_name = "MAC address",
-			.len = 6,
-			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
-		},
-/*   1 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
-			.disp_name = "User-defined string",
-			.len = 1,
-			.type = DHCP4_OPTP_T_BYTES/*DHCP4_OPTP_T_STR*/,
-			.flags = DHCP4_OPTP_F_MINLEN,
-		},
-};
-
 static const dhcp4_opt_params_t dhcp4_opt82[] = {
 /*   0 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*   1 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
 			.disp_name = "Circuit ID",
-			.len = 2,
-			.type = DHCP4_OPTP_T_SUBOPTS,
+			.len = 1,
+			.type = DHCP4_OPTP_T_BYTES,
 			.flags = DHCP4_OPTP_F_MINLEN,
-			.data_vals = (const void*)dhcp4_opt82_1,
-			.data_vals_cnt = nitems(dhcp4_opt82_1),
 		},
 /*   2 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
 			.disp_name = "Remote ID",
-			.len = 2,
-			.type = DHCP4_OPTP_T_SUBOPTS,
+			.len = 1,
+			.type = DHCP4_OPTP_T_BYTES,
 			.flags = DHCP4_OPTP_F_MINLEN,
-			.data_vals = (const void*)dhcp4_opt82_2,
-			.data_vals_cnt = nitems(dhcp4_opt82_2),
 		},
 /*   3 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*   4 */	{ /* RFC 3256 The DOCSIS Device Class DHCP. */
