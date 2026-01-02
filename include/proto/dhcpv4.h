@@ -55,6 +55,7 @@
 //
 // RFC 3046	DHCP Relay Agent Information Option (sub opt 1-2)
 // RFC 3256	The DOCSIS (Data-Over-Cable Service Interface Specifications) Device Class DHCP (Dynamic Host Configuration Protocol) Relay Agent Information Sub-option (add subopt 4 to RFC 3046)
+// RFC 3396	Encoding Long Options in DHCPv4
 // RFC 3527	Link Selection sub-option (add subopt 5 to RFC 3046)
 // RFC 3993	Subscriber-ID Suboption (add subopt 6 to RFC 3046)
 // RFC 4014	RADIUS Attributes Suboption (add subopt 7 to RFC 3046)
@@ -2052,7 +2053,7 @@ dhcp4_static_init(void) {
 
 static inline int
 dhcp4_hdr_check(const void *buf, const size_t buf_size) {
-	const struct dhcp4_header_s *hdr = buf;
+	const dhcp4_hdr_p hdr = (const dhcp4_hdr_p)buf;
 
 	if (NULL == buf ||
 	    sizeof(dhcp4_hdr_t) > buf_size)
@@ -2073,6 +2074,181 @@ dhcp4_hdr_check(const void *buf, const size_t buf_size) {
 		return (EBADMSG);
 
 	return (0);
+}
+
+
+typedef struct dhcp4_aggregate_options_buf_s {
+	uint8_t *	data[256];
+	uint16_t	len[256];
+	uint8_t		is_allocated[256];
+} dhcp4_agg_opts_buf_t, *dhcp4_agg_opts_buf_p;
+
+
+static void
+dhcp4_agg_opts_buf_clean(dhcp4_agg_opts_buf_p ao_buf) {
+
+	if (NULL == ao_buf)
+		return;
+	for (size_t i = 0; i < 256; i ++) {
+		if (0 == ao_buf->is_allocated[i])
+			continue;
+		free(ao_buf->data[i]);
+	}
+	memset(ao_buf, 0x00, sizeof(dhcp4_agg_opts_buf_t));
+}
+
+/* RFC 3396 Encoding Long Options in DHCPv4: Aggregate Option Buffer */
+static int
+dhcp4_options_aggregate(const void *buf, const size_t buf_size,
+    dhcp4_opt_params_p opts, const size_t opts_count,
+    dhcp4_agg_opts_buf_p ao_buf) {
+	const uint8_t *pos = buf, *pos_max = (((const uint8_t*)buf) + buf_size), *opt_data;
+	uint8_t *nmem;
+	dhcp4_opt_hdr_p opth;
+	dhcp4_opt_params_p optp;
+
+	if (NULL == buf || NULL == ao_buf)
+		return (EINVAL);
+
+	while (pos < pos_max) {
+		/* Option code+len. */
+		opth = (dhcp4_opt_hdr_p)pos;
+
+		/* Get best dhcp4_opt_params for current option code. */
+		if (opth->code < opts_count) { /* Known/defined option. */
+			optp = &opts[opth->code];
+		} else { /* Option is unknown. */
+			optp = (dhcp4_opt_params_p)&dhcp4_opt_params_unknown;
+		}
+
+		/* Process option lenght. */
+		/* Is Lenght feild exist in this option? */
+		if (0 != (DHCP4_OPTP_F_NOLEN & optp->flags)) { /* Special processing options without Lenght feild, current: PAD and END options. */
+			pos += 1;
+			if (DHCP4_OPTP_T_END == optp->type)
+				break;
+			continue; /* Process next option. */
+		}
+		opt_data = (pos + sizeof(dhcp4_opt_hdr_t));
+		/* Is lenght in buf range? */
+		if ((opt_data + opth->len) > pos_max)
+			return (EBADMSG);
+		/* Move pointer to next option. */
+		pos += (sizeof(dhcp4_opt_hdr_t) + opth->len);
+
+		/* Extra lenght check depend of option type knowlege. */
+		if (0 != (DHCP4_OPTP_F_FIXEDLEN & optp->flags)) {
+			if (0 != (DHCP4_OPTP_F_ARRAY & optp->flags)) { /* Lenght must be multiple to specified fixedlen of 1 element. */
+				if (opth->len < optp->len ||
+				    0 != (opth->len % optp->len))
+					return (EBADMSG);
+			} else { /* Lenght must be equal to specified fixedlen. */
+				if (opth->len != optp->len)
+					return (EBADMSG);
+			}
+		} else if (0 != (DHCP4_OPTP_F_MINLEN & optp->flags)) {
+			if (opth->len < optp->len)
+				return (EBADMSG);
+		}
+
+		/* Store option data to agg buf. */
+		if (NULL == ao_buf->data[opth->code] ||
+		    0 == ao_buf->len[opth->code]) { /* Option not set or zero size. */
+			ao_buf->data[opth->code] = (uint8_t*)opt_data; /* Zero copy for single non zero size instance option. */
+			ao_buf->len[opth->code] = opth->len;
+			continue;
+		}
+		/* Possible need to alloc mem to defrag option data. */
+		if (0 == opth->len)
+			continue; /* Nothink to add. */
+		if (0 == ao_buf->is_allocated[opth->code]) {
+			nmem = malloc((ao_buf->len[opth->code] + opth->len + sizeof(void*)));
+			if (NULL == nmem)
+				return (ENOMEM);
+			memcpy(nmem, ao_buf->data[opth->code], ao_buf->len[opth->code]);
+		} else {
+			nmem = realloc(ao_buf->data[opth->code],
+			    (ao_buf->len[opth->code] + opth->len) + sizeof(void*));
+			if (NULL == nmem)
+				return (ENOMEM);
+		}
+		memcpy((nmem + ao_buf->len[opth->code]), opt_data, opth->len);
+		ao_buf->is_allocated[opth->code] = 1;
+		ao_buf->len[opth->code] += opth->len;
+	}
+
+	return (0);
+}
+
+
+/* Check DHCP packet header and do options aggregate.
+ * buf - pointer to mem with DHCP packet.
+ * buf_size - DHCP packet size.
+ * ao_buf - aggregate options buf. Do not forget to call dhcp4_agg_opts_buf_clean() after use.
+ * opt52_val_ret - ruturn opt 52 value. It does not stored in ao_buf.
+ * Return 0 if no err.
+ */
+static int
+dhcp4_chk_options_aggregate(const void *buf, const size_t buf_size,
+    dhcp4_agg_opts_buf_p ao_buf, uint8_t *opt52_val_ret) {
+	int error;
+	const dhcp4_hdr_p hdr = (const dhcp4_hdr_p)buf;
+	uint8_t opt52_val = 0;
+
+	if (NULL == buf || NULL == ao_buf)
+		return (EINVAL);
+
+	/* Check is DHCP packet header correct. */
+	error = dhcp4_hdr_check(buf, buf_size);
+	if (0 != error)
+		return (error);
+
+	/* Parse main options. */
+	memset(ao_buf, 0x00, sizeof(dhcp4_agg_opts_buf_t));
+	error = dhcp4_options_aggregate((const void*)(hdr + 1),
+	    (buf_size - sizeof(dhcp4_hdr_t)),
+	    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options), ao_buf);
+	if (0 != error)
+		goto err_out;
+
+	/* 52: Option overload: handle it only here. */
+	if (NULL == ao_buf->data[DHCP4_OPT_OVERLOAD])
+		return (0);
+	opt52_val = ao_buf->data[DHCP4_OPT_OVERLOAD][0];
+	/* file. */
+	if (0 != (DHCP4_OPT_OVERLOAD_FILE & opt52_val)) {
+		error = dhcp4_options_aggregate((const void*)hdr->file,
+		    sizeof(hdr->file),
+		    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options),
+		    ao_buf);
+		if (0 != error)
+			goto err_out;
+	}
+	/* sname. */
+	if (0 != (DHCP4_OPT_OVERLOAD_SNAME & opt52_val)) {
+		error = dhcp4_options_aggregate((const void*)hdr->sname,
+		    sizeof(hdr->sname),
+		    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options),
+		    ao_buf);
+		if (0 != error)
+			goto err_out;
+	}
+	/* Uset in aggregate options buf. */
+	if (0 != ao_buf->is_allocated[DHCP4_OPT_OVERLOAD]) {
+		free(ao_buf->data[DHCP4_OPT_OVERLOAD]);
+	}
+	ao_buf->data[DHCP4_OPT_OVERLOAD] = NULL;
+	ao_buf->len[DHCP4_OPT_OVERLOAD] = 0;
+
+	if (NULL != opt52_val_ret) {
+		(*opt52_val_ret) = opt52_val;
+	}
+
+	return (0);
+
+err_out:
+	dhcp4_agg_opts_buf_clean(ao_buf);
+	return (error);
 }
 
 
