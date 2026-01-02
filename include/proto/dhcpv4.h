@@ -394,11 +394,12 @@ typedef struct dhcp4_option_params_s {
 #define DHCP4_OPTP_T_4TIME	  7 /* uint32_t */
 #define DHCP4_OPTP_T_IPADDR	  8 /* uint32_t */
 #define DHCP4_OPTP_T_IPIPADDR	  9 /* uint32_t[2] */
-#define DHCP4_OPTP_T_STR	 10 /* char array. */
-#define DHCP4_OPTP_T_STRUTF8	 11 /* char array. */
-#define DHCP4_OPTP_T_STRRR	 12 /* DNS string format. */
-#define DHCP4_OPTP_T_BYTES	 13 /* uint8_t array. */
-#define DHCP4_OPTP_T_ADV	 14 /* Option have specific format. */
+#define DHCP4_OPTP_T_STATIC_ROUTE 10 /* uint8_t + uint8_t[0-4] + uint32_t */
+#define DHCP4_OPTP_T_STR_RR	 11 /* DNS string format. */
+#define DHCP4_OPTP_T_ADV	224 /* Option have specific format. This is TODO marker. */
+#define DHCP4_OPTP_T_STR_UTF8	251 /* char array. */
+#define DHCP4_OPTP_T_STR	252 /* char array. */
+#define DHCP4_OPTP_T_BYTES	253 /* uint8_t array. */
 #define DHCP4_OPTP_T_PAD	254
 #define DHCP4_OPTP_T_END	255
 
@@ -864,13 +865,13 @@ static const dhcp4_opt_params_t dhcp4_opt82[] = {
 /*  14 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
 			.disp_name = "Access-Network-Name",
 			.len = 1,
-			.type = DHCP4_OPTP_T_STRUTF8,
+			.type = DHCP4_OPTP_T_STR_UTF8,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  15 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
 			.disp_name = "Access-Point-Name",
 			.len = 1,
-			.type = DHCP4_OPTP_T_STRUTF8,
+			.type = DHCP4_OPTP_T_STR_UTF8,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  16 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
@@ -1567,20 +1568,20 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /*  86 */	{ /* RFC 2241 DHCP Options for Novell Directory Services. */
 			.disp_name = "NDS tree name",
 			.len = 2,
-			.type = DHCP4_OPTP_T_STRUTF8,
+			.type = DHCP4_OPTP_T_STR_UTF8,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  87 */	{ /* RFC 2241 DHCP Options for Novell Directory Services. */
 			.disp_name = "NDS context",
 			.len = 2,
-			.type = DHCP4_OPTP_T_STRUTF8,
+			.type = DHCP4_OPTP_T_STR_UTF8,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
-/*  88 */	{ /* RFC 3679 // RFC 4280 DHCP Options for BMCS. */
+/*  88 */	{ /* RFC 4280 DHCP Options for BMCS. */
 			.disp_name = "BCMCS ctrl Domain Name List",
-			.len = 0,
-			.type = DHCP4_OPTP_T_STRRR,
-			.flags = DHCP4_OPTP_F_ARRAY,
+			.len = 1,
+			.type = DHCP4_OPTP_T_STR_RR,
+			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  89 */	{ /* RFC 3679 // RFC 4280 DHCP Options for BMCS. */
 			.disp_name = "BCMCS ctrl IPv4 Address",
@@ -1717,7 +1718,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 121 */	{ /* RFC 3442 Classless Static Route Option for DHCPv4. */
 			.disp_name = "Classless Static Route",
 			.len = 5,
-			.type = DHCP4_OPTP_T_ADV,
+			.type = DHCP4_OPTP_T_STATIC_ROUTE,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 122 */	{ /* RFC 3495 DHCP Option for CableLabs Clients. */
@@ -1734,18 +1735,9 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /* 124 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 125 */	DHCP4_OPT_PARAMS_UNKNOWN,
-/* 126 */	{
-			.disp_name = "Extension 126",
-			.len = 4,
-			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
-		},
-/* 127 */	{
-			.disp_name = "Extension 127",
-			.len = 4,
-			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
-		},
+/* 126 */	DHCP4_OPT_PARAMS_UNKNOWN,
+/* 127 */	DHCP4_OPT_PARAMS_UNKNOWN,
+		/* RFC 4578: PXE - undefined (vendor specific): 128-135. */
 /* 128 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 129 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 130 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1931,7 +1923,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 249 */	{ /* MSFT - Classless routes. */
 			.disp_name = "MSFT - Classless route",
 			.len = 5,
-			.type = DHCP4_OPTP_T_ADV,
+			.type = DHCP4_OPTP_T_STATIC_ROUTE,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 250 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1987,7 +1979,7 @@ dhcp4_validate_opt_params(dhcp4_opt_params_p opts, const size_t opts_count) {
 			case DHCP4_OPTP_T_NONE:
 			case DHCP4_OPTP_T_SUBOPTS:
 			case DHCP4_OPTP_T_STR:
-			case DHCP4_OPTP_T_STRUTF8:
+			case DHCP4_OPTP_T_STR_UTF8:
 			case DHCP4_OPTP_T_BYTES:
 			case DHCP4_OPTP_T_ADV:
 				return (EINVAL);
