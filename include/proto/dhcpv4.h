@@ -256,9 +256,9 @@ static const uint8_t dhcp4_hdr_magic_cookie[4] = {
 #define DHCP4_OPT_REQUESTED_IP_ADDRESS	50
 #define DHCP4_OPT_IP_ADDRESS_LEASE_TIME	51
 #define DHCP4_OPT_OVERLOAD		52
-#define DHCP4_OPT_OVERLOAD_FILE			1
-#define DHCP4_OPT_OVERLOAD_SNAME		2
-#define DHCP4_OPT_OVERLOAD_BOTH			(DHCP4_OPT_OVERLOAD_FILE | DHCP4_OPT_OVERLOAD_SNAME)
+#define DHCP4_OPT_OVERLOAD_F_FILE		1
+#define DHCP4_OPT_OVERLOAD_F_SNAME		2
+#define DHCP4_OPT_OVERLOAD_F_BOTH		(DHCP4_OPT_OVERLOAD_F_FILE | DHCP4_OPT_OVERLOAD_F_SNAME)
 /* */
 #define DHCP4_OPT_MESSAGE_TYPE		53
 #define DHCP4_OPT_MESSAGE_TYPE_DISCOVER		1	/* RFC 2132 DHCP Options and BOOTP Vendor Extensions. */
@@ -2180,7 +2180,7 @@ dhcp4_chk_options_aggregate(const void *buf, const size_t buf_size,
 		return (0);
 	opt52_val = ao_buf->data[DHCP4_OPT_OVERLOAD][0];
 	/* file. */
-	if (0 != (DHCP4_OPT_OVERLOAD_FILE & opt52_val)) {
+	if (0 != (DHCP4_OPT_OVERLOAD_F_FILE & opt52_val)) {
 		error = dhcp4_options_aggregate((const void*)hdr->file,
 		    sizeof(hdr->file),
 		    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options),
@@ -2189,7 +2189,7 @@ dhcp4_chk_options_aggregate(const void *buf, const size_t buf_size,
 			goto err_out;
 	}
 	/* sname. */
-	if (0 != (DHCP4_OPT_OVERLOAD_SNAME & opt52_val)) {
+	if (0 != (DHCP4_OPT_OVERLOAD_F_SNAME & opt52_val)) {
 		error = dhcp4_options_aggregate((const void*)hdr->sname,
 		    sizeof(hdr->sname),
 		    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options),
