@@ -1705,9 +1705,9 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /* 119 */	{
 			.disp_name = "Domain Search",
-			.len = 4,
-			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.len = 1,
+			.type = DHCP4_OPTP_T_STR_RR,
+			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 120 */	{
 			.disp_name = "SIP Servers",
@@ -2041,33 +2041,279 @@ dhcp4_hdr_check(const void *buf, const size_t buf_size) {
 }
 
 
+/* This is 256 bit map. */
+typedef union dhcp4_aggregate_options_buf_bitmap_s {
+	uint8_t		u8[32]; /* (256 / 8) */
+	uint16_t	u16[16];/* (256 / 16) */
+	uint32_t	u32[8]; /* (256 / 32) */
+	uint64_t	u64[4]; /* (256 / 64) */
+} dhcp4_ao_buf_map_t, *dhcp4_ao_buf_map_p;
+
+
+static int
+dhcp4_ao_buf_map_is_set(dhcp4_ao_buf_map_p aob_map, const uint8_t idx) {
+
+	if (NULL == aob_map)
+		return (0);
+	return (0 != (aob_map->u64[(idx / 64)] & (((uint64_t)1) << (idx % 64))));
+}
+
+static void
+dhcp4_ao_buf_map_set(dhcp4_ao_buf_map_p aob_map, const uint8_t idx, const int val) {
+
+	if (NULL == aob_map)
+		return;
+	if (0 == val) {  /* Clear bit. */
+		aob_map->u64[(idx / 64)] &= ~(((uint64_t)1) << (idx % 64));
+	} else {
+		aob_map->u64[(idx / 64)] |= (((uint64_t)1) << (idx % 64));
+	}
+}
+
+static int
+dhcp4_ao_buf_map_buf_import(dhcp4_ao_buf_map_p aob_map, const int val,
+    const uint8_t *buf, const size_t buf_size) {
+
+	if (NULL == aob_map ||
+	    (NULL == buf && 0 != buf_size))
+		return (EINVAL);
+
+	for (size_t i = 0; i < buf_size; i ++) {
+		dhcp4_ao_buf_map_set(aob_map, buf[i], val);
+	}
+
+	return (0);
+}
+
+static void
+dhcp4_ao_buf_map_invert(dhcp4_ao_buf_map_p aob_map) {
+
+	if (NULL == aob_map)
+		return;
+	aob_map->u64[0] = ~aob_map->u64[0];
+	aob_map->u64[1] = ~aob_map->u64[1];
+	aob_map->u64[2] = ~aob_map->u64[2];
+	aob_map->u64[3] = ~aob_map->u64[3];
+}
+
+static void
+dhcp4_ao_buf_map_and(dhcp4_ao_buf_map_p dst, dhcp4_ao_buf_map_p src1, dhcp4_ao_buf_map_p src2) {
+
+	if (NULL == dst || NULL == src1 || NULL == src2)
+		return;
+	dst->u64[0] = (src1->u64[0] & src2->u64[0]);
+	dst->u64[1] = (src1->u64[1] & src2->u64[1]);
+	dst->u64[2] = (src1->u64[2] & src2->u64[2]);
+	dst->u64[3] = (src1->u64[3] & src2->u64[3]);
+}
+
+static void
+dhcp4_ao_buf_map_or(dhcp4_ao_buf_map_p dst, dhcp4_ao_buf_map_p src1, dhcp4_ao_buf_map_p src2) {
+
+	if (NULL == dst || NULL == src1 || NULL == src2)
+		return;
+	dst->u64[0] = (src1->u64[0] | src2->u64[0]);
+	dst->u64[1] = (src1->u64[1] | src2->u64[1]);
+	dst->u64[2] = (src1->u64[2] | src2->u64[2]);
+	dst->u64[3] = (src1->u64[3] | src2->u64[3]);
+}
+
+static void
+dhcp4_ao_buf_map_xor(dhcp4_ao_buf_map_p dst, dhcp4_ao_buf_map_p src1, dhcp4_ao_buf_map_p src2) {
+
+	if (NULL == dst || NULL == src1 || NULL == src2)
+		return;
+	dst->u64[0] = (src1->u64[0] ^ src2->u64[0]);
+	dst->u64[1] = (src1->u64[1] ^ src2->u64[1]);
+	dst->u64[2] = (src1->u64[2] ^ src2->u64[2]);
+	dst->u64[3] = (src1->u64[3] ^ src2->u64[3]);
+}
+
+static void
+dhcp4_ao_buf_map_and_inv(dhcp4_ao_buf_map_p dst, dhcp4_ao_buf_map_p src) {
+
+	if (NULL == dst || NULL == src)
+		return;
+	dst->u64[0] &= ~src->u64[0];
+	dst->u64[1] &= ~src->u64[1];
+	dst->u64[2] &= ~src->u64[2];
+	dst->u64[3] &= ~src->u64[3];
+}
+
+
+typedef struct dhcp4_aggregate_options_buf_option_s {
+	uint8_t *	data;
+	uint16_t	len;
+	uint8_t		flags;
+} dhcp4_ao_buf_opt_t, *dhcp4_ao_buf_opt_p;
+
 typedef struct dhcp4_aggregate_options_buf_s {
-	uint8_t *	data[256];
-	uint16_t	len[256];
-	uint8_t		is_allocated[256];
-} dhcp4_agg_opts_buf_t, *dhcp4_agg_opts_buf_p;
+	dhcp4_ao_buf_opt_t	opt[256];
+	dhcp4_ao_buf_map_t	map;
+} dhcp4_ao_buf_t, *dhcp4_ao_buf_p;
+
+#define DHCP4_AO_BUF_O_F_ALLOCATED	(((uint8_t)1) << 0)
 
 
 static void
-dhcp4_agg_opts_buf_clean(dhcp4_agg_opts_buf_p ao_buf) {
+dhcp4_ao_buf_opt_clean(dhcp4_ao_buf_p ao_buf, const uint8_t code) {
+
+	if (NULL == ao_buf)
+		return;
+	if (0 != (DHCP4_AO_BUF_O_F_ALLOCATED & ao_buf->opt[code].flags)) {
+		free(ao_buf->opt[code].data);
+	}
+	memset(&ao_buf->opt[code], 0x00, sizeof(dhcp4_ao_buf_opt_t));
+	dhcp4_ao_buf_map_set(&ao_buf->map, code, 0);
+}
+
+static void
+dhcp4_ao_buf_clean(dhcp4_ao_buf_p ao_buf) {
 
 	if (NULL == ao_buf)
 		return;
 	for (size_t i = 0; i < 256; i ++) {
-		if (0 == ao_buf->is_allocated[i])
+		if (0 == (DHCP4_AO_BUF_O_F_ALLOCATED & ao_buf->opt[i].flags))
 			continue;
-		free(ao_buf->data[i]);
+		free(ao_buf->opt[i].data);
 	}
-	memset(ao_buf, 0x00, sizeof(dhcp4_agg_opts_buf_t));
+	memset(ao_buf, 0x00, sizeof(dhcp4_ao_buf_t));
 }
+
+static uint8_t *
+dhcp4_ao_buf_data_get(dhcp4_ao_buf_p ao_buf, const uint8_t code) {
+
+	if (NULL == ao_buf)
+		return (NULL);
+	if (0 == dhcp4_ao_buf_map_is_set(&ao_buf->map, code))
+		return (NULL);
+	if (0 != (DHCP4_AO_BUF_O_F_ALLOCATED & ao_buf->opt[code].flags))
+		return (ao_buf->opt[code].data);
+	return ((uint8_t*)&ao_buf->opt[code].data);
+}
+
+static uint8_t *
+dhcp4_ao_buf_data_get_free_space(dhcp4_ao_buf_p ao_buf, const uint8_t code,
+    const size_t size) {
+	uint8_t *buf;
+
+	if (NULL == ao_buf)
+		return (NULL);
+	/* Is we can store data without allocation? */
+	if (0 == (DHCP4_AO_BUF_O_F_ALLOCATED & ao_buf->opt[code].flags)) {
+		if ((sizeof(uint8_t*) - ao_buf->opt[code].len) > size)
+			return ((((uint8_t*)&ao_buf->opt[code].data) + ao_buf->opt[code].len));
+		/* First alloc and data migration. */
+		buf = malloc((ao_buf->opt[code].len + size + sizeof(void*)));
+		if (NULL == buf)
+			return (NULL);
+		memcpy(buf, &ao_buf->opt[code].data, ao_buf->opt[code].len);
+		ao_buf->opt[code].flags |= DHCP4_AO_BUF_O_F_ALLOCATED;
+	} else {
+		buf = realloc(ao_buf->opt[code].data, (ao_buf->opt[code].len + size + sizeof(void*)));
+		if (NULL == buf)
+			return (NULL);
+	}
+	ao_buf->opt[code].data = buf;
+	return ((ao_buf->opt[code].data + ao_buf->opt[code].len));
+}
+
+
+static size_t
+dhcp4_ao_buf_calc_size(dhcp4_ao_buf_p ao_buf, const dhcp4_ao_buf_map_p allow_filter) {
+	size_t opt_seq_size = 0, opt_len;
+	dhcp4_ao_buf_map_t flt;
+
+	if (NULL == ao_buf)
+		return (opt_seq_size);
+
+	/* Apply allow filter or use only set map. */
+	if (NULL != allow_filter) {
+		dhcp4_ao_buf_map_and(&flt, &ao_buf->map, allow_filter);
+	} else {
+		memcpy(&flt, &ao_buf->map, sizeof(flt));
+	}
+	/* Calc size. */
+	for (size_t code = 0; code < 256; code ++) {
+		if (0 == (code % 8) && 0 == flt.u8[(code / 8)]) { /* Fast skip. */
+			code += 7; /* +1 in for() = 8. */
+			continue;
+		}
+		if (0 == dhcp4_ao_buf_map_is_set(&flt, (uint8_t)code))
+			continue;
+		opt_len = ao_buf->opt[code].len;
+		opt_seq_size += opt_len; /* Option data as is. */
+		opt_seq_size += (2 * (opt_len / 255)); /* Headers for full filled. */
+		opt_seq_size += ((0 != (opt_len % 255)) ? 2 : 0); /* Extra header for half filled. */
+	}
+
+	return (opt_seq_size);
+}
+
+static int
+dhcp4_ao_buf_serialize(dhcp4_ao_buf_p ao_buf, const dhcp4_ao_buf_map_p allow_filter,
+    uint8_t *buf, const size_t buf_size, size_t *buf_written) {
+	uint8_t *buf_max = (buf + buf_size), *ptr = buf, *optr;
+	size_t opt_seq_size, opt_len;
+	dhcp4_ao_buf_map_t flt;
+
+	if (NULL == ao_buf ||
+	    (NULL == buf && 0 != buf_size) ||
+	    NULL == buf_written)
+		return (EINVAL);
+
+	/* Apply allow filter or use only set map. */
+	if (NULL != allow_filter) {
+		dhcp4_ao_buf_map_and(&flt, &ao_buf->map, allow_filter);
+	} else {
+		memcpy(&flt, &ao_buf->map, sizeof(flt));
+	}
+	/* Write options. */
+	for (size_t code = 0; code < 256; code ++) {
+		if (0 == (code % 8) && 0 == flt.u8[(code / 8)]) { /* Fast skip. */
+			code += 7; /* +1 in for() = 8. */
+			continue;
+		}
+		if (0 == dhcp4_ao_buf_map_is_set(&flt, (uint8_t)code))
+			continue;
+		opt_len = ao_buf->opt[code].len;
+		opt_seq_size = opt_len; /* Option data as is. */
+		opt_seq_size += (2 * (opt_len / 255)); /* Headers for full filled. */
+		opt_seq_size += ((0 != (opt_len % 255)) ? 2 : 0); /* Extra header for half filled. */
+		if ((ptr + opt_seq_size) > buf_max) {
+			ptr += opt_seq_size; /* Switch to count only mode. */
+			continue;
+		}
+		/* Write option header and data. Split if required. */
+		if (0 == opt_len) { /* Option without data. */
+			ptr[0] = (uint8_t)code;
+			ptr[1] = 0;
+			ptr += 2;
+		} else {
+			optr = dhcp4_ao_buf_data_get(ao_buf, (uint8_t)code);
+			for (size_t off = 0; off < opt_len; off += 255) {
+				ptr[0] = (uint8_t)code;
+				ptr[1] = (uint8_t)MIN(255, (opt_len - off));
+				memcpy((ptr + 2), (optr + off), ptr[1]);
+				ptr += (2 + ptr[1]);
+			}
+		}
+	}
+
+	(*buf_written) = (size_t)(ptr - buf);
+	if (ptr > buf_max)
+		return (ENOBUFS);
+	return (0);
+}
+
 
 /* RFC 3396 Encoding Long Options in DHCPv4: Aggregate Option Buffer */
 static int
-dhcp4_options_aggregate(const void *buf, const size_t buf_size,
+dhcp4_ao_buf_aggregate(const void *buf, const size_t buf_size,
     dhcp4_opt_params_p opts, const size_t opts_count,
-    dhcp4_agg_opts_buf_p ao_buf) {
+    dhcp4_ao_buf_p ao_buf) {
 	const uint8_t *pos = buf, *pos_max = (((const uint8_t*)buf) + buf_size), *opt_data;
-	uint8_t *nmem;
+	uint8_t *ptr;
 	dhcp4_opt_hdr_p opth;
 	dhcp4_opt_params_p optp;
 
@@ -2116,29 +2362,12 @@ dhcp4_options_aggregate(const void *buf, const size_t buf_size,
 		}
 
 		/* Store option data to agg buf. */
-		if (NULL == ao_buf->data[opth->code] ||
-		    0 == ao_buf->len[opth->code]) { /* Option not set or zero size. */
-			ao_buf->data[opth->code] = (uint8_t*)opt_data; /* Zero copy for single non zero size instance option. */
-			ao_buf->len[opth->code] = opth->len;
-			continue;
-		}
-		/* Possible need to alloc mem to defrag option data. */
-		if (0 == opth->len)
-			continue; /* Nothink to add. */
-		if (0 == ao_buf->is_allocated[opth->code]) {
-			nmem = malloc((ao_buf->len[opth->code] + opth->len + sizeof(void*)));
-			if (NULL == nmem)
-				return (ENOMEM);
-			memcpy(nmem, ao_buf->data[opth->code], ao_buf->len[opth->code]);
-		} else {
-			nmem = realloc(ao_buf->data[opth->code],
-			    (ao_buf->len[opth->code] + opth->len) + sizeof(void*));
-			if (NULL == nmem)
-				return (ENOMEM);
-		}
-		memcpy((nmem + ao_buf->len[opth->code]), opt_data, opth->len);
-		ao_buf->is_allocated[opth->code] = 1;
-		ao_buf->len[opth->code] += opth->len;
+		ptr = dhcp4_ao_buf_data_get_free_space(ao_buf, opth->code, opth->len);
+		if (NULL == ptr)
+			return (ENOMEM);
+		memcpy(ptr, opt_data, opth->len);
+		ao_buf->opt[opth->code].len += opth->len;
+		dhcp4_ao_buf_map_set(&ao_buf->map, opth->code, 1);
 	}
 
 	return (0);
@@ -2148,16 +2377,16 @@ dhcp4_options_aggregate(const void *buf, const size_t buf_size,
 /* Check DHCP packet header and do options aggregate.
  * buf - pointer to mem with DHCP packet.
  * buf_size - DHCP packet size.
- * ao_buf - aggregate options buf. Do not forget to call dhcp4_agg_opts_buf_clean() after use.
- * opt52_val_ret - ruturn opt 52 value. It does not stored in ao_buf.
+ * ao_buf - aggregate options buf. Do not forget to call dhcp4_ao_buf_clean() after use.
+ * overload_flags_ret - ruturn opt 52 value. It does not stored in ao_buf.
  * Return 0 if no err.
  */
 static int
-dhcp4_chk_options_aggregate(const void *buf, const size_t buf_size,
-    dhcp4_agg_opts_buf_p ao_buf, uint8_t *opt52_val_ret) {
+dhcp4_pkt_chk_opts_aggregate(const void *buf, const size_t buf_size,
+    dhcp4_ao_buf_p ao_buf, uint8_t *overload_flags_ret) {
 	int error;
 	const dhcp4_hdr_p hdr = (const dhcp4_hdr_p)buf;
-	uint8_t opt52_val = 0;
+	uint8_t overload_flags = 0, *opt52_val_ptr;
 
 	if (NULL == buf || NULL == ao_buf)
 		return (EINVAL);
@@ -2168,20 +2397,22 @@ dhcp4_chk_options_aggregate(const void *buf, const size_t buf_size,
 		return (error);
 
 	/* Parse main options. */
-	memset(ao_buf, 0x00, sizeof(dhcp4_agg_opts_buf_t));
-	error = dhcp4_options_aggregate((const void*)(hdr + 1),
+	memset(ao_buf, 0x00, sizeof(dhcp4_ao_buf_t));
+	error = dhcp4_ao_buf_aggregate((const void*)(hdr + 1),
 	    (buf_size - sizeof(dhcp4_hdr_t)),
 	    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options), ao_buf);
 	if (0 != error)
 		goto err_out;
 
 	/* 52: Option overload: handle it only here. */
-	if (NULL == ao_buf->data[DHCP4_OPT_OVERLOAD])
-		return (0);
-	opt52_val = ao_buf->data[DHCP4_OPT_OVERLOAD][0];
+	opt52_val_ptr = dhcp4_ao_buf_data_get(ao_buf, DHCP4_OPT_OVERLOAD);
+	if (NULL != opt52_val_ptr && 0 != ao_buf->opt[DHCP4_OPT_OVERLOAD].len) {
+		overload_flags = opt52_val_ptr[0];
+	}
+	dhcp4_ao_buf_opt_clean(ao_buf, DHCP4_OPT_OVERLOAD);
 	/* file. */
-	if (0 != (DHCP4_OPT_OVERLOAD_F_FILE & opt52_val)) {
-		error = dhcp4_options_aggregate((const void*)hdr->file,
+	if (0 != (DHCP4_OPT_OVERLOAD_F_FILE & overload_flags)) {
+		error = dhcp4_ao_buf_aggregate((const void*)hdr->file,
 		    sizeof(hdr->file),
 		    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options),
 		    ao_buf);
@@ -2189,29 +2420,23 @@ dhcp4_chk_options_aggregate(const void *buf, const size_t buf_size,
 			goto err_out;
 	}
 	/* sname. */
-	if (0 != (DHCP4_OPT_OVERLOAD_F_SNAME & opt52_val)) {
-		error = dhcp4_options_aggregate((const void*)hdr->sname,
+	if (0 != (DHCP4_OPT_OVERLOAD_F_SNAME & overload_flags)) {
+		error = dhcp4_ao_buf_aggregate((const void*)hdr->sname,
 		    sizeof(hdr->sname),
 		    (dhcp4_opt_params_p)dhcp4_options, nitems(dhcp4_options),
 		    ao_buf);
 		if (0 != error)
 			goto err_out;
 	}
-	/* Uset in aggregate options buf. */
-	if (0 != ao_buf->is_allocated[DHCP4_OPT_OVERLOAD]) {
-		free(ao_buf->data[DHCP4_OPT_OVERLOAD]);
-	}
-	ao_buf->data[DHCP4_OPT_OVERLOAD] = NULL;
-	ao_buf->len[DHCP4_OPT_OVERLOAD] = 0;
 
-	if (NULL != opt52_val_ret) {
-		(*opt52_val_ret) = opt52_val;
+	if (NULL != overload_flags_ret) {
+		(*overload_flags_ret) = overload_flags;
 	}
 
 	return (0);
 
 err_out:
-	dhcp4_agg_opts_buf_clean(ao_buf);
+	dhcp4_ao_buf_clean(ao_buf);
 	return (error);
 }
 
