@@ -911,7 +911,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	ident = tp_task_ident_get(tptask);
 	while (transfered_size < data2transfer_size) { /* Recv loop. */
 		ios = skt_recvfrom(ident, buf, sizeof(buf), MSG_DONTWAIT,
-		    addr, &if_index);
+		    addr, &if_index, NULL);
 		if (-1 == ios) {
 			error = errno;
 			if (0 == error) {

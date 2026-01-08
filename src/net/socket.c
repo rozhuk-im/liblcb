@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -360,6 +360,23 @@ skt_enable_recv_ifindex(uintptr_t skt, int enable) {
 	return (0);
 }
 
+int
+skt_enable_recv_timestamp(uintptr_t skt, const int enable) {
+
+#ifdef SO_TS_REALTIME /* BSD. */
+	const int val_rt = SO_TS_REALTIME;
+	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_TIMESTAMP, &enable, sizeof(enable)))
+		return (errno);
+	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_TS_CLOCK, &val_rt, sizeof(val_rt)))
+		return (errno);
+#endif
+#ifdef SO_TIMESTAMPNS
+	if (0 != setsockopt((int)skt, SOL_SOCKET, SO_TIMESTAMPNS, &enable, sizeof(enable)))
+		return (errno);
+#endif
+
+	return (0);
+}
 
 
 int
@@ -526,8 +543,8 @@ skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
 }
 
 ssize_t
-skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
-    sockaddr_storage_t *from, uint32_t *if_index) {
+skt_recvfrom(uintptr_t skt, void *buf, const size_t buf_size, const int flags,
+    sockaddr_storage_t *from, uint32_t *if_index, struct timespec *rcv_time) {
 	ssize_t transfered_size;
 	struct msghdr mhdr;
 	struct iovec rcviov[4];
@@ -539,7 +556,8 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 #if defined(IP_PKTINFO) /* Linux/win */
 		CMSG_SPACE(sizeof(struct in_pktinfo)) +
 #endif
-		CMSG_SPACE(sizeof(struct in6_pktinfo))
+		CMSG_SPACE(sizeof(struct in6_pktinfo)) +
+		CMSG_SPACE(sizeof(struct timespec))
 	];
 
 	/* Initialize msghdr for receiving packets. */
@@ -555,13 +573,19 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 	mhdr.msg_flags = 0;
 
 	transfered_size = recvmsg((int)skt, &mhdr, flags);
-	if (-1 == transfered_size || NULL == if_index)
+	if (-1 == transfered_size)
 		return (transfered_size);
-	(*if_index) = 0;
+	if (NULL != if_index) {
+		(*if_index) = 0;
+	}
+	if (NULL != rcv_time) {
+		memset(rcv_time, 0x00, sizeof(struct timespec));
+	}
 	/* Handle additional IP packet data. */
 	for (cm = CMSG_FIRSTHDR(&mhdr); NULL != cm; cm = CMSG_NXTHDR(&mhdr, cm)) {
 #ifdef IP_RECVIF /* FreeBSD */
-		if (IPPROTO_IP == cm->cmsg_level &&
+		if (NULL != if_index &&
+		    IPPROTO_IP == cm->cmsg_level &&
 		    IP_RECVIF == cm->cmsg_type &&
 		    CMSG_LEN(sizeof(struct sockaddr_dl)) <= cm->cmsg_len) {
 			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
@@ -570,7 +594,8 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 		}
 #endif
 #ifdef IP_PKTINFO /* Linux/win */
-		if (IPPROTO_IP == cm->cmsg_level &&
+		if (NULL != if_index &&
+		    IPPROTO_IP == cm->cmsg_level &&
 		    IP_PKTINFO == cm->cmsg_type &&
 		    CMSG_LEN(sizeof(struct in_pktinfo)) <= cm->cmsg_len) {
 			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
@@ -578,7 +603,8 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 			break;
 		}
 #endif
-		if (IPPROTO_IPV6 == cm->cmsg_level && (
+		if (NULL != if_index &&
+		    IPPROTO_IPV6 == cm->cmsg_level && (
 #ifdef IPV6_2292PKTINFO
 		    IPV6_2292PKTINFO == cm->cmsg_type ||
 #endif
@@ -586,6 +612,19 @@ skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
 		    CMSG_LEN(sizeof(struct in6_pktinfo)) <= cm->cmsg_len) {
 			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
 			    struct in6_pktinfo, ipi6_ifindex);
+			break;
+		}
+		if (NULL != rcv_time &&
+		    SOL_SOCKET == cm->cmsg_level &&
+#ifdef SO_TS_REALTIME /* BSD. */
+		    SCM_REALTIME == cm->cmsg_type &&
+#elif defined(SO_TIMESTAMPNS) /* Linux. */
+		    SCM_TIMESTAMPNS == cm->cmsg_type &&
+#else
+		    0 && /* Disabled. */
+#endif
+		    CMSG_LEN(sizeof(struct timespec)) <= cm->cmsg_len) {
+			memcpy(rcv_time, CMSG_DATA(cm), sizeof(struct timespec));
 			break;
 		}
 	}

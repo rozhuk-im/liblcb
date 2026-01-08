@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,6 +77,7 @@ int	skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
 	    size_t ifname_size, const sockaddr_storage_t *mc_addr);
 
 int	skt_enable_recv_ifindex(uintptr_t skt, int enable);
+int	skt_enable_recv_timestamp(uintptr_t skt, const int enable);
 
 
 int	skt_create(int domain, int type, int protocol, uint32_t flags,
@@ -91,8 +92,8 @@ int	skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
 	    int type, int protocol, uint32_t flags, uintptr_t *skt_ret);
 #define SKT_BIND_FLAG_MASK	(SKT_CREATE_FLAG_MASK | SO_F_REUSEADDR | SO_F_REUSEPORT)
 
-ssize_t	skt_recvfrom(uintptr_t skt, void *buf, size_t buf_size, int flags,
-	    sockaddr_storage_p from, uint32_t *if_index);
+ssize_t	skt_recvfrom(uintptr_t skt, void *buf, const size_t buf_size, const int flags,
+	    sockaddr_storage_t *from, uint32_t *if_index, struct timespec *rcv_time);
 
 int	skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size,
 	    int flags, off_t *transfered_size);

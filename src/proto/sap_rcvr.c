@@ -271,7 +271,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 	}
 
 	ios = skt_recvfrom(tp_task_ident_get(tptask),
-	    buf, sizeof(buf), MSG_DONTWAIT, NULL, &if_index);
+	    buf, sizeof(buf), MSG_DONTWAIT, NULL, &if_index, NULL);
 	if (-1 == ios) {
 		error = errno;
 		if (0 == error) {
