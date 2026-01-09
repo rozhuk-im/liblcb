@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -202,7 +202,7 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 		if (0 == xml_get_val_uint32_args(buf, buf_size, NULL,
 		    &opts->snd_lowat,
 		    (const uint8_t*)"sndLoWatermark", NULL)) {
-			if (0 != opts->snd_buf) {
+			if (0 != opts->snd_lowat) {
 				opts->mask |= SO_F_SNDLOWAT;
 			}
 		}
