@@ -859,7 +859,7 @@ http_srv_new_conn_cb(io_task_p iotask, int error, uintptr_t skt,
 	error = io_net_skt_opts_set_ex(skt, SO_F_TCP_ES_CONN_MASK,
 	    &bnd->s.skt_opts, NULL);
 	SYSLOG_ERR(LOG_NOTICE, error,
-	    "%s: skt_opts_apply_ex(), this is not fatal.", straddr);
+	    "%s: skt_opts_apply(), this is not fatal.", straddr);
 	/* Receive http request. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
 	/* Shedule data receive / Receive http request. */

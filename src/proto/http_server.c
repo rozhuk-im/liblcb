@@ -1068,10 +1068,10 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 	}
 	sa_copy(addr, &cli->addr);
 	/* Tune socket. */
-	error = skt_opts_apply_ex(skt, SO_F_TCP_ES_CONN_MASK,
+	error = skt_opts_apply(skt, SO_F_TCP_ES_CONN_MASK,
 	    &bnd->s.skt_opts, addr->ss_family, NULL);
 	SYSLOG_ERR(LOG_NOTICE, error,
-	    "%s: skt_opts_apply_ex(), this is not fatal.", straddr);
+	    "%s: skt_opts_apply(), this is not fatal.", straddr);
 	/* Receive http request. */
 	IO_BUF_MARK_TRANSFER_ALL_FREE(cli->rcv_buf);
 	/* Shedule data receive / Receive http request. */

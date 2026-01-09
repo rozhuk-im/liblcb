@@ -313,9 +313,9 @@ upnp_ssdp_create(tp_p tp, upnp_ssdp_settings_p s, upnp_ssdp_p *ussdp_ret) {
 		goto err_out;
 	}
 	/* Tune socket. */
-	error = skt_opts_apply_ex(skt, SO_F_UDP_BIND_AF_MASK,
+	error = skt_opts_apply(skt, SO_F_UDP_BIND_AF_MASK,
 	    &s->skt_opts, AF_INET, NULL);
-	SYSLOG_ERR(LOG_NOTICE, error, "skt_opts_apply_ex(), this is not fatal.");
+	SYSLOG_ERR(LOG_NOTICE, error, "skt_opts_apply(), this is not fatal.");
 
 	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {
@@ -341,9 +341,9 @@ skip_ipv4:
 		goto err_out;
 	}
 	/* Tune socket. */
-	error = skt_opts_apply_ex(skt, SO_F_UDP_BIND_AF_MASK,
+	error = skt_opts_apply(skt, SO_F_UDP_BIND_AF_MASK,
 	    &s->skt_opts, AF_INET6, NULL);
-	SYSLOG_ERR(LOG_NOTICE, error, "skt_opts_apply_ex(), this is not fatal.");
+	SYSLOG_ERR(LOG_NOTICE, error, "skt_opts_apply(), this is not fatal.");
 
 	error = skt_enable_recv_ifindex(skt, 1);
 	if (0 != error) {

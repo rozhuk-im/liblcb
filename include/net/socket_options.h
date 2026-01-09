@@ -142,12 +142,9 @@ void	skt_opts_cvt(const int mult, skt_opts_p opts);
 #define SKT_OPTS_MULT_G		3
 
 /* family = AF_UNSPEC - to try aplly IPv6 and then IPv4 proto level options. */
-int	skt_opts_apply_ex(const uintptr_t skt, const uint32_t mask,
+int	skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 	    const skt_opts_p opts, const sa_family_t family,
 	    uint32_t *err_mask);
-int	skt_opts_apply(const uintptr_t skt, const uint32_t mask,
-	    const uint32_t bit_vals, const sa_family_t family);
-/* Set only SO_F_BIT_VALS_MASK. */
 
 #define SKT_OPTS_GET_FLAGS_VALS(__opts, __fmask)			\
 	    ((__fmask) & SO_F_BIT_VALS_MASK & (__opts)->mask & (__opts)->bit_vals)
