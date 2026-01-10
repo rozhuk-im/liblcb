@@ -61,42 +61,42 @@
 /* Other flags in net/socket_options.h. */
 
 
-int	skt_rcv_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat);
-int	skt_snd_tune(uintptr_t skt, uint32_t buf_size, uint32_t lowat);
-int	skt_set_tcp_cc(uintptr_t skt, const char *cc, size_t cc_size);
-int	skt_get_tcp_cc(uintptr_t skt, char *cc, size_t cc_size, size_t *cc_size_ret);
-int	skt_is_tcp_cc_avail(const char *cc, size_t cc_size);
-int	skt_get_tcp_maxseg(uintptr_t skt, int *val_ret);
-int	skt_get_addr_family(uintptr_t skt, sa_family_t *family);
-int	skt_set_tcp_nodelay(uintptr_t skt, int val);
-int	skt_set_tcp_nopush(uintptr_t skt, int val);
-int	skt_set_accept_filter(uintptr_t skt, const char *accf, size_t accf_size);
-int	skt_mc_join(uintptr_t skt, int join, uint32_t if_index,
+int	skt_rcv_tune(const uintptr_t skt, const uint32_t buf_size, const uint32_t lowat);
+int	skt_snd_tune(const uintptr_t skt, const uint32_t buf_size, const uint32_t lowat);
+int	skt_set_tcp_cc(const uintptr_t skt, const char *cc, const size_t cc_size);
+int	skt_get_tcp_cc(const uintptr_t skt, char *cc, const size_t cc_size, size_t *cc_size_ret);
+int	skt_is_tcp_cc_avail(const char *cc, const size_t cc_size);
+int	skt_get_tcp_maxseg(const uintptr_t skt, int *val_ret);
+int	skt_get_addr_family(const uintptr_t skt, sa_family_t *family);
+int	skt_set_tcp_nodelay(const uintptr_t skt, const int val);
+int	skt_set_tcp_nopush(const uintptr_t skt, const int val);
+int	skt_set_accept_filter(const uintptr_t skt, const char *accf, const size_t accf_size);
+int	skt_mc_join(const uintptr_t skt, const int join, const uint32_t if_index,
 	    const sockaddr_storage_t *mc_addr);
-int	skt_mc_join_ifname(uintptr_t skt, int join, const char *ifname,
-	    size_t ifname_size, const sockaddr_storage_t *mc_addr);
+int	skt_mc_join_ifname(const uintptr_t skt, const int join, const char *ifname,
+	    const size_t ifname_size, const sockaddr_storage_t *mc_addr);
 
-int	skt_enable_recv_ifindex(uintptr_t skt, int enable);
-int	skt_enable_recv_timestamp(uintptr_t skt, const int enable);
+int	skt_enable_recv_ifindex(const uintptr_t skt, const int enable);
+int	skt_enable_recv_timestamp(const uintptr_t skt, const int enable);
 
 
-int	skt_create(int domain, int type, int protocol, uint32_t flags,
-	    uintptr_t *skt_ret);
-int	skt_accept(uintptr_t skt, sockaddr_storage_p addr,
-	    socklen_t *addrlen, uint32_t flags, uintptr_t *skt_ret);
+int	skt_create(const int domain, const int type, const int protocol,
+	    const uint32_t flags, uintptr_t *skt_ret);
+int	skt_accept(const uintptr_t skt, sockaddr_storage_p addr,
+	    socklen_t *addrlen, const uint32_t flags, uintptr_t *skt_ret);
 #define SKT_CREATE_FLAG_MASK	(SO_F_CLOEXEC | SO_F_NONBLOCK | SO_F_BROADCAST)
 
-int	skt_bind(const sockaddr_storage_t *addr, int type, int protocol,
-	    uint32_t flags, uintptr_t *skt_ret);
-int	skt_bind_ap(const sa_family_t family, void *addr, uint16_t port,
-	    int type, int protocol, uint32_t flags, uintptr_t *skt_ret);
+int	skt_bind(const sockaddr_storage_t *addr, const int type, const int protocol,
+	    const uint32_t flags, uintptr_t *skt_ret);
+int	skt_bind_ap(const sa_family_t family, const void *addr, const uint16_t port,
+	    const int type, const int protocol, const uint32_t flags, uintptr_t *skt_ret);
 #define SKT_BIND_FLAG_MASK	(SKT_CREATE_FLAG_MASK | SO_F_REUSEADDR | SO_F_REUSEPORT)
 
-ssize_t	skt_recvfrom(uintptr_t skt, void *buf, const size_t buf_size, const int flags,
+ssize_t	skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int flags,
 	    sockaddr_storage_t *from, uint32_t *if_index, struct timespec *rcv_time);
 
-int	skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size,
-	    int flags, off_t *transfered_size);
+int	skt_sendfile(const uintptr_t fd, const uintptr_t skt, const off_t offset,
+	    const size_t size, const int flags, off_t *transfered_size);
 
 /* Auto flags, to allow build on Linux and MacOS. */
 #ifndef SF_NODISKIO
@@ -109,20 +109,20 @@ int	skt_sendfile(uintptr_t fd, uintptr_t skt, off_t offset, size_t size,
 #define SKT_SF_F_NODISKIO	SF_NODISKIO
 #define SKT_SF_F_MNOWAIT	SF_MNOWAIT
 
-int	skt_listen(uintptr_t skt, int backlog);
+int	skt_listen(const uintptr_t skt, const int backlog);
 
-int	skt_connect(const sockaddr_storage_t *addr, int type, int protocol,
-	    uint32_t flags, uintptr_t *skt_ret);
-int	skt_is_connect_error(int error);
+int	skt_connect(const sockaddr_storage_t *addr, const int type,
+	    const int protocol, const uint32_t flags, uintptr_t *skt_ret);
+int	skt_is_connect_error(const int error);
 
-int	skt_sync_resolv(const char *hname, uint16_t port, int ai_family,
-	    sockaddr_storage_p addrs, size_t addrs_count,
+int	skt_sync_resolv(const char *hname, const uint16_t port, const int ai_family,
+	    sockaddr_storage_p addrs, const size_t addrs_count,
 	    size_t *addrs_count_ret);
-int	skt_sync_resolv_connect(const char *hname, uint16_t port,
-	    int domain, int type, int protocol, uintptr_t *skt_ret);
+int	skt_sync_resolv_connect(const char *hname, const uint16_t port,
+	    const int domain, const int type, const int protocol, uintptr_t *skt_ret);
 
-int	skt_tcp_stat_text(uintptr_t skt, const char *tabs,
-	    char *buf, size_t buf_size, size_t *buf_size_ret);
+int	skt_tcp_stat_text(const uintptr_t skt, const char *tabs,
+	    char *buf, const size_t buf_size, size_t *buf_size_ret);
 
 
 #endif /* __SOCKET_H__ */
