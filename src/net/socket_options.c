@@ -69,7 +69,25 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 		return (EINVAL);
 	/* Read from config. */
 
-	/* SO_F_CLOEXEC, SO_F_NONBLOCK: never read, app internal. */
+	/* SO_F_CLOEXEC, SO_F_NONBLOCK, SO_F_BROADCAST: never read, app internal. */
+	/* SO_F_REUSEADDR */
+	if (0 != (SO_F_REUSEADDR & mask)) {
+		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
+		    &data, &data_size,
+		    (const uint8_t*)"fReuseAddr", NULL)) {
+			yn_set_flag32(data, data_size, SO_F_REUSEADDR, &opts->bit_vals);
+			opts->mask |= SO_F_REUSEADDR;
+		}
+	}
+	/* SO_F_REUSEPORT */
+	if (0 != (SO_F_REUSEPORT & mask)) {
+		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
+		    &data, &data_size,
+		    (const uint8_t*)"fReusePort", NULL)) {
+			yn_set_flag32(data, data_size, SO_F_REUSEPORT, &opts->bit_vals);
+			opts->mask |= SO_F_REUSEPORT;
+		}
+	}
 	/* SO_F_HALFCLOSE_RD */
 	if (0 != (SO_F_HALFCLOSE_RD & mask)) {
 		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
@@ -97,25 +115,6 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 				opts->backlog = INT_MAX;
 			}
 			opts->mask |= SO_F_BACKLOG;
-		}
-	}
-	/* SO_F_BROADCAST: never read, app internal. */
-	/* SO_F_REUSEADDR */
-	if (0 != (SO_F_REUSEADDR & mask)) {
-		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
-		    &data, &data_size,
-		    (const uint8_t*)"fReuseAddr", NULL)) {
-			yn_set_flag32(data, data_size, SO_F_REUSEADDR, &opts->bit_vals);
-			opts->mask |= SO_F_REUSEADDR;
-		}
-	}
-	/* SO_F_REUSEPORT */
-	if (0 != (SO_F_REUSEPORT & mask)) {
-		if (0 == xml_get_val_args(buf, buf_size, NULL, NULL, NULL,
-		    &data, &data_size,
-		    (const uint8_t*)"fReusePort", NULL)) {
-			yn_set_flag32(data, data_size, SO_F_REUSEPORT, &opts->bit_vals);
-			opts->mask |= SO_F_REUSEPORT;
 		}
 	}
 	/* SO_F_KEEPALIVE */
@@ -276,6 +275,7 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 			opts->mask |= SO_F_IP_MULTICAST_LOOP;
 		}
 	}
+	/* SO_F_IP_RECVIF: never read, app internal. */
 
 	/* SO_F_TCP_NODELAY */
 	if (0 != (SO_F_TCP_NODELAY & mask)) {
@@ -376,31 +376,6 @@ skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 				goto err_out;
 		}
 	}
-	/* SO_F_HALFCLOSE_RD */
-	/* SO_F_HALFCLOSE_WR */
-	if (0 != (SO_F_HALFCLOSE_RDWR & _mask)) {
-		switch ((SO_F_HALFCLOSE_RDWR & _mask & opts->bit_vals)) {
-		case SO_F_HALFCLOSE_RD:
-			ival = shutdown((int)skt, SHUT_RD);
-			break;
-		case SO_F_HALFCLOSE_WR:
-			ival = shutdown((int)skt, SHUT_WR);
-			break;
-		case SO_F_HALFCLOSE_RDWR:
-			ival = shutdown((int)skt, SHUT_RDWR);
-			break;
-		default:
-			ival = 0;
-			break;
-		}
-		if (0 != ival) {
-			error = errno;
-			error_mask |= (SO_F_HALFCLOSE_RDWR & _mask & opts->bit_vals);
-			if (0 != (SO_F_FAIL_ON_ERR & _mask))
-				goto err_out;
-		}
-	}
-	/* SO_F_BACKLOG - not aplly here. */
 	/* SO_F_BROADCAST */
 	if (0 != (SO_F_BROADCAST & _mask)) {
 		ival = ((SO_F_BROADCAST & opts->bit_vals) ? 1 : 0);
@@ -441,6 +416,31 @@ skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 		}
 	}
 #endif
+	/* SO_F_HALFCLOSE_RD */
+	/* SO_F_HALFCLOSE_WR */
+	if (0 != (SO_F_HALFCLOSE_RDWR & _mask)) {
+		switch ((SO_F_HALFCLOSE_RDWR & _mask & opts->bit_vals)) {
+		case SO_F_HALFCLOSE_RD:
+			ival = shutdown((int)skt, SHUT_RD);
+			break;
+		case SO_F_HALFCLOSE_WR:
+			ival = shutdown((int)skt, SHUT_WR);
+			break;
+		case SO_F_HALFCLOSE_RDWR:
+			ival = shutdown((int)skt, SHUT_RDWR);
+			break;
+		default:
+			ival = 0;
+			break;
+		}
+		if (0 != ival) {
+			error = errno;
+			error_mask |= (SO_F_HALFCLOSE_RDWR & _mask & opts->bit_vals);
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
+		}
+	}
+	/* SO_F_BACKLOG - not aplly here. */
 	/* SO_F_KEEPALIVE */
 	if (0 != (SO_F_KEEPALIVE & _mask)) {
 		ival = ((SO_F_KEEPALIVE & opts->bit_vals) ? 1 : 0);
@@ -519,7 +519,7 @@ skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 				goto err_out;
 		}
 	}
-	/* SO_F_RCVTIMEO - no set to skt */
+	/* SO_F_RCVTIMEO - not set to skt */
 	/* SO_F_SNDBUF */
 	if (0 != (SO_F_SNDBUF & _mask) &&
 	    0 != opts->snd_buf) {
@@ -544,7 +544,17 @@ skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 		}
 	}
 #endif /* BSD specific code. */
-	/* SO_F_SNDTIMEO - no set to skt */
+	/* SO_F_SNDTIMEO - not set to skt */
+	/* SO_F_TIMESTAMP */
+	if (0 != (SO_F_TIMESTAMP & _mask)) {
+		error = skt_enable_recv_timestamp(skt, ((SO_F_TIMESTAMP & opts->bit_vals) ? 1 : 0));
+		if (0 != error) {
+			error = errno;
+			error_mask |= SO_F_TIMESTAMP;
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
+		}
+	}
 
 	/* Autodetect socket family if required. */
 	if (0 != (SO_F_IP_MASK & _mask) && 0 == family) {
@@ -617,6 +627,16 @@ skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))
 				goto err_out;
 			break;
+		}
+	}
+	/* SO_F_IP_RECVIF */
+	if (0 != (SO_F_IP_RECVIF & _mask)) {
+		error = skt_enable_recv_ifindex(skt, ((SO_F_IP_RECVIF & opts->bit_vals) ? 1 : 0));
+		if (0 != error) {
+			error = errno;
+			error_mask |= SO_F_IP_RECVIF;
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
 		}
 	}
 

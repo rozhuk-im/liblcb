@@ -76,10 +76,12 @@ typedef struct socket_options_s {
 #define SO_F_SNDBUF		(((uint32_t)1) << 12) /* SO_SNDBUF */
 #define SO_F_SNDLOWAT		(((uint32_t)1) << 13) /* SO_SNDLOWAT */
 #define SO_F_SNDTIMEO		(((uint32_t)1) << 14) /* SO_SNDTIMEO - no set to skt */
+#define SO_F_TIMESTAMP		(((uint32_t)1) << 15) /* SO_TIMESTAMP: app internal flag! */
 /* IP level. */
 #define SO_F_IP_HOPLIM_U	(((uint32_t)1) << 16) /* IP_TTL / IPV6_UNICAST_HOPS */
 #define SO_F_IP_HOPLIM_M	(((uint32_t)1) << 17) /* IP_MULTICAST_TTL / IPV6_MULTICAST_HOPS */
 #define SO_F_IP_MULTICAST_LOOP	(((uint32_t)1) << 18) /* IP_MULTICAST_LOOP / IPV6_MULTICAST_LOOP */
+#define SO_F_IP_RECVIF		(((uint32_t)1) << 19) /* IP_RECVIF / IP_PKTINFO / IPV6_PKTINFO: app internal flag! */
 /* Proto level. */
 #define SO_F_ACC_FILTER		(((uint32_t)1) << 24) /* SO_ACCEPTFILTER(httpready) / TCP_DEFER_ACCEPT */
 #define SO_F_TCP_KEEPIDLE	(((uint32_t)1) << 25) /* TCP_KEEPIDLE only if SO_KEEPALIVE set */
@@ -92,15 +94,16 @@ typedef struct socket_options_s {
 #define SO_F_FAIL_ON_ERR	(((uint32_t)1) << 31) /* Return on first set error. */
 
 #define SO_F_IP_MASK		(SO_F_IP_HOPLIM_U | SO_F_IP_HOPLIM_M |	\
-				SO_F_IP_MULTICAST_LOOP)
+				SO_F_IP_MULTICAST_LOOP | SO_F_IP_RECVIF)
 #define SO_F_KEEPALIVE_MASK	(SO_F_KEEPALIVE | SO_F_TCP_KEEPIDLE |	\
 				SO_F_TCP_KEEPINTVL | SO_F_TCP_KEEPCNT)
 
 #define SO_F_BIT_VALS_MASK	(SO_F_CLOEXEC | SO_F_NONBLOCK | 	\
 				SO_F_BROADCAST |			\
 				SO_F_REUSEADDR | SO_F_REUSEPORT | 	\
-				SO_F_KEEPALIVE | 			\
+				SO_F_KEEPALIVE | SO_F_TIMESTAMP |	\
 				SO_F_IP_MULTICAST_LOOP |		\
+				SO_F_IP_RECVIF |			\
 				SO_F_ACC_FILTER |			\
 				SO_F_TCP_NODELAY | SO_F_TCP_NOPUSH)
 #define SO_F_ALL_MASK		(0xffffffff & ~SO_F_FAIL_ON_ERR)
@@ -111,9 +114,11 @@ typedef struct socket_options_s {
 /* AF = after bind */
 #define SO_F_UDP_BIND_AF_MASK	(SO_F_RCV_MASK |			\
 				SO_F_SND_MASK |				\
+				SO_F_TIMESTAMP |			\
 				SO_F_IP_HOPLIM_U |			\
 				SO_F_IP_HOPLIM_M |			\
-				SO_F_IP_MULTICAST_LOOP)
+				SO_F_IP_MULTICAST_LOOP |		\
+				SO_F_IP_RECVIF)
 /* AF = after listen */
 #define SO_F_TCP_LISTEN_AF_MASK	(SO_F_IP_HOPLIM_U |			\
 				SO_F_ACC_FILTER |			\
