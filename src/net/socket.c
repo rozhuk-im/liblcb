@@ -601,7 +601,6 @@ skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int fl
 		    CMSG_LEN(sizeof(struct sockaddr_dl)) <= cm->cmsg_len) {
 			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
 			    struct sockaddr_dl, sdl_index);
-			break;
 		}
 #endif
 #ifdef IP_PKTINFO /* Linux/win */
@@ -611,7 +610,6 @@ skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int fl
 		    CMSG_LEN(sizeof(struct in_pktinfo)) <= cm->cmsg_len) {
 			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
 			    struct in_pktinfo, ipi_ifindex);
-			break;
 		}
 #endif
 		if (NULL != if_index &&
@@ -623,7 +621,6 @@ skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int fl
 		    CMSG_LEN(sizeof(struct in6_pktinfo)) <= cm->cmsg_len) {
 			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
 			    struct in6_pktinfo, ipi6_ifindex);
-			break;
 		}
 		if (NULL != rcv_time &&
 		    SOL_SOCKET == cm->cmsg_level &&
@@ -636,7 +633,6 @@ skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int fl
 #endif
 		    CMSG_LEN(sizeof(struct timespec)) <= cm->cmsg_len) {
 			memcpy(rcv_time, CMSG_DATA(cm), sizeof(struct timespec));
-			break;
 		}
 	}
 
