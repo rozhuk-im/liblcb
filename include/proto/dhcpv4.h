@@ -44,7 +44,7 @@
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-// http://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xml
+// https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
 //
 // RFC 1542	Clarifications and Extensions for BOOTP
 // RFC 2131	Dynamic Host Configuration Protocol
@@ -95,6 +95,7 @@
 // RFC 7710	Captive-Portal Identification Using DHCP or Router Advertisements (RAs)
 // RFC 7839	ANI Options for DHCPv4 and DHCPv6.
 // RFC 8357	DHCP Relay Source Port.
+// RFC 8925	IPv6-Only Preferred Option for DHCPv4.
 // http://www.iana.org/numbers.htm
 // http://msdn.microsoft.com/en-us/library/cc227274(v=PROT.10).aspx
 //////////////////////////////////////////////////////////////
@@ -1303,7 +1304,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  43 */	{ /* http://msdn.microsoft.com/en-us/library/cc227275%28v=PROT.10%29.aspx */
 			.disp_name = "Vendor specific info",
-			.len = 2,
+			.len = sizeof(dhcp4_opt_hdr_t),
 			.type = DHCP4_OPTP_T_SUBOPTS,
 			.flags = DHCP4_OPTP_F_MINLEN,
 		},
@@ -1546,7 +1547,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  82 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
 			.disp_name = "Relay Agent Information",
-			.len = 2,
+			.len = sizeof(dhcp4_opt_hdr_t),
 			.type = DHCP4_OPTP_T_SUBOPTS,
 			.flags = DHCP4_OPTP_F_MINLEN,
 			.data_vals = (const void*)dhcp4_opt82,
@@ -1662,7 +1663,13 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 105 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 106 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 107 */	DHCP4_OPT_PARAMS_UNKNOWN,
-/* 108 */	DHCP4_OPT_PARAMS_UNKNOWN, /* RFC 3679. */
+/* 108 */	{ /* RFC 8925 IPv6-Only Preferred Option for DHCPv4. */
+			.disp_name = "IPv6-Only Preferred",
+			.len = 4,
+			.type = DHCP4_OPTP_T_4BYTE,
+			.flags = DHCP4_OPTP_F_FIXEDLEN,
+		},
+
 /* 109 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 110 */	DHCP4_OPT_PARAMS_UNKNOWN, /* RFC 3679. */
 /* 111 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1944,6 +1951,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+
 /* Runtime options validator. */
 static int
 dhcp4_validate_opt_params(dhcp4_opt_params_p opts, const size_t opts_count) {
@@ -1990,7 +1998,7 @@ dhcp4_validate_opt_params(dhcp4_opt_params_p opts, const size_t opts_count) {
 		/* Check SUBOPTS. */
 		if (DHCP4_OPTP_T_SUBOPTS == opt->type) {
 			if (DHCP4_OPTP_F_MINLEN != opt->flags ||
-			    2 != opt->len)
+			    sizeof(dhcp4_opt_hdr_t) != opt->len)
 				    return (EINVAL);
 			error = dhcp4_validate_opt_params(
 			    (dhcp4_opt_params_p)opt->data_vals, opt->data_vals_cnt);
@@ -2039,6 +2047,11 @@ dhcp4_hdr_check(const void *buf, const size_t buf_size) {
 
 	return (0);
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 
 /* This is 256 bit map. */
@@ -2139,6 +2152,11 @@ dhcp4_ao_buf_map_and_inv(dhcp4_ao_buf_map_p dst, dhcp4_ao_buf_map_p src) {
 	dst->u64[2] &= ~src->u64[2];
 	dst->u64[3] &= ~src->u64[3];
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 
 typedef struct dhcp4_aggregate_options_buf_option_s {
@@ -2346,7 +2364,7 @@ dhcp4_ao_buf_aggregate(const void *buf, const size_t buf_size,
 		/* Move pointer to next option. */
 		pos += (sizeof(dhcp4_opt_hdr_t) + opth->len);
 
-		/* Extra lenght check depend of option type knowlege. */
+		/* Extra lenght check depend on option type knowlege. */
 		if (0 != (DHCP4_OPTP_F_FIXEDLEN & optp->flags)) {
 			if (0 != (DHCP4_OPTP_F_ARRAY & optp->flags)) { /* Lenght must be multiple to specified fixedlen of 1 element. */
 				if (opth->len < optp->len ||
