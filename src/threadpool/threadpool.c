@@ -709,7 +709,7 @@ err_out_timer:
 			break;
 		case TP_FF_T_USEC:
 			new_tmr.it_value.tv_sec = (ev->data / 1000000ul);
-			new_tmr.it_value.tv_nsec = ((ev->data % 1000000ul) * 1000000000000ul);
+			new_tmr.it_value.tv_nsec = ((ev->data % 1000000ul) * 1000ul);
 			break;
 		case TP_FF_T_NSEC:
 			new_tmr.it_value.tv_sec = (ev->data / 1000000000ul);
