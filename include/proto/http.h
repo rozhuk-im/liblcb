@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2010-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2010-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -185,8 +185,6 @@ int	skip_spwsp2(const uint8_t* buf, size_t buf_size,
 	    const uint8_t **buf_ret, size_t *buf_size_ret);
 int	wsp2sp(uint8_t *buf, size_t buf_size,
 	    uint8_t *ret_buf, size_t *buf_size_ret);
-int	ht2sp(uint8_t *buf, size_t buf_size,
-	    uint8_t *ret_buf, size_t *buf_size_ret);
 
 int	http_hdr_val_get_ex(const uint8_t *http_hdr, size_t hdr_size,
 	    const uint8_t *val_name, size_t val_name_size, size_t offset,
@@ -211,11 +209,6 @@ int	http_query_val_get(const uint8_t *query, size_t query_size,
 	    const uint8_t **val_ret, size_t *val_ret_size);
 size_t	http_query_val_del(uint8_t *query, size_t query_size,
 	    const uint8_t *val_name, size_t val_name_size, size_t *query_size_ret);
-
-int	http_data_chunked_size(const uint8_t *buf, const size_t buf_size,
-	    size_t *chunk_size, size_t *chunk_marker_size);
-int	http_data_decode_chunked(uint8_t *data, size_t data_size,
-	    uint8_t **data_ret, size_t *data_ret_size);
 
 size_t	http_url_decode(uint8_t *url, size_t url_size,
 	    uint8_t *buf, size_t buf_size);

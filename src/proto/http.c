@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2010-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2010-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -676,32 +676,6 @@ wsp2sp(uint8_t *buf, size_t buf_size,
 }
 
 
-/* Replace: HT->SP */
-int
-ht2sp(uint8_t *buf, size_t buf_size,
-    uint8_t *ret_buf, size_t *buf_size_ret) {
-	uint8_t *c_pos;
-
-	if (NULL == buf || 0 == buf_size || NULL == ret_buf)
-		return (EINVAL);
-	if (buf != ret_buf) {
-		memmove(ret_buf, buf, buf_size);
-	}
-	if (NULL != buf_size_ret) {
-		(*buf_size_ret) = buf_size;
-	}
-	c_pos = buf;
-	for (;;) {
-		c_pos = mem_chr_ptr(c_pos, buf, buf_size, '\t'); /* TAB */
-		if (NULL == c_pos)
-			break;
-		(*c_pos) = ' '; /* SPace */
-		c_pos ++;
-	}
-	return (0);
-}
-
-
 int
 http_hdr_val_get_ex(const uint8_t *http_hdr, size_t hdr_size,
     const uint8_t *val_name, size_t val_name_size, size_t offset,
@@ -946,73 +920,6 @@ http_query_val_del(uint8_t *query, size_t query_size, const uint8_t *val_name,
 	return (del_cnt);
 }
 
-/* 
- * HexNumCRLF
- * dataCRLF
- * HexNum
- */
-int
-http_data_chunked_size(const uint8_t *buf, const size_t buf_size,
-    size_t *chunk_size, size_t *chunk_marker_size) {
-	uint8_t *ptr_end;
-
-	if (NULL == buf || 5 > buf_size) /* 5 - min size: CRLF + num + CRLF */
-		return (EINVAL);
-	if ('\r' != buf[0] || '\n' != buf[1])
-		return (EINVAL);
-	ptr_end = mem_find_off(2, buf, buf_size, CRLF, 2);
-	if (NULL == ptr_end ||
-	    3 > (ptr_end - buf))
-		return (EINVAL);
-
-	if (NULL != chunk_size) {
-		(*chunk_size) = ustrh2usize((buf + 2), (size_t)((ptr_end - (buf + 2))));
-	}
-	if (NULL != chunk_marker_size) {
-		(*chunk_marker_size) = (size_t)((ptr_end - buf) + 2);
-	}
-
-	return (0);
-}
-
-int
-http_data_decode_chunked(uint8_t *data, size_t data_size,
-    uint8_t **data_ret, size_t *data_ret_size) {
-	uint8_t *cur_pos, *end_line, *max_pos;
-	uint8_t *cur_wr_pos;
-	size_t ret_size, tm;
-
-	cur_pos = data;
-	max_pos = (data + data_size);
-	ret_size = 0;
-	cur_wr_pos = NULL;
-	for (;;) {
-		end_line = mem_find_ptr_cstr(cur_pos, data, data_size, CRLF);
-		if (NULL == end_line) {
-			end_line = (data + data_size);
-			if (0 != ustrh2usize(cur_pos, (size_t)(max_pos - cur_pos)))
-				return (EINVAL);
-			break; /* Normal exit. */
-		}
-		tm = ustrh2usize(cur_pos, (size_t)(end_line - cur_pos));
-		if (0 == tm)
-			break; /* Normal exit. */
-		cur_pos = (end_line + 2 + tm);
-		ret_size += tm;
-		if (cur_pos > max_pos)
-			return (EINVAL); /* Out of buf range. */
-		/* No copy/move for first chunk, just change pointer. */
-		if (NULL == cur_wr_pos) {
-			(*data_ret) = (end_line + 2);
-			cur_wr_pos = cur_pos; /* Next chunk will be after first. */
-			continue;
-		}
-		memmove(cur_wr_pos, (end_line + 2), tm); /* Move data in buffer. */
-		cur_wr_pos += tm;
-	}
-	(*data_ret_size) = ret_size;
-	return (0);
-}
 
 #if 0
 size_t
@@ -1061,7 +968,9 @@ http_url_decode(uint8_t *url, size_t url_size, uint8_t *buf, size_t buf_size) {
 	for (; url < url_max && buf_pos < buf_max; url ++, buf_pos ++) {
 		switch (url[0]) {
 		case '%':
-			(*buf_pos) = (uint8_t)ustrh2u32((url + 1), 2);
+			if ((url + 3) <= url_max) {
+				(*buf_pos) = (uint8_t)ustrh2u32((url + 1), 2);
+			}
 			url += 2;
 			continue;
 		case '+':
