@@ -1394,14 +1394,12 @@ tp_thread_get(tp_p tp, const size_t thread_num) {
 
 tpt_p
 tp_thread_get_rr(tp_p tp) {
+	size_t rr_idx;
 
 	if (NULL == tp)
 		return (NULL);
-	tp->rr_idx ++;
-	if (tp->threads_max <= tp->rr_idx) {
-		tp->rr_idx = 0;
-	}
-	return (&tp->threads[tp->rr_idx]);
+	rr_idx = (tp->rr_idx ++); /* No need atomic here. */
+	return (&tp->threads[(rr_idx % tp->threads_max)]);
 }
 
 /* Return io_fd that handled by all threads. */
