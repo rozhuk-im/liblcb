@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -247,17 +247,21 @@ memxorbuf(void *dst, size_t dsize, const void *src, size_t ssize) {
  * ret_size = out buf size */
 /* Convert HEX to BIN. */
 int
-cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
-    uint8_t *bin, size_t bin_size, size_t *bin_size_ret) {
+cvt_hex2bin(const uint8_t *hex, const size_t hex_size, const int auto_out_size,
+    uint8_t *bin, const size_t bin_size, size_t *bin_size_ret) {
 	const uint8_t *hex_max;
 	uint8_t cur_char, *bin_max, byte = 0;
 	size_t cnt;
 
+	if (bin_size < (hex_size / 2)) {
+		if (NULL != bin_size_ret) {
+			(*bin_size_ret) = (hex_size / 2);
+		}
+		return (ENOBUFS);
+	}
 	if (NULL == hex || 0 == hex_size || NULL == bin || 0 == bin_size)
 		return (EINVAL);
 
-	if (bin_size < (hex_size / 2))
-		return (EOVERFLOW);
 	hex_max = (hex + hex_size);
 	bin_max = (bin + bin_size);
 
@@ -277,7 +281,7 @@ cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
 		if (2 > cnt) /* Wait untill 4 + 4 bit before write a byte. */
 			continue;
 		if (bin == bin_max)
-			return (EOVERFLOW);
+			return (ENOBUFS);
 		(*bin ++) = byte;
 		byte = 0;
 		cnt = 0;
@@ -294,8 +298,8 @@ cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
 }
 /* Convert BIN to HEX. */
 int
-cvt_bin2hex(const uint8_t *bin, size_t bin_size, int auto_out_size,
-    uint8_t *hex, size_t hex_size, size_t *hex_size_ret) {
+cvt_bin2hex(const uint8_t *bin, const size_t bin_size, const int auto_out_size,
+    uint8_t *hex, const size_t hex_size, size_t *hex_size_ret) {
 	static const uint8_t *hex_tbl = (const uint8_t*)"0123456789abcdef";
 	const uint8_t *bin_max, *hex_max;
 	uint8_t byte;
@@ -321,7 +325,7 @@ cvt_bin2hex(const uint8_t *bin, size_t bin_size, int auto_out_size,
 		if (NULL != hex_size_ret) {
 			(*hex_size_ret) = tm;
 		}
-		return (EOVERFLOW);
+		return (ENOBUFS);
 	}
 	for (; bin < bin_max; bin ++) {
 		byte = (*bin);
