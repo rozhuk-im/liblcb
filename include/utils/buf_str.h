@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 - 2018 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,10 +53,10 @@ size_t	fmt_as_uptime(time_t *ut, char *buf, size_t buf_size);
 uint8_t	data_xor8(const void *buf, size_t size);
 void	memxorbuf(void *dst, size_t dsize, const void *src, size_t ssize);
 
-int	cvt_hex2bin(const uint8_t *hex, size_t hex_size, int auto_out_size,
-	    uint8_t *bin, size_t bin_size, size_t *bin_size_ret);
-int	cvt_bin2hex(const uint8_t *bin, size_t bin_size, int auto_hex_size,
-	    uint8_t *hex, size_t hex_size, size_t *hex_size_ret);
+int	cvt_hex2bin(const uint8_t *hex, const size_t hex_size, const int auto_out_size,
+	    uint8_t *bin, const size_t bin_size, size_t *bin_size_ret);
+int	cvt_bin2hex(const uint8_t *bin, const size_t bin_size, const int auto_out_size,
+	    uint8_t *hex, const size_t hex_size, size_t *hex_size_ret);
 
 int	yn_set_flag32(const uint8_t *buf, size_t buf_size, uint32_t flag_bit,
 	    uint32_t *flags);
