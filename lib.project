@@ -12,10 +12,10 @@
   </VirtualDirectory>
   <VirtualDirectory Name="src">
     <VirtualDirectory Name="net">
+      <File Name="src/net/utils.c"/>
       <File Name="src/net/socket_options.c"/>
       <File Name="src/net/socket.c"/>
       <File Name="src/net/socket_address.c"/>
-      <File Name="src/net/utils.c"/>
     </VirtualDirectory>
     <VirtualDirectory Name="utils">
       <File Name="src/utils/data_cache.c"/>
@@ -70,6 +70,7 @@
       <File Name="include/net/hostname_list.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="proto">
+      <File Name="include/proto/dhcpv6.h"/>
       <File Name="include/proto/http_server_auth.h"/>
       <File Name="include/proto/proxy_protocol.h"/>
       <File Name="include/proto/dhcpv4.h"/>
@@ -99,6 +100,7 @@
       <File Name="include/math/elliptic_curve.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="utils">
+      <File Name="include/utils/info.h"/>
       <File Name="include/utils/mem_utils.h"/>
       <File Name="include/utils/asn1.h"/>
       <File Name="include/utils/base64.h"/>
@@ -107,7 +109,6 @@
       <File Name="include/utils/macro.h"/>
       <File Name="include/utils/data_cache.h"/>
       <File Name="include/utils/hash_bucket.h"/>
-      <File Name="include/utils/info.h"/>
       <File Name="include/utils/io_buf.h"/>
       <File Name="include/utils/num2str.h"/>
       <File Name="include/utils/str2num.h"/>
