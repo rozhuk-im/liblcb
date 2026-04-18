@@ -394,15 +394,53 @@ typedef struct dhcp4_option_params_s {
 #define DHCP4_OPTP_T_4BYTE	  6 /* uint32_t */
 #define DHCP4_OPTP_T_4TIME	  7 /* uint32_t */
 #define DHCP4_OPTP_T_IPADDR	  8 /* uint32_t */
-#define DHCP4_OPTP_T_IPIPADDR	  9 /* uint32_t[2] */
-#define DHCP4_OPTP_T_STATIC_ROUTE 10 /* uint8_t + uint8_t[0-4] + uint32_t */
-#define DHCP4_OPTP_T_STR_RR	 11 /* DNS string format. */
-#define DHCP4_OPTP_T_ADV	224 /* Option have specific format. This is TODO marker. */
-#define DHCP4_OPTP_T_STR_UTF8	251 /* char array. */
-#define DHCP4_OPTP_T_STR	252 /* char array. */
-#define DHCP4_OPTP_T_BYTES	253 /* uint8_t array. */
-#define DHCP4_OPTP_T_PAD	254
-#define DHCP4_OPTP_T_END	255
+#define DHCP4_OPTP_T_STR_DNS	  9 /* DNS string format. */
+#define DHCP4_OPTP_T_STR_UTF8	 10 /* char array. */
+#define DHCP4_OPTP_T_STR	 11 /* char array. */
+#define DHCP4_OPTP_T_ADV	 12 /* Option have specific format. This is TODO marker. */
+#define DHCP4_OPTP_T_BYTES	 13 /* uint8_t array. */
+#define DHCP4_OPTP_T_PAD	 14
+#define DHCP4_OPTP_T_END	 15
+#define DHCP4_OPTP_T__LAST__	DHCP4_OPTP_T_END
+
+static const uint8_t dhcp4_opt_type2size_fixed[] = {
+	[DHCP4_OPTP_T_NONE] =		0,
+	[DHCP4_OPTP_T_SUBOPTS] =	UINT8_MAX,
+	[DHCP4_OPTP_T_BOOL] =		1,
+	[DHCP4_OPTP_T_1BYTE] =		1,
+	[DHCP4_OPTP_T_2BYTE] =		2,
+	[DHCP4_OPTP_T_2TIME] =		2,
+	[DHCP4_OPTP_T_4BYTE] =		4,
+	[DHCP4_OPTP_T_4TIME] =		4,
+	[DHCP4_OPTP_T_IPADDR] =		4,
+	[DHCP4_OPTP_T_STR_DNS] =	UINT8_MAX,
+	[DHCP4_OPTP_T_STR_UTF8] =	UINT8_MAX,
+	[DHCP4_OPTP_T_STR] =		UINT8_MAX,
+	[DHCP4_OPTP_T_ADV] =		UINT8_MAX,
+	[DHCP4_OPTP_T_BYTES] =		UINT8_MAX,
+	[DHCP4_OPTP_T_PAD] =		UINT8_MAX,
+	[DHCP4_OPTP_T_END] =		UINT8_MAX,
+	[(DHCP4_OPTP_T__LAST__ + 1)] =	UINT8_MAX,
+};
+static const uint8_t dhcp4_opt_type2size_min[] = {
+	[DHCP4_OPTP_T_NONE] =		UINT8_MAX,
+	[DHCP4_OPTP_T_SUBOPTS] =	sizeof(dhcp4_opt_hdr_t),
+	[DHCP4_OPTP_T_BOOL] =		UINT8_MAX,
+	[DHCP4_OPTP_T_1BYTE] =		UINT8_MAX,
+	[DHCP4_OPTP_T_2BYTE] =		UINT8_MAX,
+	[DHCP4_OPTP_T_2TIME] =		UINT8_MAX,
+	[DHCP4_OPTP_T_4BYTE] =		UINT8_MAX,
+	[DHCP4_OPTP_T_4TIME] =		UINT8_MAX,
+	[DHCP4_OPTP_T_IPADDR] =		UINT8_MAX,
+	[DHCP4_OPTP_T_STR_DNS] =	1,
+	[DHCP4_OPTP_T_STR_UTF8] =	1,
+	[DHCP4_OPTP_T_STR] =		1,
+	[DHCP4_OPTP_T_ADV] =		UINT8_MAX,
+	[DHCP4_OPTP_T_BYTES] =		1,
+	[DHCP4_OPTP_T_PAD] =		UINT8_MAX,
+	[DHCP4_OPTP_T_END] =		UINT8_MAX,
+	[(DHCP4_OPTP_T__LAST__ + 1)] =	UINT8_MAX,
+};
 
 /* Flags. */
 #define DHCP4_OPTP_F_NONE	0
@@ -515,25 +553,19 @@ static const dhcp4_opt_params_t dhcp4_opt43_MSFT[] = {
 /*   0 */	DHCP4_OPT_PARAMS_PAD,
 /*   1 */	{
 			.disp_name = "NetBIOS over TCP/IP (NetBT)",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 			.data_vals = dhcp4_opt43_MSFT_1,
 			.data_vals_cnt = nitems(dhcp4_opt43_MSFT_1),
 		},
 /*   2 */	{
 			.disp_name = "Release DHCP Lease on Shutdown",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 			.data_vals = dhcp4_opt_enabledisable,
 			.data_vals_cnt = nitems(dhcp4_opt_enabledisable),
 		},
 /*   3 */	{
 			.disp_name = "Default Router Metric Base",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*   4 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*   5 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -627,15 +659,11 @@ static const dhcp4_opt_params_t dhcp4_opt43_MSFT[] = {
 /*  93 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*  94 */	{ /* http://msdn.microsoft.com/en-us/library/ee808389%28v=PROT.10%29.aspx */
 			.disp_name = "Rogue Detection Request",
-			.len = 0,
 			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  95 */	{ /* http://msdn.microsoft.com/en-us/library/ee791538%28v=PROT.10%29.aspx */
 			.disp_name = "Rogue Detection Reply",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  96 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*  97 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -769,9 +797,7 @@ static const dhcp4_opt_params_t dhcp4_opt43_MSFT[] = {
 		},
 /* 221 */	{
 			.disp_name = "NAP-Mask",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /* 222 */	{
 			.disp_name = "NAP-CoID",
@@ -781,9 +807,7 @@ static const dhcp4_opt_params_t dhcp4_opt43_MSFT[] = {
 		},
 /* 223 */	{
 			.disp_name = "NAP-IPv6",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 };
 
@@ -792,34 +816,24 @@ static const dhcp4_opt_params_t dhcp4_opt82[] = {
 /*   0 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*   1 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
 			.disp_name = "Circuit ID",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*   2 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
 			.disp_name = "Remote ID",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*   3 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*   4 */	{ /* RFC 3256 The DOCSIS Device Class DHCP. */
 			.disp_name = "DOCSIS Device Class",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*   5 */	{ /* RFC 3527 Link Selection sub-option. */
 			.disp_name = "Link selection",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*   6 */	{ /* RFC 3993 Subscriber-ID Suboption. */
 			.disp_name = "Subscriber-ID",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*   7 */	{ /* RFC 4014 RADIUS Attributes Suboption. */
 			.disp_name = "RADIUS Attributes",
@@ -841,39 +855,27 @@ static const dhcp4_opt_params_t dhcp4_opt82[] = {
 		},
 /*  10 */	{ /* RFC 5010 Relay Agent Flags Suboption. */
 			.disp_name = "Flags",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  11 */	{ /* RFC 5107 Server ID Override Suboption, see opt 54 - DHCP Server identifier. */
 			.disp_name = "Server ID Override",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  12 */	{ /* RFC 6925 The Relay Agent ID Sub-Option. */
 			.disp_name = "Relay Agent Identifier",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  13 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
 			.disp_name = "Access-Technology-Type",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  14 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
 			.disp_name = "Access-Network-Name",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR_UTF8,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  15 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
 			.disp_name = "Access-Point-Name",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR_UTF8,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  16 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
 			.disp_name = "Access-Point-BSSID",
@@ -889,15 +891,11 @@ static const dhcp4_opt_params_t dhcp4_opt82[] = {
 		},
 /*  18 */	{ /* RFC 7839 ANI Options for DHCPv4 and DHCPv6. */
 			.disp_name = "Operator-Realm",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  19 */	{ /* RFC 8357 DHCP Relay Source Port. */
 			.disp_name = "DHCPv4 Relay Source Port",
-			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  20 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /*  21 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1032,15 +1030,11 @@ static const dhcp4_opt_params_t dhcp4_opt82[] = {
 /* 150 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 151 */	{ /* RFC 6607 Virtual Subnet Selection Options. */
 			.disp_name = "DHCPv4 Virtual Subnet Selection",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 152 */	{ /* RFC 6607 Virtual Subnet Selection Options. */
 			.disp_name = "DHCPv4 Virtual Subnet Selection Control",
-			.len = 0,
 			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 };
 
@@ -1050,105 +1044,80 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /*   0 */	DHCP4_OPT_PARAMS_PAD,
 /*   1 */	{
 			.disp_name = "Subnet mask",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*   2 */	{ /* Deprecated by RFC 4833 (see opt: 100, 101). */
 			.disp_name = "Time offset",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*   3 */	{
 			.disp_name = "Routers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*   4 */	{
 			.disp_name = "Time servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*   5 */	{
 			.disp_name = "Name servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*   6 */	{
 			.disp_name = "DNS servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*   7 */	{
 			.disp_name = "Log servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*   8 */	{
 			.disp_name = "Cookie servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*   9 */	{
 			.disp_name = "LPR servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  10 */	{
 			.disp_name = "Impress servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  11 */	{
 			.disp_name = "Resource location servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  12 */	{
 			.disp_name = "Host name",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  13 */	{
 			.disp_name = "Boot file size",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  14 */	{
 			.disp_name = "Merit dump file",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  15 */	{
 			.disp_name = "Domain Name",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  16 */	{
 			.disp_name = "Swap server",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  17 */	{
 			.disp_name = "Root path",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  18 */	{
 			.disp_name = "Extensions path",
@@ -1158,265 +1127,193 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  19 */	{
 			.disp_name = "IP forwarding",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  20 */	{
 			.disp_name = "Non-local source routing",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  21 */	{
 			.disp_name = "Policy filter (dst net/mask)",
 			.len = 8,
-			.type = DHCP4_OPTP_T_IPIPADDR,
+			.type = DHCP4_OPTP_T_ADV,
 			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
 		},
 /*  22 */	{
 			.disp_name = "Max dgram reassembly size",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  23 */	{
 			.disp_name = "Default IP TTL",
-			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  24 */	{
 			.disp_name = "Path MTU aging timeout",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  25 */	{
 			.disp_name = "Path MTU plateau table",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  26 */	{
 			.disp_name = "Interface MTU",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  27 */	{
 			.disp_name = "All subnets local",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  28 */	{
 			.disp_name = "Broadcast address",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  29 */	{
 			.disp_name = "Perform mask discovery",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  30 */	{
 			.disp_name = "Mask supplier",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  31 */	{
 			.disp_name = "Perform router discovery",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  32 */	{
 			.disp_name = "Router solicitation",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  33 */	{
 			.disp_name = "Static route (dst host/router)",
 			.len = 8,
-			.type = DHCP4_OPTP_T_IPIPADDR,
+			.type = DHCP4_OPTP_T_ADV,
 			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
 		},
 /*  34 */	{
 			.disp_name = "Trailer encapsulation",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  35 */	{
 			.disp_name = "ARP cache timeout",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  36 */	{
 			.disp_name = "Ethernet encapsulation",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 			.data_vals = dhcp4_opt36,
 			.data_vals_cnt = nitems(dhcp4_opt36),
 		},
 /*  37 */	{
 			.disp_name = "TCP default TTL",
-			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  38 */	{
 			.disp_name = "TCP keepalive interval",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4TIME,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  39 */	{
 			.disp_name = "TCP keepalive garbage",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  40 */	{
 			.disp_name = "NIS domain",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  41 */	{
 			.disp_name = "NIS servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  42 */	{
 			.disp_name = "NTP servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  43 */	{ /* http://msdn.microsoft.com/en-us/library/cc227275%28v=PROT.10%29.aspx */
 			.disp_name = "Vendor specific info",
-			.len = sizeof(dhcp4_opt_hdr_t),
 			.type = DHCP4_OPTP_T_SUBOPTS,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  44 */	{
 			.disp_name = "NetBIOS name servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  45 */	{
 			.disp_name = "NetBIOS dgram distrib servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  46 */	{
 			.disp_name = "NetBIOS node type",
-			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 			.data_vals = dhcp4_opt46,
 			.data_vals_cnt = nitems(dhcp4_opt46),
 		},
 /*  47 */	{
 			.disp_name = "NetBIOS scope",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  48 */	{
 			.disp_name = "X Window font servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  49 */	{
 			.disp_name = "X Window display servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  50 */	{
 			.disp_name = "Request IP address",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  51 */	{
 			.disp_name = "IP address lease time",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4TIME,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  52 */	{
 			.disp_name = "Option overload",
-			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 			.data_vals = dhcp4_opt52,
 			.data_vals_cnt = nitems(dhcp4_opt52),
 		},
 /*  53 */	{
 			.disp_name = "DHCP message type",
-			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 			.data_vals = dhcp4_opt53,
 			.data_vals_cnt = nitems(dhcp4_opt53),
 		},
 /*  54 */	{
 			.disp_name = "DHCP Server identifier",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  55 */	{
 			.disp_name = "Parameter Request List",
-			.len = 1,
 			.type = DHCP4_OPTP_T_1BYTE,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 			.data_vals = dhcp4_opt55,
 			.data_vals_cnt = nitems(dhcp4_opt55),
 		},
 /*  56 */	{
 			.disp_name = "Message",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  57 */	{
 			.disp_name = "Maximum DHCP message size",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  58 */	{
 			.disp_name = "Renew time (T1)",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4TIME,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  59 */	{
 			.disp_name = "Rebind time (T2)",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4TIME,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  60 */	{
 			.disp_name = "Vendor class identifier",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  61 */	{ /* upd: RFC 4361. */
 			.disp_name = "DHCP Client identifier",
@@ -1426,9 +1323,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  62 */	{ /* RFC 2242. */
 			.disp_name = "Netware/IP domain name",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  63 */	{ /* RFC 2242. */
 			.disp_name = "Netware/IP domain info",
@@ -1438,81 +1333,65 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  64 */	{
 			.disp_name = "NIS+ domain",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  65 */	{
 			.disp_name = "NIS+ servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  66 */	{
 			.disp_name = "TFTP server name",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  67 */	{
 			.disp_name = "Bootfile name",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /*  68 */	{
 			.disp_name = "Mobile IP home agent",
-			.len = 0,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  69 */	{
 			.disp_name = "SMTP servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  70 */	{
 			.disp_name = "POP3 servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  71 */	{
 			.disp_name = "NNTP servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  72 */	{
 			.disp_name = "WWW servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  73 */	{
 			.disp_name = "Finger servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  74 */	{
 			.disp_name = "IRC servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  75 */	{
 			.disp_name = "StreetTalk servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  76 */	{
 			.disp_name = "StreetTalk dir assist srv",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* End RFC 2132. */
 /*  77 */	{ /* RFC 3004 The User Class Option for DHCP. */
@@ -1535,9 +1414,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  80 */	{ /* RFC 3679 // RFC 4039 Rapid Commit Option for DHCPv4. */
 			.disp_name = "Rapid Commit",
-			.len = 0,
 			.type = DHCP4_OPTP_T_NONE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  81 */	{ /* RFC 4702 The DHCP Client FQDN Option. */
 			.disp_name = "Client FQDN",
@@ -1547,9 +1424,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  82 */	{ /* RFC 3046 DHCP Relay Agent Information Option. */
 			.disp_name = "Relay Agent Information",
-			.len = sizeof(dhcp4_opt_hdr_t),
 			.type = DHCP4_OPTP_T_SUBOPTS,
-			.flags = DHCP4_OPTP_F_MINLEN,
 			.data_vals = (const void*)dhcp4_opt82,
 			.data_vals_cnt = nitems(dhcp4_opt82),
 		},
@@ -1562,9 +1437,8 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /*  84 */	DHCP4_OPT_PARAMS_UNKNOWN, /* RFC 3679. */
 /*  85 */	{ /* RFC 2241 DHCP Options for Novell Directory Services. */
 			.disp_name = "NDS server",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  86 */	{ /* RFC 2241 DHCP Options for Novell Directory Services. */
 			.disp_name = "NDS tree name",
@@ -1580,15 +1454,12 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  88 */	{ /* RFC 4280 DHCP Options for BMCS. */
 			.disp_name = "BCMCS ctrl Domain Name List",
-			.len = 1,
-			.type = DHCP4_OPTP_T_STR_RR,
-			.flags = DHCP4_OPTP_F_MINLEN,
+			.type = DHCP4_OPTP_T_STR_DNS,
 		},
 /*  89 */	{ /* RFC 3679 // RFC 4280 DHCP Options for BMCS. */
 			.disp_name = "BCMCS ctrl IPv4 Address",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  90 */	{ /* RFC 3118. */
 			.disp_name = "Authentication",
@@ -1598,21 +1469,17 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  91 */	{ /* RFC 3679 // RFC 4388 DHCP Leasequery. */
 			.disp_name = "Client last transaction time",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4TIME,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /*  92 */	{ /* RFC 3679 // RFC 4388 DHCP Leasequery. */
 			.disp_name = "Associated IP",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  93 */	{ /* RFC 3679 // RFC 4578 DHCP PXE Options. */
 			.disp_name = "PXE Cli System Architecture",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  94 */	{ /* RFC 3679 // RFC 4578 DHCP PXE Options. */
 			.disp_name = "PXE Cli Network Interface Id",
@@ -1622,9 +1489,8 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /*  95 */	{ /* RFC 3679. */
 			.disp_name = "LDAP Servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /*  96 */	DHCP4_OPT_PARAMS_UNKNOWN, /* RFC 3679. */
 /*  97 */	{ /* RFC 3679 // RFC 4578 DHCP PXE Options. */
@@ -1647,15 +1513,11 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 		},
 /* 100 */	{ /* RFC 3679 // RFC 4833 Timezone Options for DHCP. */
 			.disp_name = "Timezone IEEE 1003.1 String",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 101 */	{ /* RFC 3679 // RFC 4833 Timezone Options for DHCP. */
 			.disp_name = "Reference to the TZ Database",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 102 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 103 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1665,9 +1527,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 107 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 108 */	{ /* RFC 8925 IPv6-Only Preferred Option for DHCPv4. */
 			.disp_name = "IPv6-Only Preferred",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 
 /* 109 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1675,58 +1535,46 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 111 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 112 */	{
 			.disp_name = "Netinfo Address",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* 113 */	{
 			.disp_name = "Netinfo Tag",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* 114 */	{ /* RFC 3679. */
 			.disp_name = "URL",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 115 */	DHCP4_OPT_PARAMS_UNKNOWN, /* RFC 3679. */
 /* 116 */	{ /* RFC 2563 DHCP Option to Disable Stateless Auto-Configuration in IPv4 Clients. */
 			.disp_name = "Auto Configure",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BOOL,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /* 117 */	{ /* RFC 2937 The Name Service Search Option for DHCP. */
 			.disp_name = "Name Service Search",
-			.len = 2,
 			.type = DHCP4_OPTP_T_2BYTE,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* 118 */	{ /* RFC 3011 The IPv4 Subnet Selection Option for DHCP. */
 			.disp_name = "Subnet selection",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /* 119 */	{
 			.disp_name = "Domain Search",
-			.len = 1,
-			.type = DHCP4_OPTP_T_STR_RR,
-			.flags = DHCP4_OPTP_F_MINLEN,
+			.type = DHCP4_OPTP_T_STR_DNS,
 		},
 /* 120 */	{
 			.disp_name = "SIP Servers",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* 121 */	{ /* RFC 3442 Classless Static Route Option for DHCPv4. */
 			.disp_name = "Classless Static Route",
 			.len = 5,
-			.type = DHCP4_OPTP_T_STATIC_ROUTE,
-			.flags = DHCP4_OPTP_F_MINLEN,
+			.type = DHCP4_OPTP_T_ADV,
+			.flags = (DHCP4_OPTP_F_MINLEN | DHCP4_OPTP_F_ARRAY),
 		},
 /* 122 */	{ /* RFC 3495 DHCP Option for CableLabs Clients. */
 			.disp_name = "CableLabs Client Config",
@@ -1755,9 +1603,8 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 135 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 136 */	{ /* RFC 5192 PAA DHCP Options. */
 			.disp_name = "PANA Authentication Agent",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* 137 */	{ /* RFC 5223 DHCP-Based LoST Discovery. */
 			.disp_name = "LoST Server",
@@ -1783,9 +1630,8 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 143 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 144 */	{
 			.disp_name = "HP - TFTP file",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* 145 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 146 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1794,9 +1640,8 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 149 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 150 */	{ /* RFC 5859 TFTP Server Address. */
 			.disp_name = "TFTP Server IP Addresses",
-			.len = 4,
 			.type = DHCP4_OPTP_T_IPADDR,
-			.flags = (DHCP4_OPTP_F_FIXEDLEN | DHCP4_OPTP_F_ARRAY),
+			.flags = DHCP4_OPTP_F_ARRAY,
 		},
 /* 151 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 152 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1809,9 +1654,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 159 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 160 */	{ /* RFC 7710. */
 			.disp_name = "Captive-Portal",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 161 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 162 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1862,27 +1705,19 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 207 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 208 */	{ /* RFC 5071 PXELINUX Options. F1:00:74:7E */
 			.disp_name = "PXELINUX magic",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4BYTE,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /* 209 */	{ /* RFC 5071 PXELINUX Options. */
 			.disp_name = "PXELINUX Config File",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 210 */	{ /* RFC 5071 PXELINUX Options. */
 			.disp_name = "PXELINUX Path Prefix",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 211 */	{ /* RFC 5071 PXELINUX Options. */
 			.disp_name = "PXELINUX Reboot Time",
-			.len = 4,
 			.type = DHCP4_OPTP_T_4TIME,
-			.flags = DHCP4_OPTP_F_FIXEDLEN,
 		},
 /* 212 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 213 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1895,9 +1730,7 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 220 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 221 */	{ /* RFC 6607 Virtual Subnet Selection Options. */
 			.disp_name = "DHCPv4 Virtual Subnet Selection",
-			.len = 1,
 			.type = DHCP4_OPTP_T_BYTES,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 222 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 223 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1930,16 +1763,14 @@ static const dhcp4_opt_params_t dhcp4_options[256] = {
 /* 249 */	{ /* MSFT - Classless routes. */
 			.disp_name = "MSFT - Classless route",
 			.len = 5,
-			.type = DHCP4_OPTP_T_STATIC_ROUTE,
-			.flags = DHCP4_OPTP_F_MINLEN,
+			.type = DHCP4_OPTP_T_ADV,
+			.flags = (DHCP4_OPTP_F_MINLEN | DHCP4_OPTP_F_ARRAY),
 		},
 /* 250 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 251 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 252 */	{
 			.disp_name = "MSFT - Web Proxy Auto Detect",
-			.len = 1,
 			.type = DHCP4_OPTP_T_STR,
-			.flags = DHCP4_OPTP_F_MINLEN,
 		},
 /* 253 */	DHCP4_OPT_PARAMS_UNKNOWN,
 /* 254 */	DHCP4_OPT_PARAMS_UNKNOWN,
@@ -1963,43 +1794,53 @@ dhcp4_validate_opt_params(dhcp4_opt_params_p opts, const size_t opts_count) {
 	if (NULL == opts)
 		return (EINVAL);
 
+	/* Validate type2size tables. */
+	if (nitems(dhcp4_opt_type2size_fixed) != nitems(dhcp4_opt_type2size_min))
+		return (EINVAL);
+	for (size_t i = 0; i < nitems(dhcp4_opt_type2size_fixed); i ++) {
+		if (UINT8_MAX != dhcp4_opt_type2size_fixed[i] &&
+		    UINT8_MAX != dhcp4_opt_type2size_min[i])
+			return (EINVAL);
+	}
+
 	/* Runtime validation of main options. */
 	for (size_t i = 0; i < opts_count; i ++) {
 		opt = &opts[i];
+
 		/* Check that NOLEN exclusive flag. */
 		if (0 != (DHCP4_OPTP_F_NOLEN & opt->flags) &&
 		    0 != (~DHCP4_OPTP_F_NOLEN & opt->flags))
 			     return (EINVAL);
-		/* Check that MINLEN exclusive flag. */
+		/* Allow len only with flags. */
+		if (0 != opt->len &&
+		    0 == ((DHCP4_OPTP_F_MINLEN | DHCP4_OPTP_F_FIXEDLEN) & opt->flags))
+			return (EINVAL);
+		/* Check that MINLEN or FIXEDLEN set, not together. */
 		if (0 != (DHCP4_OPTP_F_MINLEN & opt->flags) &&
-		    0 != (~DHCP4_OPTP_F_MINLEN & opt->flags))
-			     return (EINVAL);
+		    0 != ((DHCP4_OPTP_F_FIXEDLEN) & opt->flags))
+			return (EINVAL);
+		/* MINLEN and ARRAY flages check. */
+		if (0 != (DHCP4_OPTP_F_MINLEN & opt->flags) &&
+		    0 != (DHCP4_OPTP_F_ARRAY & opt->flags) &&
+		    DHCP4_OPTP_T_STR_DNS != opt->type && DHCP4_OPTP_T_ADV != opt->type) /* Allow arrays for this typees. */
+			return (EINVAL);
 		/* FIXEDLEN and ARRAY can be used together. */
+		/* Check that ARRAY properly used with types. */
+		if (0 != (DHCP4_OPTP_F_ARRAY & opt->flags) &&
+		    0 == (DHCP4_OPTP_F_FIXEDLEN & opt->flags) &&
+		    UINT8_MAX == dhcp4_opt_type2size_fixed[opt->type] &&
+		    DHCP4_OPTP_T_STR_DNS != opt->type && DHCP4_OPTP_T_ADV != opt->type) /* Allow arrays for this type. */
+			return (EINVAL);
 		/* Check NONE type. */
 		if (DHCP4_OPTP_T_NONE == opt->type &&
-		    (0 != opt->len ||
-		     0 == (DHCP4_OPTP_F_FIXEDLEN & opt->flags) ||
-		     0 != (~DHCP4_OPTP_F_FIXEDLEN & opt->flags)))
+		    (0 != opt->len || 0 != opt->flags))
 			     return (EINVAL);
-		/* Check that ARRAY properly used with types. */
-		if (0 != (DHCP4_OPTP_F_ARRAY & opt->flags)) {
-			switch (opt->type) {
-			case DHCP4_OPTP_T_NONE:
-			case DHCP4_OPTP_T_SUBOPTS:
-			case DHCP4_OPTP_T_STR:
-			case DHCP4_OPTP_T_STR_UTF8:
-			case DHCP4_OPTP_T_BYTES:
-			case DHCP4_OPTP_T_ADV:
-				return (EINVAL);
-			default:
-				break;
-			}
-		}
+		/* Check PAD and END types. */
+		if ((DHCP4_OPTP_T_PAD == opt->type || DHCP4_OPTP_T_END == opt->type) &&
+		    (0 != opt->len || DHCP4_OPTP_F_NOLEN != opt->flags))
+			     return (EINVAL);
 		/* Check SUBOPTS. */
 		if (DHCP4_OPTP_T_SUBOPTS == opt->type) {
-			if (DHCP4_OPTP_F_MINLEN != opt->flags ||
-			    sizeof(dhcp4_opt_hdr_t) != opt->len)
-				    return (EINVAL);
 			error = dhcp4_validate_opt_params(
 			    (dhcp4_opt_params_p)opt->data_vals, opt->data_vals_cnt);
 			if (0 != error)
@@ -2039,8 +1880,8 @@ dhcp4_hdr_check(const void *buf, const size_t buf_size) {
 		return (EBADMSG);
 	}
 	if (0 == hdr->htype ||
-	    DHCP4_HDR_HTYPE_MAX < hdr->htype ||
-	    DHCP4_HDR_HLEN_MAX < hdr->hlen ||
+	    DHCP4_HDR_HTYPE_MAX <= hdr->htype ||
+	    DHCP4_HDR_HLEN_MAX <= hdr->hlen ||
 	    0 != memcmp(dhcp4_hdr_magic_cookie, hdr->magic_cookie,
 	    sizeof(dhcp4_hdr_magic_cookie)))
 		return (EBADMSG);
@@ -2048,6 +1889,64 @@ dhcp4_hdr_check(const void *buf, const size_t buf_size) {
 	return (0);
 }
 
+
+#if BYTE_ORDER == BIG_ENDIAN
+
+static inline uint16_t
+dhcp4_ntohs(const uint8_t *p) {
+	return (((uint16_t)(((uint16_t)p[0]) << 0)) |
+		((uint16_t)(((uint16_t)p[1]) << 8)));
+}
+static inline void
+dhcp4_htons(const uint16_t v, uint8_t *p) {
+	p[0] = (uint8_t)(v >> 0);
+	p[1] = (uint8_t)(v >> 8);
+}
+
+static inline uint32_t
+dhcp4_ntohl(const uint8_t *p) {
+	return (((uint32_t)(((uint32_t)p[0]) <<  0)) |
+	        ((uint32_t)(((uint32_t)p[1]) <<  8)) |
+	        ((uint32_t)(((uint32_t)p[2]) << 16)) |
+		((uint32_t)(((uint32_t)p[3]) << 24)));
+}
+static inline void
+dhcp4_htonl(const uint32_t v, uint8_t *p) {
+	p[0] = (uint8_t)(v >>  0);
+	p[1] = (uint8_t)(v >>  8);
+	p[2] = (uint8_t)(v >> 16);
+	p[3] = (uint8_t)(v >> 24);
+}
+
+#else
+
+static inline uint16_t
+dhcp4_ntohs(const uint8_t *p) {
+	return (((uint16_t)(((uint16_t)p[0]) << 8)) |
+		((uint16_t)(((uint16_t)p[1]) << 0)));
+}
+static inline void
+dhcp4_htons(const uint16_t v, uint8_t *p) {
+	p[0] = (uint8_t)(v >> 8);
+	p[1] = (uint8_t)(v >> 0);
+}
+
+static inline uint32_t
+dhcp4_ntohl(const uint8_t *p) {
+	return (((uint32_t)(((uint32_t)p[0]) << 24)) |
+	        ((uint32_t)(((uint32_t)p[1]) << 16)) |
+		((uint32_t)(((uint32_t)p[2]) <<  8)) |
+		((uint32_t)(((uint32_t)p[3]) <<  0)));
+}
+static inline void
+dhcp4_htonl(const uint32_t v, uint8_t *p) {
+	p[0] = (uint8_t)(v >> 24);
+	p[1] = (uint8_t)(v >> 16);
+	p[2] = (uint8_t)(v >>  8);
+	p[3] = (uint8_t)(v >>  0);
+}
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2219,7 +2118,7 @@ dhcp4_ao_buf_data_get_free_space(dhcp4_ao_buf_p ao_buf, const uint8_t code,
 		return (NULL);
 	/* Is we can store data without allocation? */
 	if (0 == (DHCP4_AO_BUF_O_F_ALLOCATED & ao_buf->opt[code].flags)) {
-		if ((sizeof(uint8_t*) - ao_buf->opt[code].len) > size)
+		if ((sizeof(uint8_t*) - ao_buf->opt[code].len) >= size)
 			return ((((uint8_t*)&ao_buf->opt[code].data) + ao_buf->opt[code].len));
 		/* First alloc and data migration. */
 		buf = malloc((ao_buf->opt[code].len + size + sizeof(void*)));
@@ -2305,7 +2204,7 @@ dhcp4_ao_buf_serialize(dhcp4_ao_buf_p ao_buf, const dhcp4_ao_buf_map_p allow_fil
 		/* Write option header and data. Split if required. */
 		if (0 == opt_len) { /* Option without data. */
 			ptr[0] = (uint8_t)code;
-			ptr[1] = 0;
+			ptr[1] = (uint8_t)0;
 			ptr += 2;
 		} else {
 			optr = dhcp4_ao_buf_data_get(ao_buf, (uint8_t)code);
@@ -2331,7 +2230,7 @@ dhcp4_ao_buf_aggregate(const void *buf, const size_t buf_size,
     dhcp4_opt_params_p opts, const size_t opts_count,
     dhcp4_ao_buf_p ao_buf) {
 	const uint8_t *pos = buf, *pos_max = (((const uint8_t*)buf) + buf_size), *opt_data;
-	uint8_t *ptr;
+	uint8_t *ptr, opt_code, opt_len, olen;
 	dhcp4_opt_hdr_p opth;
 	dhcp4_opt_params_p optp;
 
@@ -2341,10 +2240,12 @@ dhcp4_ao_buf_aggregate(const void *buf, const size_t buf_size,
 	while (pos < pos_max) {
 		/* Option code+len. */
 		opth = (dhcp4_opt_hdr_p)pos;
+		opt_code = opth->code;
+		opt_len = opth->len;
 
 		/* Get best dhcp4_opt_params for current option code. */
-		if (opth->code < opts_count) { /* Known/defined option. */
-			optp = &opts[opth->code];
+		if (opt_code < opts_count) { /* Known/defined option. */
+			optp = &opts[opt_code];
 		} else { /* Option is unknown. */
 			optp = (dhcp4_opt_params_p)&dhcp4_opt_params_unknown;
 		}
@@ -2359,33 +2260,44 @@ dhcp4_ao_buf_aggregate(const void *buf, const size_t buf_size,
 		}
 		opt_data = (pos + sizeof(dhcp4_opt_hdr_t));
 		/* Is lenght in buf range? */
-		if ((opt_data + opth->len) > pos_max)
+		if ((opt_data + opt_len) > pos_max)
 			return (EBADMSG);
 		/* Move pointer to next option. */
-		pos += (sizeof(dhcp4_opt_hdr_t) + opth->len);
+		pos += (sizeof(dhcp4_opt_hdr_t) + opt_len);
 
 		/* Extra lenght check depend on option type knowlege. */
-		if (0 != (DHCP4_OPTP_F_FIXEDLEN & optp->flags)) {
+		/* Fixed size. */
+		olen = dhcp4_opt_type2size_fixed[optp->type];
+		if (UINT8_MAX == olen &&
+		    0 != (DHCP4_OPTP_F_FIXEDLEN & optp->flags)) { /* Not from type. */
+			olen = optp->len;
+		}
+		if (UINT8_MAX != olen) {
 			if (0 != (DHCP4_OPTP_F_ARRAY & optp->flags)) { /* Lenght must be multiple to specified fixedlen of 1 element. */
-				if (opth->len < optp->len ||
-				    0 != (opth->len % optp->len))
+				if (opt_len < olen ||
+				    0 != (opt_len % olen))
 					return (EBADMSG);
 			} else { /* Lenght must be equal to specified fixedlen. */
-				if (opth->len != optp->len)
+				if (opt_len != olen)
 					return (EBADMSG);
 			}
-		} else if (0 != (DHCP4_OPTP_F_MINLEN & optp->flags)) {
-			if (opth->len < optp->len)
+		} else { /* Min size. */
+			if (0 != (DHCP4_OPTP_F_MINLEN & optp->flags)) { /* Use provided val. */
+				olen = optp->len;
+			} else {
+				olen = dhcp4_opt_type2size_min[optp->type];
+			}
+			if (UINT8_MAX != olen && opt_len < olen)
 				return (EBADMSG);
 		}
 
 		/* Store option data to agg buf. */
-		ptr = dhcp4_ao_buf_data_get_free_space(ao_buf, opth->code, opth->len);
+		ptr = dhcp4_ao_buf_data_get_free_space(ao_buf, opt_code, opt_len);
 		if (NULL == ptr)
 			return (ENOMEM);
-		memcpy(ptr, opt_data, opth->len);
-		ao_buf->opt[opth->code].len += opth->len;
-		dhcp4_ao_buf_map_set(&ao_buf->map, opth->code, 1);
+		memcpy(ptr, opt_data, opt_len);
+		ao_buf->opt[opt_code].len += opt_len;
+		dhcp4_ao_buf_map_set(&ao_buf->map, opt_code, 1);
 	}
 
 	return (0);
