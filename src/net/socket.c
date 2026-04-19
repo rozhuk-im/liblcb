@@ -371,6 +371,32 @@ skt_enable_recv_ifindex(const uintptr_t skt, const int enable) {
 }
 
 int
+skt_enable_recv_hoplim(const uintptr_t skt, const int enable) {
+	int error;
+	sa_family_t sa_family;
+
+	/* First, we detect socket address family: ipv4 or ipv6. */
+	error = skt_get_addr_family(skt, &sa_family);
+	if (0 != error)
+		return (error);
+
+	switch (sa_family) {
+	case AF_INET:
+		if (0 != setsockopt((int)skt, IPPROTO_IP, IP_RECVTTL, &enable, sizeof(int)))
+			return (errno);
+		break;
+	case AF_INET6:
+		if (0 != setsockopt((int)skt, IPPROTO_IPV6, IPV6_HOPLIMIT, &enable, sizeof(int)))
+			return (errno);
+		break;
+	default:
+		return (EAFNOSUPPORT);
+	}
+
+	return (0);
+}
+
+int
 skt_enable_recv_timestamp(const uintptr_t skt, const int enable) {
 
 #ifdef SO_TS_REALTIME /* BSD. */
@@ -553,12 +579,15 @@ skt_bind_ap(const sa_family_t family, const void *addr, const uint16_t port,
 	return (skt_bind(&sa, type, protocol, flags, skt_ret));
 }
 
+
+#define SKT_RECVFROM_MK64(__hi, __lo)	((((uint64_t)(__hi)) << 32) | (uint32_t)(__lo))
+
 ssize_t
 skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int flags,
-    sockaddr_storage_t *from, uint32_t *if_index, struct timespec *rcv_time) {
+    sockaddr_storage_t *from, skt_io_extra_p io_extra) {
 	ssize_t transfered_size;
 	struct msghdr mhdr;
-	struct iovec rcviov[4];
+	struct iovec rcviov[2];
 	struct cmsghdr *cm;
 	uint8_t rcvcmsgbuf[1024 +
 #if defined(IP_RECVIF) /* FreeBSD */
@@ -568,7 +597,8 @@ skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int fl
 		CMSG_SPACE(sizeof(struct in_pktinfo)) +
 #endif
 		CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-		CMSG_SPACE(sizeof(struct timespec))
+		CMSG_SPACE(sizeof(struct timespec)) +
+		CMSG_SPACE(sizeof(int))
 	];
 
 	/* Initialize msghdr for receiving packets. */
@@ -584,55 +614,63 @@ skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int fl
 	mhdr.msg_flags = 0;
 
 	transfered_size = recvmsg((int)skt, &mhdr, flags);
-	if (-1 == transfered_size)
+	if (-1 == transfered_size ||
+	    NULL == io_extra)
 		return (transfered_size);
-	if (NULL != if_index) {
-		(*if_index) = 0;
-	}
-	if (NULL != rcv_time) {
-		memset(rcv_time, 0x00, sizeof(struct timespec));
-	}
+
 	/* Handle additional IP packet data. */
+	memset(io_extra, 0x00, sizeof(skt_io_extra_t));
 	for (cm = CMSG_FIRSTHDR(&mhdr); NULL != cm; cm = CMSG_NXTHDR(&mhdr, cm)) {
+		switch (SKT_RECVFROM_MK64(cm->cmsg_level, cm->cmsg_type)) {
 #ifdef IP_RECVIF /* FreeBSD */
-		if (NULL != if_index &&
-		    IPPROTO_IP == cm->cmsg_level &&
-		    IP_RECVIF == cm->cmsg_type &&
-		    CMSG_LEN(sizeof(struct sockaddr_dl)) <= cm->cmsg_len) {
-			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
-			    struct sockaddr_dl, sdl_index);
-		}
+		case SKT_RECVFROM_MK64(IPPROTO_IP, IP_RECVIF):
+			if (CMSG_LEN(sizeof(struct sockaddr_dl)) <= cm->cmsg_len) {
+				MEMCPY_STRUCT_FIELD(&io_extra->if_index, CMSG_DATA(cm),
+				    struct sockaddr_dl, sdl_index);
+			}
+			break;
 #endif
 #ifdef IP_PKTINFO /* Linux/win */
-		if (NULL != if_index &&
-		    IPPROTO_IP == cm->cmsg_level &&
-		    IP_PKTINFO == cm->cmsg_type &&
-		    CMSG_LEN(sizeof(struct in_pktinfo)) <= cm->cmsg_len) {
-			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
-			    struct in_pktinfo, ipi_ifindex);
-		}
+		case SKT_RECVFROM_MK64(IPPROTO_IP, IP_PKTINFO):
+			if (CMSG_LEN(sizeof(struct in_pktinfo)) <= cm->cmsg_len) {
+				MEMCPY_STRUCT_FIELD(&io_extra->if_index, CMSG_DATA(cm),
+				    struct in_pktinfo, ipi_ifindex);
+			}
+			break;
 #endif
-		if (NULL != if_index &&
-		    IPPROTO_IPV6 == cm->cmsg_level && (
+		case SKT_RECVFROM_MK64(IPPROTO_IPV6, IPV6_PKTINFO):
 #ifdef IPV6_2292PKTINFO
-		    IPV6_2292PKTINFO == cm->cmsg_type ||
+		case SKT_RECVFROM_MK64(IPPROTO_IPV6, IPV6_2292PKTINFO):
 #endif
-		    IPV6_PKTINFO == cm->cmsg_type) &&
-		    CMSG_LEN(sizeof(struct in6_pktinfo)) <= cm->cmsg_len) {
-			MEMCPY_STRUCT_FIELD(if_index, CMSG_DATA(cm),
-			    struct in6_pktinfo, ipi6_ifindex);
-		}
-		if (NULL != rcv_time &&
-		    SOL_SOCKET == cm->cmsg_level &&
+			if (CMSG_LEN(sizeof(struct in6_pktinfo)) <= cm->cmsg_len) {
+				MEMCPY_STRUCT_FIELD(&io_extra->if_index, CMSG_DATA(cm),
+				    struct in6_pktinfo, ipi6_ifindex);
+			}
+			break;
+#if defined(SO_TS_REALTIME) || defined(SO_TIMESTAMPNS)
 #ifdef SO_TS_REALTIME /* BSD. */
-		    SCM_REALTIME == cm->cmsg_type &&
-#elif defined(SO_TIMESTAMPNS) /* Linux. */
-		    SCM_TIMESTAMPNS == cm->cmsg_type &&
-#else
-		    0 && /* Disabled. */
+		case SKT_RECVFROM_MK64(SOL_SOCKET, SCM_REALTIME):
 #endif
-		    CMSG_LEN(sizeof(struct timespec)) <= cm->cmsg_len) {
-			memcpy(rcv_time, CMSG_DATA(cm), sizeof(struct timespec));
+#ifdef SO_TIMESTAMPNS /* Linux. */
+		case SKT_RECVFROM_MK64(SOL_SOCKET, SCM_TIMESTAMPNS):
+#endif
+			if (CMSG_LEN(sizeof(struct timespec)) <= cm->cmsg_len) {
+				memcpy(&io_extra->rcv_time, CMSG_DATA(cm), sizeof(struct timespec));
+			}
+			break;
+#endif
+		case SKT_RECVFROM_MK64(IPPROTO_IP, IP_RECVTTL):
+			if (CMSG_LEN(sizeof(u_char) <= cm->cmsg_len)) {
+				memcpy(&io_extra->hop_limit, CMSG_DATA(cm), sizeof(u_char));
+			}
+			break;
+		case SKT_RECVFROM_MK64(IPPROTO_IPV6, IPV6_HOPLIMIT):
+			if (CMSG_LEN(sizeof(int) <= cm->cmsg_len)) {
+				memcpy(&io_extra->hop_limit, CMSG_DATA(cm), sizeof(int));
+			}
+			break;
+		default:
+			break;
 		}
 	}
 

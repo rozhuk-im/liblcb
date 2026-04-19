@@ -891,7 +891,6 @@ int
 upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
     size_t data2transfer_size, void *arg) {
 	upnp_ssdp_p ssdp = arg;
-	uint32_t if_index = 0;
 	size_t transfered_size = 0;
 	uintptr_t ident;
 	ssize_t ios;
@@ -902,6 +901,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	uint8_t *req_hdr, buf[65536];
 	size_t tm, req_hdr_len;
 	http_req_line_data_t req_data;
+	skt_io_extra_t io_extra;
 
 	if (0 != error) {
 		SYSLOG_ERR(LOG_DEBUG, error, "On receive.");
@@ -911,7 +911,7 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 	ident = tp_task_ident_get(tptask);
 	while (transfered_size < data2transfer_size) { /* Recv loop. */
 		ios = skt_recvfrom(ident, buf, sizeof(buf), MSG_DONTWAIT,
-		    addr, &if_index, NULL);
+		    addr, &io_extra);
 		if (-1 == ios) {
 			error = errno;
 			if (0 == error) {
@@ -925,17 +925,17 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 			break;
 		transfered_size += (size_t)ios;
 		/* Get iface data. */
-		s_if = upnp_ssdp_get_if_by_index(ssdp, if_index);
+		s_if = upnp_ssdp_get_if_by_index(ssdp, io_extra.if_index);
 		if (NULL == s_if) {
 			syslog(LOG_INFO, "No configured iface for this packet. (%i)",
-			    if_index);
+			    io_extra.if_index);
 			continue;
 		}
 #ifdef DEBUG
 		buf[ios] = 0;
 		sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
 		syslog(LOG_DEBUG, "recvfrom ip: %s (%i) - %zu bytes.\n%s",
-		    straddr, if_index, ios, buf);
+		    straddr, io_extra.if_index, ios, buf);
 #endif
 		ptm = mem_find_cstr(buf, (size_t)ios, CRLFCRLF);
 		/* no/bad request. */

@@ -275,7 +275,8 @@ skt_opts_xml_load(const uint8_t *buf, const size_t buf_size,
 			opts->mask |= SO_F_IP_MULTICAST_LOOP;
 		}
 	}
-	/* SO_F_IP_RECVIF: never read, app internal. */
+	/* SO_F_IP_RECV_IF: never read, app internal. */
+	/* SO_F_IP_RECV_HOPLIM: never read, app internal. */
 
 	/* SO_F_TCP_NODELAY */
 	if (0 != (SO_F_TCP_NODELAY & mask)) {
@@ -545,12 +546,12 @@ skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 	}
 #endif /* BSD specific code. */
 	/* SO_F_SNDTIMEO - not set to skt */
-	/* SO_F_TIMESTAMP */
-	if (0 != (SO_F_TIMESTAMP & _mask)) {
-		error = skt_enable_recv_timestamp(skt, ((SO_F_TIMESTAMP & opts->bit_vals) ? 1 : 0));
+	/* SO_F_RECV_TIMESTAMP */
+	if (0 != (SO_F_RECV_TIMESTAMP & _mask)) {
+		error = skt_enable_recv_timestamp(skt, ((SO_F_RECV_TIMESTAMP & opts->bit_vals) ? 1 : 0));
 		if (0 != error) {
 			error = errno;
-			error_mask |= SO_F_TIMESTAMP;
+			error_mask |= SO_F_RECV_TIMESTAMP;
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))
 				goto err_out;
 		}
@@ -629,12 +630,22 @@ skt_opts_apply(const uintptr_t skt, const uint32_t mask,
 			break;
 		}
 	}
-	/* SO_F_IP_RECVIF */
-	if (0 != (SO_F_IP_RECVIF & _mask)) {
-		error = skt_enable_recv_ifindex(skt, ((SO_F_IP_RECVIF & opts->bit_vals) ? 1 : 0));
+	/* SO_F_IP_RECV_IF */
+	if (0 != (SO_F_IP_RECV_IF & _mask)) {
+		error = skt_enable_recv_ifindex(skt, ((SO_F_IP_RECV_IF & opts->bit_vals) ? 1 : 0));
 		if (0 != error) {
 			error = errno;
-			error_mask |= SO_F_IP_RECVIF;
+			error_mask |= SO_F_IP_RECV_IF;
+			if (0 != (SO_F_FAIL_ON_ERR & _mask))
+				goto err_out;
+		}
+	}
+	/* SO_F_IP_RECV_HOPLIM */
+	if (0 != (SO_F_IP_RECV_HOPLIM & _mask)) {
+		error = skt_enable_recv_hoplim(skt, ((SO_F_IP_RECV_HOPLIM & opts->bit_vals) ? 1 : 0));
+		if (0 != error) {
+			error = errno;
+			error_mask |= SO_F_IP_RECV_HOPLIM;
 			if (0 != (SO_F_FAIL_ON_ERR & _mask))
 				goto err_out;
 		}

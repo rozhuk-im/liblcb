@@ -250,7 +250,6 @@ static int
 sap_receiver_recv_cb(tp_task_p tptask, int error,
     uint32_t eof __unused, size_t data2transfer_size __unused, void *arg) {
 	sap_rcvr_p srcvr = arg;
-	uint32_t if_index = 0xffffffff;
 	uint8_t *sdp_msg;
 	ssize_t ios;
 	size_t transfered_size, sdp_msg_size;
@@ -264,6 +263,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 	uint8_t *feilds[8];
 	size_t feilds_sizes[8], cnt;
 	uint16_t port, media_proto = 0; /* udp/rtp/srtp*/
+	skt_io_extra_t io_extra;
 
 	if (0 != error) {
 		SYSLOG_ERR(LOG_DEBUG, error, "On receive.");
@@ -271,7 +271,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 	}
 
 	ios = skt_recvfrom(tp_task_ident_get(tptask),
-	    buf, sizeof(buf), MSG_DONTWAIT, NULL, &if_index, NULL);
+	    buf, sizeof(buf), MSG_DONTWAIT, NULL, &io_extra);
 	if (-1 == ios) {
 		error = errno;
 		if (0 == error) {
@@ -386,7 +386,7 @@ sap_receiver_recv_cb(tp_task_p tptask, int error,
 	sdpl->name_size = (uint16_t)sess_name_size;
 	sdpl->media_proto = media_proto;
 	sdpl->flags = 1;
-	sdpl->if_index = if_index;
+	sdpl->if_index = io_extra.if_index;
 
 	SYSLOGD_EX(LOG_DEBUG, "SAP data: (%zu) %s", sdp_msg_size, sdp_msg);
 	data_cache_item_unlock(dc_item);

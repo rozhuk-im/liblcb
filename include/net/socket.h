@@ -77,6 +77,7 @@ int	skt_mc_join_ifname(const uintptr_t skt, const int join, const char *ifname,
 	    const size_t ifname_size, const sockaddr_storage_t *mc_addr);
 
 int	skt_enable_recv_ifindex(const uintptr_t skt, const int enable);
+int	skt_enable_recv_hoplim(const uintptr_t skt, const int enable);
 int	skt_enable_recv_timestamp(const uintptr_t skt, const int enable);
 
 
@@ -92,8 +93,15 @@ int	skt_bind_ap(const sa_family_t family, const void *addr, const uint16_t port,
 	    const int type, const int protocol, const uint32_t flags, uintptr_t *skt_ret);
 #define SKT_BIND_FLAG_MASK	(SKT_CREATE_FLAG_MASK | SO_F_REUSEADDR | SO_F_REUSEPORT)
 
+
+typedef struct skt_io_extra_s {
+	uint32_t	if_index;
+	int		hop_limit;
+	struct timespec	rcv_time;
+} skt_io_extra_t, *skt_io_extra_p;
+
 ssize_t	skt_recvfrom(const uintptr_t skt, void *buf, const size_t buf_size, const int flags,
-	    sockaddr_storage_t *from, uint32_t *if_index, struct timespec *rcv_time);
+	    sockaddr_storage_t *from, skt_io_extra_p io_extra);
 
 int	skt_sendfile(const uintptr_t fd, const uintptr_t skt, const off_t offset,
 	    const size_t size, const int flags, off_t *transfered_size);
