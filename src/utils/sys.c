@@ -115,13 +115,10 @@ err_out:
  * 1. \n at end of string is present.
  * 2. fflush(stdout) may be required to avoid caching.
  */
+static const int std_syslog_redirector_syslog_prio[2] = { LOG_INFO, LOG_ERR };
 static void *
 std_syslog_redirector_proc(void *data) {
 	sigset_t sig_set;
-	int fildes[2];
-	const int prio_skip_mask = (int)(size_t)data;
-	const int target_fd[2] = { STDOUT_FILENO, STDERR_FILENO };
-	const int syslog_prio[2] = { LOG_INFO, LOG_ERR };
 	struct pollfd fds[2];
 	uint8_t buf[2][4096], *cur_pos, *le;
 	size_t i, fds_cnt = nitems(fds), buf_pos[2] = { 0, 0 };
@@ -138,24 +135,15 @@ std_syslog_redirector_proc(void *data) {
 		SYSLOG_ERR(LOG_WARNING, errno,
 		    "std_syslog_redirector: can't block the SIGPIPE signal.");
 	}
-	/* Create pipes and make them as stdout and stderr. */
+	/* Init poll() structs.. */
 	memset(&fds, 0x00, sizeof(fds));
-	for (i = 0; i < nitems(fds); i ++) {
-		if (0 != (prio_skip_mask & LOG_MASK(syslog_prio[i]))) {
-			fds[i].fd = -1;
-			fds_cnt --;
-			continue;
-		}
-		if (-1 == pipe2(fildes, (O_CLOEXEC | O_NONBLOCK))) {
-			SYSLOG_ERR(LOG_ERR, errno,
-			    "std_syslog_redirector: pipe2() fail, exiting.");
-			return (NULL);
-		}
-		fds[i].fd = fildes[0]; /* Read side descriptor. */
-		fds[i].events = (POLLIN | POLLERR | POLLHUP);
-		/* Replace target std descriptor with pipe~s write side descriptor. */
-		dup2(fildes[1], target_fd[i]);
-		close(fildes[1]);
+	fds[0].fd = ((int*)data)[0];
+	fds[0].events = (POLLIN | POLLERR | POLLHUP);
+	fds[1].fd = ((int*)data)[1];
+	fds[1].events = (POLLIN | POLLERR | POLLHUP);
+	free(data);
+	if (-1 == fds[1].fd) {
+		fds_cnt --;
 	}
 
 	/* Read and syslog() loop. */
@@ -188,7 +176,7 @@ std_syslog_redirector_proc(void *data) {
 				le = mem_chr_ptr(cur_pos, buf[i], buf_pos[i], '\n');
 				if (NULL == le)
 					break;
-				syslog(syslog_prio[i], "%.*s",
+				syslog(std_syslog_redirector_syslog_prio[i], "%.*s",
 				    (int)(le - cur_pos), cur_pos);
 				cur_pos = (le + 1);
 			}
@@ -200,7 +188,7 @@ std_syslog_redirector_proc(void *data) {
 			}
 			if (0 == ios &&
 			    sizeof(buf[0]) == buf_pos[i]) { /* Log line > buf size, flush. */
-				syslog(syslog_prio[i], "%.*s...",
+				syslog(std_syslog_redirector_syslog_prio[i], "%.*s...",
 				    (int)buf_pos[i], cur_pos);
 				buf_pos[i] = 0;
 				continue;
@@ -217,6 +205,8 @@ std_syslog_redirector_proc(void *data) {
 }
 int
 std_syslog_redirector(const int prio_skip_mask) {
+	int error, fildes[2], *fds;
+	const int target_fd[2] = { STDOUT_FILENO, STDERR_FILENO };
 	pthread_t pt_id;
 
 	if (0 != (prio_skip_mask & ~(LOG_MASK(LOG_INFO) | LOG_MASK(LOG_ERR))))
@@ -224,8 +214,37 @@ std_syslog_redirector(const int prio_skip_mask) {
 	if ((LOG_MASK(LOG_INFO) | LOG_MASK(LOG_ERR)) ==
 	    (prio_skip_mask & (LOG_MASK(LOG_INFO) | LOG_MASK(LOG_ERR))))
 		return (EINVAL); /* Nothink to do. */
-	return (pthread_create_eagain(&pt_id, NULL,
-	    std_syslog_redirector_proc, (void*)(size_t)prio_skip_mask));
+	/* Alloc and init mem for pass fds. */
+	fds = malloc((sizeof(int) * nitems(std_syslog_redirector_syslog_prio)));
+	if (NULL == fds)
+		return (ENOMEM);
+	for (size_t i = 0; i < nitems(std_syslog_redirector_syslog_prio); i ++) {
+		fds[i] = -1;
+	}
+	/* Create pipes and make them as stdout and stderr. */
+	for (size_t i = 0; i < nitems(std_syslog_redirector_syslog_prio); i ++) {
+		if (0 != (prio_skip_mask & LOG_MASK(std_syslog_redirector_syslog_prio[i])))
+			continue;
+		if (-1 == pipe2(fildes, (O_CLOEXEC | O_NONBLOCK))) {
+			error = errno;
+			goto err_out;
+		}
+		fds[i] = fildes[0]; /* Read side descriptor. */
+		/* Replace target std descriptor with pipe~s write side descriptor. */
+		dup2(fildes[1], target_fd[i]);
+		close(fildes[1]);
+	}
+	error = pthread_create_eagain(&pt_id, NULL, std_syslog_redirector_proc, (void*)fds);
+	if (0 == error)
+		return (0);
+
+err_out:
+	for (size_t i = 0; i < nitems(std_syslog_redirector_syslog_prio); i ++) {
+		close(fds[i]);
+	}
+	free(fds);
+
+	return (error);
 }
 
 
