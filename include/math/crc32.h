@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2023 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2005-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,16 +37,23 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <inttypes.h>
+#include <stddef.h> /* For size_t. */
+#include <stdint.h> /* Preferred over inttypes.h for fixed-width types. */
+
+#ifndef nitems
+#	define nitems(_x)	(sizeof(_x) / sizeof((_x)[0]))
+#endif
+
 
 /* Use small lookup tables on data size less specified. */
 #define CRC32_SMALL_TBL_LIMIT	(sizeof(uint32_t) * 16)
 
 
-/* 4 bit = 16 items look-up-table */
+/* 4 bit = 16 items look-up-table: uses 256-entry table indexed by high nibble. */
 static inline uint32_t
 crc32_normal4(const uint32_t *table256, const uint32_t init_crc32,
     const uint8_t *buf, const size_t buf_size) {
-	register uint32_t crc = init_crc32;
+	uint32_t crc = init_crc32;
 
 	if (NULL == buf || 0 == buf_size)
 		return (crc);
@@ -58,11 +65,11 @@ crc32_normal4(const uint32_t *table256, const uint32_t init_crc32,
 	return (crc);
 }
 
-/* 8 bit = 256 items look-up-table */
+/* 8 bit = 256 items look-up-table. */
 static inline uint32_t
 crc32_normal8(const uint32_t *table256, const uint32_t init_crc32,
     const uint8_t *buf, const size_t buf_size) {
-	register uint32_t crc = init_crc32;
+	uint32_t crc = init_crc32;
 
 	if (NULL == buf || 0 == buf_size)
 		return (crc);
@@ -82,11 +89,11 @@ crc32_normal(const uint32_t *table256, const uint32_t init_crc32,
 }
 
 
-/* 4 bit = 16 items look-up-table */
+/* 4 bit = 16 items look-up-table: uses 256-entry table indexed by high nibble. */
 static inline uint32_t
 crc32_reflect4(const uint32_t *table16, const uint32_t init_crc32,
     const uint8_t *buf, const size_t buf_size) {
-	register uint32_t crc = init_crc32;
+	uint32_t crc = init_crc32;
 
 	if (NULL == buf || 0 == buf_size)
 		return (crc);
@@ -98,11 +105,11 @@ crc32_reflect4(const uint32_t *table16, const uint32_t init_crc32,
 	return (crc);
 }
 
-/* 8 bit = 256 items look-up-table */
+/* 8 bit = 256 items look-up-table. */
 static inline uint32_t
 crc32_reflect8(const uint32_t *table256, const uint32_t init_crc32,
     const uint8_t *buf, const size_t buf_size) {
-	register uint32_t crc = init_crc32;
+	uint32_t crc = init_crc32;
 
 	if (NULL == buf || 0 == buf_size)
 		return (crc);
@@ -576,7 +583,7 @@ static const uint32_t crc32_tbl256_814141ab[256] = {
 
 
 #ifdef CRC32_SELF_TEST
-/* 0 - OK, non zero - error */
+/* 0 - OK, non zero - error. */
 static inline int
 crc32_self_test(void) {
 	uint32_t crca, crcb, crcc, crcd, crcq;
