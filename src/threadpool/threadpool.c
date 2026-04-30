@@ -1535,19 +1535,22 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 		return (EINVAL); /* Invalid flags: some unknown bits is set. */
 	/* tp_udata */
 	if (NULL == tp_udata->cb_func ||
-	    (uintptr_t)-1 == tp_udata->ident ||
-	    NULL == tp_udata->tpt)
+	    NULL == tp_udata->tpt ||
+	    NULL == tp_udata->tpt->tp)
 		return (EINVAL);
 	/* Extended checks. */
 	switch (ev->event) {
 	case TP_EV_READ:
 	case TP_EV_WRITE:
-		if (tp_udata->tpt->tp->fd_count <= tp_udata->ident)
+		if (0 > (int)tp_udata->ident ||
+		    tp_udata->tpt->tp->fd_count <= tp_udata->ident)
 			return (EBADF); /* Bad FD. */
 		if (0 != (~(TP_FF_RW_MASK) & ev->fflags))
 			return (EINVAL); /* Invalid fflags: some unknown bits is set. */
 		break;
 	case TP_EV_TIMER:
+		if (op == TP_CTL_ADD && 0 == ev->data)
+			return (EINVAL); /* Timer interval cannot be zero. */
 #if defined(TP_F_EDGE) && 0 /* XXX: check this. */
 		if (0 != (TP_F_EDGE & ev->flags))
 			return (EINVAL); /* Invalid flags. */
@@ -1556,6 +1559,8 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 			return (EINVAL); /* Invalid fflags: some unknown bits is set. */
 		break;
 	case TP_EV_PROC:
+		if (0 > (int)tp_udata->ident)
+			return (EINVAL); /* Invalid PID. */
 #if defined(TP_F_EDGE)
 		if (0 != (TP_F_EDGE & ev->flags))
 			return (EINVAL); /* Invalid flags. */
