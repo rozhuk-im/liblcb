@@ -173,7 +173,7 @@ void 	*tp_udata_get(tp_p tp);
 
 int	tp_threads_create(tp_p tp, const int skip_first);
 int	tp_thread_attach_first(tp_p tp);
-int	tp_thread_dettach(tpt_p tpt);
+int	tp_thread_detach(tpt_p tpt);
 size_t	tp_thread_count_max_get(tp_p tp);
 size_t	tp_thread_count_get(tp_p tp);
 

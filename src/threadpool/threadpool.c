@@ -181,7 +181,7 @@ typedef struct thread_pool_thread_s { /* thread pool thread info */
 } tp_thread_t;
 
 #define TP_THREAD_STATE_STOP		0
-#define TP_THREAD_STATE_STOPING		1
+#define TP_THREAD_STATE_STOPPING	1
 #define TP_THREAD_STATE_STARTING	2
 #define TP_THREAD_STATE_RUNNING		3
 
@@ -909,6 +909,9 @@ tpt_loop(tpt_p tpt) {
 		case TP_EV_TIMER: /* Timer. */
 			tfd = TPDATA_TFD_GET(tp_udata->tpdata);
 			itm = read(tfd, &ev.data, sizeof(uint64_t));
+			if (0 >= itm) { /* Read fail. */
+				ev.data = 0;
+			}
 			if (0 != (TP_F_ONESHOT & tpev_flags)) { /* Onetime. */
 				close(tfd); /* No need to epoll_ctl(EPOLL_CTL_DEL). */
 				tp_udata->tpdata = 0;
@@ -1115,7 +1118,7 @@ err_out:
 static void
 tpt_msg_shutdown_cb(tpt_p tpt, void *udata __unused) {
 
-	tpt->state = TP_THREAD_STATE_STOPING;
+	tpt->state = TP_THREAD_STATE_STOPPING;
 }
 void
 tp_shutdown(tp_p tp) {
@@ -1272,7 +1275,7 @@ tp_thread_attach_first(tp_p tp) {
 }
 
 int
-tp_thread_dettach(tpt_p tpt) {
+tp_thread_detach(tpt_p tpt) {
 
 	if (NULL == tpt)
 		return (EINVAL);
