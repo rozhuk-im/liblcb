@@ -321,7 +321,7 @@ tpt_hook_stop_cb(tpt_p tpt) {
 	size_t tpt_num = tpt_get_num(tpt);
 
 	thr_tls_arr[tpt_num] |= 2;
-	CU_ASSERT(tpt_num == tpt_tls_get_sz(tpt, 0))
+	CU_ASSERT(tpt_num == (size_t)tpt_tls_get(tpt, 0))
 	CU_ASSERT(tpt == tpt_tls_get(tpt, 1))
 }
 

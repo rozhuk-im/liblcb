@@ -1484,15 +1484,6 @@ tpt_tls_get(tpt_p tpt, const size_t index) {
 
 	return (tpt->tls[index]);
 }
-size_t
-tpt_tls_get_sz(tpt_p tpt, const size_t index) {
-
-	if (NULL == tpt ||
-	    TP_TPT_TLS_COUNT <= index)
-		return (0);
-
-	return ((size_t)tpt->tls[index]);
-}
 
 
 int

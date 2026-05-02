@@ -197,7 +197,6 @@ void	*tpt_get_msg_queue(tpt_p tpt);
 #endif
 int	tpt_tls_set(tpt_p tpt, const size_t index, void *val);
 void 	*tpt_tls_get(tpt_p tpt, const size_t index);
-size_t	tpt_tls_get_sz(tpt_p tpt, const size_t index); /* Same as tpt_tls_get(). */
 
 
 int	tpt_ev_add(tpt_p tpt, tp_event_p ev, tp_udata_p tp_udata);
