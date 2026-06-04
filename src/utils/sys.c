@@ -124,6 +124,8 @@ std_syslog_redirector_proc(void *data) {
 	size_t i, fds_cnt = nitems(fds), buf_pos[2] = { 0, 0 };
 	ssize_t ios;
 
+	pthread_detach(pthread_self());
+
 	syslog(LOG_DEBUG, "STD syslog redirector starting...");
 
 	/* Set thread name for better debugging. */
