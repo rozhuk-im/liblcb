@@ -92,7 +92,7 @@ static const uint64_t pow10lst[POW10LST_COUNT] = {
 	if (NULL == (_buf) || 0 == (_size))				\
 		return (EINVAL);					\
 	if (0 > (_num)) {						\
-		(_num) = - (_num);					\
+		(_num) = ((_type)0) - (_num);				\
 		_neg = 1;						\
 	}								\
 	for (_len = 1;							\
