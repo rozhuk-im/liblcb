@@ -278,48 +278,52 @@ write_pid(const char *file_name) {
 }
 
 int
-set_user_and_group(uid_t pw_uid, gid_t pw_gid) {
+set_user_and_group(const uid_t pw_uid, const gid_t pw_gid) {
 	int error;
 	struct passwd *pwd, pwd_buf;
-	char buffer[4096], err_descr[256];
+	char buf[4096], err_descr[256];
 
-	if (0 == pw_uid || 0 == pw_gid)
+	if (0 == pw_uid)
 		return (EINVAL);
 
-	error = getpwuid_r(pw_uid, &pwd_buf, buffer, sizeof(buffer), &pwd);
+	error = getpwuid_r(pw_uid, &pwd_buf, buf, sizeof(buf), &pwd);
 	if (0 != error) {
 		strerror_r(error, err_descr, sizeof(err_descr));
-		fprintf(stderr, "set_user_and_group: getpwuid_r() error %i: %s\n",
-		    error, err_descr);
+		fprintf(stderr, "%s: getpwuid_r() error %i: %s\n",
+		    __FUNCTION__, error, err_descr);
 		return (error);
 	}
 
-	if (0 != setgid(pw_gid)) {
+	/* Drop all supplementary groups immediately. */
+	if (0 != setgroups(0, NULL)) {
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
-		fprintf(stderr, "set_user_and_group: setgid() error %i: %s\n",
-		    error, err_descr);
+		fprintf(stderr, "%s: setgroups(0, NULL) error %i: %s\n",
+		    __FUNCTION__, error, err_descr);
 		return (error);
 	}
-	if (0 != initgroups(pwd->pw_name, pw_gid)) {
+	/* Set the Primary Group ID. */
+	if (0 != setgid(((0 != pw_gid) ? pw_gid : pwd->pw_gid))) {
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
-		fprintf(stderr, "set_user_and_group: initgroups() error %i: %s\n",
-		    error, err_descr);
+		fprintf(stderr, "%s: setgid() error %i: %s\n",
+		    __FUNCTION__, error, err_descr);
 		return (error);
 	}
-	if (0 != setgroups(1, &pwd->pw_gid)) {
+	/* Initialize Supplementary Groups defined in /etc/group. */
+	if (0 != initgroups(pwd->pw_name, pwd->pw_gid)) {
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
-		fprintf(stderr, "set_user_and_group: setgroups() error %i: %s\n",
-		    error, err_descr);
+		fprintf(stderr, "%s: initgroups() error %i: %s\n",
+		    __FUNCTION__, error, err_descr);
 		return (error);
 	}
+	/* Drop User ID. */
 	if (0 != setuid(pw_uid)) {
 		error = errno;
 		strerror_r(error, err_descr, sizeof(err_descr));
-		fprintf(stderr, "set_user_and_group: setuid() error %i: %s\n",
-		    error, err_descr);
+		fprintf(stderr, "%s: setuid() error %i: %s\n",
+		    __FUNCTION__, error, err_descr);
 		return (error);
 	}
 
