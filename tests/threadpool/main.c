@@ -397,7 +397,7 @@ test_tp_udata_set(void) {
 static void
 test_tp_threads_create(void) {
 
-	CU_ASSERT(0 == tp_threads_create(tp, 0))
+	CU_ASSERT(0 == tp_threads_create(tp))
 	/* Wait for all threads start. */
 	test_sleep(1500);
 }

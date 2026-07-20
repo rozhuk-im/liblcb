@@ -1157,9 +1157,14 @@ tp_shutdown_wait(tp_p tp) {
 		return (EDEADLK);
 
 	for (size_t i = 0; i < tp->threads_max; i ++) {
-		if (TP_THREAD_STATE_STOP == tp->threads[i].state)
+		if (TP_THREAD_STATE_STOP == tp->threads[i].state) { /* Thread already in stop state, cleanup. */
+			pthread_detach(tp->threads[i].pt_id);
+			memset(&tp->threads[i].pt_id, 0x00, sizeof(pthread_t));	
 			continue;
+		}
+		/* Wait for thread exit. */
 		error = pthread_join(tp->threads[i].pt_id, NULL);
+		memset(&tp->threads[i].pt_id, 0x00, sizeof(pthread_t));	
 		switch (error) {
 		case 0: /* No error. */
 			break;
@@ -1227,7 +1232,7 @@ tp_udata_get(tp_p tp) {
 
 
 int
-tp_threads_create(tp_p tp, const int skip_first) {
+tp_threads_create(tp_p tp) {
 	tpt_p tpt;
 
 	if (NULL == tp)
@@ -1235,12 +1240,7 @@ tp_threads_create(tp_p tp, const int skip_first) {
 	if (0 != tp->shutdown)
 		return (EBUSY);
 
-	/* Mark as strating to allow thread to receive messages before tp_thread_attach_first(). */
-	if (0 != skip_first) {
-		tp->threads[0].state = TP_THREAD_STATE_STARTING;
-	}
-
-	for (size_t i = ((0 != skip_first) ? 1 : 0); i < tp->threads_max; i ++) {
+	for (size_t i = 0; i < tp->threads_max; i ++) {
 		tpt = &tp->threads[i];
 		if (NULL == tpt->tp)
 			continue;
@@ -1251,35 +1251,6 @@ tp_threads_create(tp_p tp, const int skip_first) {
 			tpt->state = TP_THREAD_STATE_STOP;
 		}
 	}
-	return (0);
-}
-
-int
-tp_thread_attach_first(tp_p tp) {
-	tpt_p tpt;
-
-	if (NULL == tp)
-		return (EINVAL);
-	if (0 != tp->shutdown)
-		return (EBUSY);
-
-	tpt = &tp->threads[0];
-	if (TP_THREAD_STATE_STARTING != tpt->state)
-		return (ESPIPE); /* skip_first was 0 on tp_threads_create(). */
-
-	tpt->pt_id = pthread_self();
-
-	tp_thread_proc(tpt);
-
-	return (0);
-}
-
-int
-tp_thread_detach(tpt_p tpt) {
-
-	if (NULL == tpt)
-		return (EINVAL);
-	tpt->state = TP_THREAD_STATE_STOP;
 	return (0);
 }
 
@@ -1301,7 +1272,6 @@ tp_thread_proc(void *data) {
 	    tpt->tp->params.name, tpt->thread_num);
 	pthread_self_name_set(thr_name);
 	pthread_setspecific(tp_tls_key_tpt, (const void*)tpt);
-	syslog(LOG_INFO, "%s thread started...", thr_name);
 
 	sigemptyset(&sig_set);
 	sigaddset(&sig_set, SIGPIPE);
@@ -1329,6 +1299,8 @@ tp_thread_proc(void *data) {
 	}
 #endif
 
+	syslog(LOG_INFO, "%s thread started...", thr_name);
+
 	if (NULL != tpt->tp->params.tpt_on_start) {
 		tpt->tp->params.tpt_on_start(tpt);
 	}
@@ -1339,12 +1311,11 @@ tp_thread_proc(void *data) {
 		tpt->tp->params.tpt_on_stop(tpt);
 	}
 
-	syslog(LOG_INFO, "%s thread exited...", thr_name);
 	pthread_setspecific(tp_tls_key_tpt, NULL);
 	pthread_self_name_set(NULL);
-	memset(&tpt->pt_id, 0x00, sizeof(pthread_t));
 	tpt->state = TP_THREAD_STATE_STOP; /* Reset state on exit. */
 	tpt->tp->threads_cnt --;
+	syslog(LOG_INFO, "%s thread exited...", thr_name);
 
 	return (NULL);
 }
