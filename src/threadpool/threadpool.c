@@ -1151,8 +1151,6 @@ tp_shutdown_wait(tp_p tp) {
 
 	if (NULL == tp)
 		return (EINVAL);
-	if (0 == tp->shutdown)
-		return (EBUSY);
 	if (0 != tp_thread_is_tp_thr(tp, NULL))
 		return (EDEADLK);
 
