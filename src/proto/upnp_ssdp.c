@@ -927,15 +927,15 @@ upnp_ssdp_mc_recv_cb(tp_task_p tptask, int error, uint32_t eof __unused,
 		/* Get iface data. */
 		s_if = upnp_ssdp_get_if_by_index(ssdp, io_extra.if_index);
 		if (NULL == s_if) {
-			syslog(LOG_INFO, "No configured iface for this packet. (%i)",
+			syslog(LOG_INFO, "No configured iface for this packet. (%u)",
 			    io_extra.if_index);
 			continue;
 		}
 #ifdef DEBUG
 		buf[ios] = 0;
 		sa_addr_port_to_str(addr, straddr, sizeof(straddr), NULL);
-		syslog(LOG_DEBUG, "recvfrom ip: %s (%i) - %zu bytes.\n%s",
-		    straddr, io_extra.if_index, ios, buf);
+		syslog(LOG_DEBUG, "recvfrom ip: %s (%u) - %zu bytes.\n%s",
+		    straddr, io_extra.if_index, (size_t)ios, buf);
 #endif
 		ptm = mem_find_cstr(buf, (size_t)ios, CRLFCRLF);
 		/* no/bad request. */
