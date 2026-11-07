@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 - 2016 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -2567,8 +2567,8 @@ invert_y:
 
 /* SEC 1 Ver. 2.0 + X9.62-1998 cheks. */
 static inline int
-ec_curve_validate(ec_curve_p curve, int *warnings) {
-	int wrngs = 0;
+ec_curve_validate(ec_curve_p curve, uint32_t *warnings) {
+	uint32_t wrngs = 0;
 	size_t j, bits;
 	bn_t a, b, tm;
 

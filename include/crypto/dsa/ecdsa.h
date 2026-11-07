@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2013-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -436,7 +436,7 @@ static ec_curve_str_t ec_curve_str[] = {
 		/*.algo =*/	EC_CURVE_ALGO_ECDSA,
 		/*.flags =*/	0,
 	}, {
-		/*.name =*/	"id-GostR3410-2001-ParamSet-cc",
+		/*.name =*/	"id-gostR3410-2001-ParamSet-cc",
 		/*.name_size =*/29,
 		/*.OID =*/	"1.2.643.2.9.1.8.1",
 		/*.OID_size =*/	17,
@@ -2195,6 +2195,7 @@ ec_self_test(void) {
 	ec_point_t S, T, R, TM;
 	ec_curve_t curve;
 	uint8_t r[512], s[512];
+	uint32_t warnings;
 
 	/* Calculations check. */
 	for (i = 0; i < nitems(ec_curve_tst1v); i ++) {
@@ -2332,7 +2333,13 @@ ec_self_test(void) {
 
 	for (i = 0; i < nitems(ec_curve_str); i ++) {
 		BN_RET_ON_ERR(ecdsa_curve_from_str(&ec_curve_str[i], &curve));
-		BN_RET_ON_ERR(ec_curve_validate(&curve, NULL));
+		BN_RET_ON_ERR(ec_curve_validate(&curve, &warnings));
+#ifdef DEBUG
+		if (0 != warnings) {
+			printf("%s: ec_curve_validate() %i warnings.\n",
+			    ec_curve_str[i].name, (int)warnings);
+		}
+#endif
 
 		bits = EC_CURVE_CALC_BITS_DBL(&curve);
 		BN_RET_ON_ERR(bn_init(&d, bits));
