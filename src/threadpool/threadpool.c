@@ -1279,8 +1279,8 @@ tp_thread_proc(void *data) {
 		    tpt->tp->params.name, tpt->thread_num);
 	}
 
-#ifndef DARWIN
 	if (-1 != tpt->cpu_id) {
+#ifndef DARWIN
 		cpu_set_t cs;
 		/* Bind this thread to a single cpu core. */
 		CPU_ZERO(&cs);
@@ -1290,12 +1290,16 @@ tp_thread_proc(void *data) {
 			syslog(LOG_INFO, "%s: bind thread %zu to CPU %i.",
 			    tpt->tp->params.name, tpt->thread_num, tpt->cpu_id);
 		} else {
+#else
+			errno = ENOSYS;
+#endif
 			SYSLOG_ERR(LOG_WARNING, errno,
 			    "%s: can't Bind thread %zu to CPU %i.",
 			    tpt->tp->params.name, tpt->thread_num, tpt->cpu_id);
+#ifndef DARWIN
 		}
-	}
 #endif
+	}
 
 	syslog(LOG_INFO, "%s thread started...", thr_name);
 
