@@ -56,7 +56,6 @@ signal_install(sig_t func) {
 
 	signal(SIGINT, func);
 	signal(SIGTERM, func);
-	//signal(SIGKILL, func);
 	signal(SIGHUP, func);
 	signal(SIGUSR1, func);
 	signal(SIGUSR2, func);

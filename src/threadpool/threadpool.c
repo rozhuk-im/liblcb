@@ -958,7 +958,6 @@ tp_signal_handler(int sig) {
 	switch (sig) {
 	case SIGINT:
 	case SIGTERM:
-	case SIGKILL:
 		tp_shutdown(g_tp);
 		g_tp = NULL;
 		break;
