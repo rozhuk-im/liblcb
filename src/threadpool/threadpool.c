@@ -143,18 +143,24 @@ static const uint32_t tp_event_to_ep_map[] = {
     (__u64) = (((__u64) & ~(U64_BITS_MASK(__len) << (__off))) |		\
 	(((__data) & U64_BITS_MASK(__len)) << (__off)))
 
+/* How it works:
+ * 00-31: FD
+ * 32-35: event number: TP_EV_READ...TP_EV_LAST
+ * 36-36: TPDATA_F_DISABLED
+ * 37-39: unused 
+ * 40+ bit stores per event flags: TP_F_ONESHOT...TP_F_EXCLUSIVE (4 flags possible defined now) */
 #define TPDATA_TFD_GET(__u64)		(int)U64_BITS_GET(__u64, 0, 32)
 #define TPDATA_TFD_SET(__u64, __tfd)	U64_BITS_SET(__u64, 0, 32, ((uint32_t)(__tfd)))
-#define TPDATA_EVENT_GET(__u64)		U64_BITS_GET(__u64, 32, 3)
-#define TPDATA_EVENT_SET(__u64, __ev)	U64_BITS_SET(__u64, 32, 3, __ev)
-#define TPDATA_FLAGS_GET(__u64, __ev)	U64_BITS_GET(__u64, (35 + (3 * (__ev))), 3)
+#define TPDATA_EVENT_GET(__u64)		U64_BITS_GET(__u64, 32, 4)
+#define TPDATA_EVENT_SET(__u64, __ev)	U64_BITS_SET(__u64, 32, 4, __ev)
+#define TPDATA_FLAGS_GET(__u64, __ev)	U64_BITS_GET(__u64, (40 + (4 * (__ev))), 4)
 #define TPDATA_FLAGS_SET(__u64, __ev, __fl)				\
-    U64_BITS_SET(__u64, (35 + (3 * (__ev))), 3, __fl)
+    U64_BITS_SET(__u64, (40 + (4 * (__ev))), 4, __fl)
 #define TPDATA_EV_FL_SET(__u64, __ev, __fl) {				\
     TPDATA_EVENT_SET(__u64, __ev);					\
     TPDATA_FLAGS_SET(__u64, __ev, __fl);				\
 }
-#define TPDATA_F_DISABLED		(((uint64_t)1) << 63) /* Make sure that disabled event never call cb func. */
+#define TPDATA_F_DISABLED		(((uint64_t)1) << 36) /* Make sure that disabled event never call cb func. */
 
 #endif /* Linux specific code. */
 
