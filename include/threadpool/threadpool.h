@@ -112,8 +112,8 @@ typedef struct thread_pool_udata_s { /* Thread pool ident and opaque user data. 
 	size_t		size;	/* Some size. */
 	/* Internal data, do not use!!! */
 	tpt_p		tpt;	/* Pointer to thread data. */
-	uint64_t	tpdata;	/* Linux: timer - timer file handle;
-				 * read/write/timer - event: TP_EV_*;
+	uint64_t	tpdata;	/* Linux: timer/proc - timer file handle;
+				 * read/write/timer/proc - event: TP_EV_*;
 				 * TP_F_* flags. */
 	/* Opaque user data ... */
 } tp_udata_t;

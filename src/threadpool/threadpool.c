@@ -646,6 +646,9 @@ tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
 	    NULL == ev ||
 	    NULL == tp_udata)
 		return (EINVAL);
+	if ((TP_CTL_DEL == op || TP_CTL_DISABLE == op) &&
+	    TPDATA_EVENT_GET(tp_udata->tpdata) != ev->event)
+		return (EINVAL);
 
 	epev.events = (EPOLLHUP | EPOLLERR);
 	epev.data.ptr = (void*)tp_udata;
@@ -1499,7 +1502,7 @@ tpt_ev_validate(int op, tp_event_p ev, tp_udata_p tp_udata) {
 			return (EINVAL); /* Invalid fflags: some unknown bits is set. */
 		break;
 	case TP_EV_TIMER:
-		if (op == TP_CTL_ADD && 0 == ev->data)
+		if ((TP_CTL_ADD == op || TP_CTL_ENABLE == op) && 0 == ev->data)
 			return (EINVAL); /* Timer interval cannot be zero. */
 #if defined(TP_F_EDGE) && 0 /* XXX: check this. */
 		if (0 != (TP_F_EDGE & ev->flags))
