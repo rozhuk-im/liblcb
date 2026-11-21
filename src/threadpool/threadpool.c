@@ -784,7 +784,7 @@ err_out_proc:
 	TPDATA_EV_FL_SET(tp_udata->tpdata, ev->event, ev->flags); /* Remember original event and flags. */
 	if (TP_CTL_DISABLE == op) { /* Disable event. */
 		tp_udata->tpdata |= TPDATA_F_DISABLED;
-		epev.events |= EPOLLET; /* Mark as level trig, to only once report HUP/ERR. */
+		epev.events |= EPOLLET; /* Mark as edge-triggered, to only once report HUP/ERR. */
 	} else {
 		tp_udata->tpdata &= ~TPDATA_F_DISABLED;
 		epev.events |= tp_event_to_ep_map[ev->event];
