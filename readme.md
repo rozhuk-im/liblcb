@@ -38,8 +38,8 @@ Support the author
 ```
 mkdir -p build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_LIBLCB_TESTS=1 ..
-cmake --build . --config Release -j 16
-ctest -C Release --output-on-failure -j 16
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="-g3 -ggdb -O0 -DDEBUG" -DENABLE_LIBLCB_TESTS=1 ..
+cmake --build . --config Debug -j 16
+ctest -C Debug --output-on-failure -j 16
 ```
 
