@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2024 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -395,7 +395,7 @@ tp_task_restart(tp_task_p tptask) {
 	    tptask->event_flags, &tptask->tp_data);
 	if (0 != error)	{ /* Error, remove timer. */
 		debugd_break();
-		tpt_ev_del_args1(TP_EV_TIMER, &tptask->tp_data);
+		tpt_ev_del_args1(TP_EV_TIMER, &tptask->tp_timer);
 	}
 	return (error);
 }
@@ -428,7 +428,7 @@ tp_task_enable(tp_task_p tptask, int enable) {
 	error = tpt_ev_enable_args1(enable, tptask->event, &tptask->tp_data);
 	if (0 != error) {
 		debugd_break();
-		tpt_ev_enable_args1(0, TP_EV_TIMER, &tptask->tp_data);
+		tpt_ev_enable_args1(0, TP_EV_TIMER, &tptask->tp_timer);
 	}
 	return (error);
 }
@@ -456,8 +456,7 @@ tp_task_handler_pre_int(tp_event_p ev, tp_udata_p tp_udata,
 		if (0 != (TP_F_ONESHOT & (*tptask)->event_flags)) {
 			tpt_ev_del_args1(TP_EV_TIMER, &(*tptask)->tp_timer);
 		} else {
-			tpt_ev_enable_args1(0, TP_EV_TIMER,
-			    &(*tptask)->tp_timer);
+			tpt_ev_enable_args1(0, TP_EV_TIMER, &(*tptask)->tp_timer);
 		}
 	}
 	(*data2transfer_size) = (size_t)ev->data;
