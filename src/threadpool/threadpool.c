@@ -1114,17 +1114,17 @@ tp_shutdown(tp_p tp) {
 	if (0 != tp->shutdown)
 		return;
 	tp->shutdown ++;
-	/* Private virtual thread. */
-	tp->pvt->state = TP_THREAD_STATE_STOP;
-	if (NULL != tp->params.tpt_on_stop) {
-		tp->params.tpt_on_stop(tp->pvt);
-	}
 	/* Shutdown threads. */
 	for (size_t i = 0; i < tp->threads_max; i ++) {
 		if (0 == tpt_is_running(&tp->threads[i]))
 			continue;
 		tpt_msg_send(&tp->threads[i], NULL, 0,
 		    tpt_msg_shutdown_cb, NULL);
+	}
+	/* Private virtual thread. */
+	tp->pvt->state = TP_THREAD_STATE_STOP;
+	if (NULL != tp->params.tpt_on_stop) {
+		tp->params.tpt_on_stop(tp->pvt);
 	}
 }
 
