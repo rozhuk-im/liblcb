@@ -477,26 +477,22 @@ tpt_loop(tpt_p tpt) {
 		}
 		if (NULL == kev.udata) {
 			syslog(LOG_DEBUG, "kevent with invalid user data, ident = %zu.", kev.ident);
-			debugd_break();
 			continue;
 		}
 		tp_udata = (tp_udata_p)kev.udata;
 		if (tp_udata->ident != kev.ident) {
 			syslog(LOG_DEBUG, "kevent with invalid ident, kq_ident = %zu, thr_ident = %zu.",
 			    kev.ident, tp_udata->ident);
-			debugd_break();
 			continue;
 		}
 		if (tp_udata->tpt != tpt &&
 		    tp_udata->tpt != pvt) {
 			syslog(LOG_DEBUG, "kevent with invalid tpt, tpt = %zu, thr_tpt = %zu.",
 			    (size_t)tpt, (size_t)tp_udata->tpt);
-			debugd_break();
 			//continue;
 		}
 		if (NULL == tp_udata->cb_func) {
 			syslog(LOG_DEBUG, "kevent with invalid user cb_func, ident = %zu.", kev.ident);
-			debugd_break();
 			continue;
 		}
 		/* Translate kq event to thread poll event. */
@@ -526,7 +522,6 @@ tpt_loop(tpt_p tpt) {
 		default:
 			syslog(LOG_DEBUG, "kevent with invalid filter = %i, ident = %zu.",
 			    kev.filter, kev.ident);
-			debugd_break();
 			continue;
 		}
 		ev.data = (uint64_t)kev.data;
@@ -854,13 +849,11 @@ tpt_loop(tpt_p tpt) {
 			if (EINTR == errno)
 				continue; /* Non fatal error. */
 			SYSLOG_ERR(LOG_ERR, errno, "epoll_wait().");
-			debugd_break();
 			break;
 		}
 		/* Single event. */
 		if (NULL == epev.data.ptr) {
 			syslog(LOG_DEBUG, "epoll event with invalid user data, epev.data.ptr = NULL");
-			debugd_break();
 			continue;
 		}
 		tp_udata = (tp_udata_p)epev.data.ptr;
@@ -876,7 +869,6 @@ tpt_loop(tpt_p tpt) {
 				syslog(LOG_DEBUG, "epoll event with invalid "
 				    "user cb_func, epev.data.u64 = %"PRIu64,
 				    epev.data.u64);
-				debugd_break();
 				continue;
 			}
 		}
