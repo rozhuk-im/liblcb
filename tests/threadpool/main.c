@@ -33,18 +33,17 @@
 #include <sys/types.h>
 #include <sys/time.h> /* For getrusage. */
 #include <sys/resource.h>
-#include <sys/fcntl.h> /* open, fcntl */
 
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h> /* snprintf, fprintf */
 #include <unistd.h> /* close, write, sysconf */
+#include <fcntl.h> /* open, fcntl */
 #include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <errno.h>
 #include <err.h>
 #include <syslog.h>
 #include <spawn.h>
-#include <fcntl.h>
 
 #include <CUnit/Automated.h>
 #include <CUnit/Basic.h>

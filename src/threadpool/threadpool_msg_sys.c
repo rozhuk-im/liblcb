@@ -30,11 +30,11 @@
 
 #include <sys/param.h>
 #include <sys/types.h>
-#include <sys/fcntl.h> /* open, fcntl */
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <unistd.h> /* close, write, sysconf */
 #include <string.h> /* memcpy, memmove, memset, strerror... */
+#include <fcntl.h> /* open, fcntl */
 #include <errno.h>
 #include <sched.h>
 

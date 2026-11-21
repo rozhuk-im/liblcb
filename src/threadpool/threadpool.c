@@ -52,13 +52,13 @@
 #endif /* Linux specific code. */
 
 #include <sys/queue.h>
-#include <sys/fcntl.h> /* open, fcntl */
 #include <inttypes.h>
 #include <stdlib.h> /* malloc, exit */
 #include <stdio.h>  /* snprintf, fprintf */
 #include <unistd.h> /* close, write, sysconf */
 #include <string.h> /* memcpy, memmove, memset, strerror... */
 #include <strings.h> /* explicit_bzero */
+#include <fcntl.h> /* open, fcntl */
 #include <errno.h>
 #include <signal.h>
 #include <pthread.h>
