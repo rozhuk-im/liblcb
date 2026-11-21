@@ -58,7 +58,6 @@ typedef struct thread_pool_event_s { /* Thread pool event. */
 #define TP_EV_TIMER	2 /* EVFILT_TIMER	TP_EV_READ + timerfd_create */
 #define TP_EV_PROC	3 /* EVFILT_PROC	TP_EV_READ + pidfd_open */
 #define TP_EV_LAST	TP_EV_PROC
-#define TP_EV_MASK	0x0003u /* For internal use: event set mask. */
 
 /* Event flags. */
 /* Only for set.	val			FreeBSD			__linux__ */
