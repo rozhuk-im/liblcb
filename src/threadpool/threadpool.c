@@ -185,9 +185,10 @@ typedef struct thread_pool_thread_s { /* thread pool thread info */
 } tp_thread_t;
 
 #define TP_THREAD_STATE_STOP		0
-#define TP_THREAD_STATE_STOPPING	1
-#define TP_THREAD_STATE_STARTING	2
-#define TP_THREAD_STATE_RUNNING		3
+#define TP_THREAD_STATE_STARTING	1
+#define TP_THREAD_STATE_RUNNING		2
+#define TP_THREAD_STATE_SHUTTING_DOWN1	3
+#define TP_THREAD_STATE_SHUTTING_DOWN2	4
 
 
 typedef struct thread_pool_s { /* thread pool */
@@ -1106,7 +1107,7 @@ err_out:
 static void
 tpt_msg_shutdown_cb(tpt_p tpt, void *udata __unused) {
 
-	tpt->state = TP_THREAD_STATE_STOPPING;
+	tpt->state = TP_THREAD_STATE_SHUTTING_DOWN1;
 }
 void
 tp_shutdown(tp_p tp) {
@@ -1143,14 +1144,18 @@ tp_shutdown_wait(tp_p tp) {
 		return (EDEADLK);
 
 	for (size_t i = 0; i < tp->threads_max; i ++) {
-		if (TP_THREAD_STATE_STOP == tp->threads[i].state) { /* Thread already in stop state, cleanup. */
+		if (TP_THREAD_STATE_STOP == tp->threads[i].state)
+			continue;
+		if (TP_THREAD_STATE_SHUTTING_DOWN2 == tp->threads[i].state) { /* Thread already in stop state, cleanup. */
 			pthread_detach(tp->threads[i].pt_id);
 			memset(&tp->threads[i].pt_id, 0x00, sizeof(pthread_t));	
+			tp->threads[i].state = TP_THREAD_STATE_STOP;
 			continue;
 		}
 		/* Wait for thread exit. */
 		error = pthread_join(tp->threads[i].pt_id, NULL);
 		memset(&tp->threads[i].pt_id, 0x00, sizeof(pthread_t));	
+		tp->threads[i].state = TP_THREAD_STATE_STOP;
 		switch (error) {
 		case 0: /* No error. */
 			break;
@@ -1159,7 +1164,6 @@ tp_shutdown_wait(tp_p tp) {
 		case EOPNOTSUPP: /* Probably other thread also call this right now. */
 			/* FreeBSD specific. */
 		default:
-			tp->threads[i].state = TP_THREAD_STATE_STOP;
 			err_cnt ++;
 			break;
 		}
@@ -1303,7 +1307,7 @@ tp_thread_proc(void *data) {
 
 	pthread_setspecific(tp_tls_key_tpt, NULL);
 	pthread_self_name_set(NULL);
-	tpt->state = TP_THREAD_STATE_STOP; /* Reset state on exit. */
+	tpt->state = TP_THREAD_STATE_SHUTTING_DOWN2; /* Reset state on exit. */
 	tpt->tp->threads_cnt --;
 	syslog(LOG_INFO, "%s thread exited...", thr_name);
 
