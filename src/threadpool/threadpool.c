@@ -169,7 +169,6 @@ static const uint32_t tp_event_to_ep_map[] = {
 
 typedef struct thread_pool_thread_s { /* thread pool thread info */
 	volatile size_t state;		/* State: TP_THREAD_STATE_*. */
-	volatile size_t tick_cnt;	/* For detecting hangs thread. */
 	uintptr_t	io_fd;		/* IO handle: kqueue (per thread). */
 #ifdef BSD /* BSD specific code. */
 	int		ev_nchanges;	/* Passed to kevent. */
@@ -448,7 +447,6 @@ tpt_loop(tpt_p tpt) {
 
 	/* Main loop. */
 	while (TP_THREAD_STATE_RUNNING == tpt->state) {
-		tpt->tick_cnt ++; /* Tic-toc. */
 		cnt = kevent((int)tpt->io_fd, tpt->ev_changelist, 
 		    tpt->ev_nchanges, &kev, 1, NULL /* Infinite wait. */);
 		if (0 != tpt->ev_nchanges) {
@@ -842,7 +840,6 @@ tpt_loop(tpt_p tpt) {
 	pvt = tp->pvt;
 	/* Main loop. */
 	while (TP_THREAD_STATE_RUNNING == tpt->state) {
-		tpt->tick_cnt ++; /* Tic-toc. */
 		cnt = epoll_wait((int)tpt->io_fd, &epev, 1, -1 /* infinite wait. */);
 		if (0 == cnt) /* Timeout. */
 			continue;
