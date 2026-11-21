@@ -163,7 +163,7 @@ int	tp_create(tp_settings_p s, tp_params_p p, tp_p *ptp);
 
 /* tp_shutdown() can be called by one of thread pool thread. */
 void	tp_shutdown(tp_p tp);
-/* Next 2 functions can be called by thread pool thread due to deadlock. */
+/* Next 2 functions can not be called by thread pool thread due to deadlock. */
 int	tp_shutdown_wait(tp_p tp); /* Wait for all threads before return. */
 int	tp_destroy(tp_p tp);
 

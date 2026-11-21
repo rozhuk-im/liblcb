@@ -3,8 +3,8 @@
   <Project Name="lib" Path="lib.project" Active="No"/>
   <VirtualDirectory Name="test">
     <Project Name="test-base64" Path="tests/base64/test-base64.project" Active="No"/>
-    <Project Name="test-ecdsa" Path="tests/ecdsa/test-ecdsa.project" Active="No"/>
-    <Project Name="test-threadpool" Path="tests/threadpool/test-threadpool.project" Active="Yes"/>
+    <Project Name="test-ecdsa" Path="tests/ecdsa/test-ecdsa.project" Active="Yes"/>
+    <Project Name="test-threadpool" Path="tests/threadpool/test-threadpool.project" Active="No"/>
     <Project Name="test-hash" Path="tests/hash/test-hash.project" Active="No"/>
   </VirtualDirectory>
   <BuildMatrix>
