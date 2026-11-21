@@ -796,16 +796,18 @@ err_out_proc:
 	case TP_EV_READ:
 		if (0 != (TP_FF_RW_LOWAT & ev->fflags)) {
 			lowat = ((0 == ev->data) ? 1 : ev->data); /* LOWAT can not be 0. */
-			setsockopt((int)tp_udata->ident, SOL_SOCKET, SO_RCVLOWAT,
-			    &lowat, sizeof(uint32_t));
+			if (0 != setsockopt((int)tp_udata->ident, SOL_SOCKET, SO_RCVLOWAT,
+			    &lowat, sizeof(uint32_t)))
+				return (errno);
 		}
 		break;
 	case TP_EV_WRITE:
 #if 0		/* Linux allways fail on set SO_SNDLOWAT. May be in future. */
 		if (0 != (TP_FF_RW_LOWAT & ev->fflags)) {
 			lowat = ((0 == ev->data) ? 1 : ev->data); /* LOWAT can not be 0. */
-			setsockopt((int)tp_udata->ident, SOL_SOCKET, SO_SNDLOWAT,
-			    &lowat, sizeof(uint32_t))
+			if (0 != setsockopt((int)tp_udata->ident, SOL_SOCKET, SO_SNDLOWAT,
+			    &lowat, sizeof(uint32_t)))
+				return (errno);
 		}
 #endif
 		break;
