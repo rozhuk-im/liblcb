@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2011-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1087,7 +1087,6 @@ http_srv_new_conn_cb(tp_task_p tptask __unused, int error, uintptr_t skt,
 	return (TP_TASK_CB_CONTINUE);
 }
 
-
 /* http request from client is received now, process it. */
 static int
 http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
@@ -1097,6 +1096,7 @@ http_srv_recv_done_cb(tp_task_p tptask, int error, io_buf_p buf,
 	http_srv_p srv;
 	char straddr[STR_ADDR_LEN];
 	const uint8_t *ptm;
+	io_buf_p rcv_buf_old;
 	uint16_t host_port;
 	size_t i, tm;
 	int action;
@@ -1166,10 +1166,26 @@ continue_recv:
 		tm = (IO_BUF_TR_SIZE_GET(buf) + buf->used);
 		if (tm > srv->s.rcv_io_buf_max_size)
 			goto drop_cli_without_hdr; /* Request too big. */
+		rcv_buf_old = cli->rcv_buf;
 		error = io_buf_realloc(&cli->rcv_buf, 0, tm);
 		if (0 != error)
 			goto err_out;
+		/* Make sure that req pointers is correct. */
 		buf = cli->rcv_buf;
+		if (cli->req.hdr != buf->data) {
+			if (cli->buf == rcv_buf_old) { /* cli->buf aliased the receive buffer. */
+				cli->buf = cli->rcv_buf;
+			}
+			cli->req.line.method = ptr_rebase(cli->req.hdr, buf->data, cli->req.line.method);
+			cli->req.line.uri = ptr_rebase(cli->req.hdr, buf->data, cli->req.line.uri);
+			cli->req.line.scheme = ptr_rebase(cli->req.hdr, buf->data, cli->req.line.scheme);
+			cli->req.line.host = ptr_rebase(cli->req.hdr, buf->data, cli->req.line.host);
+			cli->req.line.abs_path = ptr_rebase(cli->req.hdr, buf->data, cli->req.line.abs_path);
+			cli->req.line.query = ptr_rebase(cli->req.hdr, buf->data, cli->req.line.query);
+			cli->req.data = ptr_rebase(cli->req.hdr, buf->data, cli->req.data);
+			cli->req.host = ptr_rebase(cli->req.hdr, buf->data, cli->req.host);
+			cli->req.hdr = buf->data;
+		}
 		tp_task_buf_set(tptask, cli->rcv_buf);
 		return (TP_TASK_CB_CONTINUE); /* Continue receive. */
 	}

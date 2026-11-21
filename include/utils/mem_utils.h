@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2004-2025 Rozhuk Ivan <rozhuk.im@gmail.com>
+ * Copyright (c) 2004-2026 Rozhuk Ivan <rozhuk.im@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,17 @@
 #include <strings.h> /* strncasecmp() */
 #include "al/os.h"
 
+
+static inline const void *
+ptr_rebase(const void *oldp, const void *newp, const void *whatp) {
+	const uintptr_t *old_ptr = (const uintptr_t*)oldp;
+	const uintptr_t *new_ptr = (const uintptr_t*)newp;
+	const uintptr_t *what_ptr = (const uintptr_t*)whatp;
+
+	if (old_ptr > new_ptr)
+		return ((what_ptr - (old_ptr - new_ptr)));
+	return (what_ptr + (new_ptr - old_ptr));
+}
 
 ////////////////////////////////////////////////////////////////////////
 //////////////////////// Find byte in memory. //////////////////////////
