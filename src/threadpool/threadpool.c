@@ -1043,7 +1043,8 @@ tp_init(void) {
 int
 tp_create(tp_settings_p s, tp_params_p p, tp_p *ptp) {
 	int error, cur_cpu;
-	size_t i, cpu_count;
+	size_t i;
+	long cpu_count, fd_count;
 	tp_p tp;
 	tp_settings_t s_def;
 
@@ -1055,6 +1056,15 @@ tp_create(tp_settings_p s, tp_params_p p, tp_p *ptp) {
 
 	if (NULL == ptp)
 		return (EINVAL);
+	/* Read system limits. */
+	cpu_count = sysconf(_SC_NPROCESSORS_CONF);
+	fd_count = sysconf(_SC_OPEN_MAX);
+	if (-1 == cpu_count || -1 == fd_count) {
+		error = errno;
+		SYSLOG_ERR(LOG_CRIT, error, "sysconf().");
+		return (error);
+	}
+
 	if (NULL == s) {
 		tp_settings_def(&s_def);
 	} else {
@@ -1062,18 +1072,14 @@ tp_create(tp_settings_p s, tp_params_p p, tp_p *ptp) {
 	}
 	s = &s_def;
 
-	cpu_count = (size_t)sysconf(_SC_NPROCESSORS_CONF);
-	if ((size_t)-1 == cpu_count) {
-		cpu_count = 1; /* At least 1 processor available. */
-	}
 	if (0 == s->threads_max) {
-		s->threads_max = cpu_count;
+		s->threads_max = (size_t)cpu_count;
 	}
 	tp = (tp_p)calloc(1, (sizeof(tp_t) + ((s->threads_max + 1) * sizeof(tp_thread_t))));
 	if (NULL == tp)
 		return (ENOMEM);
-	tp->cpu_count = cpu_count;
-	tp->fd_count = (uintptr_t)getdtablesize();
+	tp->cpu_count = (size_t)cpu_count;
+	tp->fd_count = (uintptr_t)fd_count;
 	if (NULL != p) {
 		memcpy(&tp->params, p, sizeof(tp->params));
 	} else {
@@ -1094,7 +1100,7 @@ tp_create(tp_settings_p s, tp_params_p p, tp_p *ptp) {
 
 	for (i = 0, cur_cpu = 0; i < tp->threads_max; i ++, cur_cpu ++) {
 		if (0 != (TP_S_F_BIND2CPU & s->flags)) {
-			if ((size_t)cur_cpu >= cpu_count) {
+			if ((size_t)cur_cpu >= (size_t)cpu_count) {
 				cur_cpu = 0;
 			}
 		} else {
