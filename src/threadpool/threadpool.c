@@ -643,7 +643,7 @@ epoll_ctl_ex(int epfd, int op, int fd, struct epoll_event *event) {
 
 static int
 tpt_ev_post(int op, tp_event_p ev, tp_udata_p tp_udata) {
-	int error = 0, tfd, op_guess;
+	int error = 0, tfd, cf, tf, op_guess;
 	uint32_t lowat;
 	struct itimerspec new_tmr;
 	struct epoll_event epev;
@@ -752,8 +752,15 @@ err_out_proc:
 			tfd = pidfd_open(tp_udata->ident, PIDFD_NONBLOCK);
 			if (-1 == tfd)
 				return (errno);
-			if (0 != (TP_P_F_CLOEXEC & tp_udata->tpt->tp->params.flags)) {
-				if (-1 == fcntl(tfd, F_SETFD, (FD_CLOEXEC | O_NONBLOCK))) {
+			/* CLOEXEC. */
+			cf = fcntl(tfd, F_GETFD); /* Read current flags. */
+			if (-1 == cf) {
+				error = errno;
+				goto err_out_proc;
+			}
+			tf = ((0 != (TP_P_F_CLOEXEC & tp_udata->tpt->tp->params.flags)) ? (cf | FD_CLOEXEC) : (cf & ~FD_CLOEXEC));
+			if (cf != tf) {
+				if (-1 == fcntl(tfd, F_SETFD, tf)) { /* Update flags. */
 					error = errno;
 					goto err_out_proc;
 				}
