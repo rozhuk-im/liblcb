@@ -119,10 +119,6 @@ typedef struct thread_pool_udata_s { /* Thread pool ident and opaque user data. 
 } tp_udata_t;
 
 
-int	tp_signal_handler_add_tp(tp_p tp);
-void	tp_signal_handler(int sig);
-
-
 #define TP_NAME_SIZE		16
 typedef struct thread_pool_params_s { /* Params. */
 	char		name[TP_NAME_SIZE]; /* Thread pool name. Used as prefix for threads names. */

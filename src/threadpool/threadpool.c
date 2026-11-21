@@ -83,7 +83,6 @@
 /* Initialize Thread Local Storage. */
 static pthread_key_t tp_tls_key_tpt;
 static int tp_tls_key_tpt_error = EAGAIN;
-static tp_p g_tp = NULL;
 
 
 /* Operation. */
@@ -947,32 +946,6 @@ tpt_loop(tpt_p tpt) {
 /*
  * Shared code.
  */
-int
-tp_signal_handler_add_tp(tp_p tp) {
-	
-	/* XXX: need modify to handle multiple threads pools. */
-	g_tp = tp;
-	
-	return (0);
-}
-
-void
-tp_signal_handler(int sig) {
-
-	switch (sig) {
-	case SIGINT:
-	case SIGTERM:
-		tp_shutdown(g_tp);
-		g_tp = NULL;
-		break;
-	case SIGHUP:
-	case SIGUSR1:
-	case SIGUSR2:
-		break;
-	}
-}
-
-
 void
 tp_settings_def(tp_settings_p s_ret) {
 
