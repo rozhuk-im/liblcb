@@ -1085,6 +1085,7 @@ tp_create(tp_settings_p s, tp_params_p p, tp_p *ptp) {
 	tp->fd_count = (uintptr_t)fd_count;
 	if (NULL != p) {
 		memcpy(&tp->params, p, sizeof(tp->params));
+		tp->params.name[(sizeof(tp->params.name) - 1)] = 0; /* Make sure that name is /0 terminated. */
 	} else {
 		strlcpy(tp->params.name, "TP", sizeof(tp->params.name));
 	}
