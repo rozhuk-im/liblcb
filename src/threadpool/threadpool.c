@@ -1377,6 +1377,9 @@ tp_thread_get_pvt(tp_p tp) {
 
 tpt_p
 tpt_get_current(void) {
+
+	if (0 != tp_tls_key_tpt_error)
+		return (NULL);
 	/* TLS magic. */
 	return ((tpt_p)pthread_getspecific(tp_tls_key_tpt));
 }
