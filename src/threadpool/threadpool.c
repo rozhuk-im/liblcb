@@ -628,6 +628,8 @@ epoll_ctl_ex(int epfd, int op, int fd, struct epoll_event *event) {
 	case EPOLL_CTL_DEL:
 		if (0 == epoll_ctl(epfd, EPOLL_CTL_DEL, fd, event))
 			return (0);
+		if (ENOENT == errno)
+			return (0);
 		break;
 	default:
 		return (EINVAL);
